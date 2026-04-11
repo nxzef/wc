@@ -1,5 +1,12 @@
 package com.nxzef.wc.data.db
 
+import com.nxzef.wc.data.db.tables.BookingsTable
+import com.nxzef.wc.data.db.tables.InvoicesTable
+import com.nxzef.wc.data.db.tables.LeadsTable
+import com.nxzef.wc.data.db.tables.NotificationsTable
+import com.nxzef.wc.data.db.tables.QuoteItemsTable
+import com.nxzef.wc.data.db.tables.QuotesTable
+import com.nxzef.wc.data.db.tables.TasksTable
 import com.nxzef.wc.data.db.tables.UsersTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -26,9 +33,18 @@ object DatabaseFactory {
         Database.connect(HikariDataSource(config))
 
         transaction {
-            SchemaUtils.create(UsersTable)
+            SchemaUtils.create(
+                UsersTable,
+                LeadsTable,
+                QuotesTable,
+                QuoteItemsTable,
+                BookingsTable,
+                InvoicesTable,
+                TasksTable,
+                NotificationsTable
+            )
         }
 
-        println("✅ Database connected and tables created")
+        println("\uD83D\uDFE2 Database connected and tables created")
     }
 }
