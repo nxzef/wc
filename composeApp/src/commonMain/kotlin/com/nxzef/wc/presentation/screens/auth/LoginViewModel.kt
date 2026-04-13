@@ -4,41 +4,58 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.data.remote.ApiService
 import com.nxzef.wc.data.session.SessionManager
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
     private val apiService: ApiService
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<LoginState>(LoginState.Idle)
-    val state: StateFlow<LoginState> = _state
+    private val _state = MutableStateFlow(LoginScreenState())
+    val state: StateFlow<LoginScreenState> = _state.asStateFlow()
 
-    val email    = MutableStateFlow("")
-    val password = MutableStateFlow("")
+    private val _uiEvent = Channel<LoginUiEvent>()
+    val uiEvent = _uiEvent.receiveAsFlow()
 
-    fun onEmailChange(value: String)    { email.value = value }
-    fun onPasswordChange(value: String) { password.value = value }
+    fun onAction(action: LoginAction) {
+        when (action) {
+            is LoginAction.EmailChanged -> {
+                _state.update { it.copy(email = action.email) }
+            }
+            is LoginAction.PasswordChanged -> {
+                _state.update { it.copy(password = action.password) }
+            }
+            LoginAction.Login -> login()
+        }
+    }
 
-    fun login() {
-        if (email.value.isBlank() || password.value.isBlank()) {
-            _state.value = LoginState.Error("Please fill all fields")
+    private fun login() {
+        val currentState = _state.value
+        val email = currentState.email.trim()
+        val password = currentState.password.trim()
+
+        if (email.isBlank() || password.isBlank()) {
+            viewModelScope.launch {
+                _uiEvent.send(LoginUiEvent.ShowSnackbar("Please fill all fields"))
+            }
             return
         }
+
         viewModelScope.launch {
-            _state.value = LoginState.Loading
+            _state.update { it.copy(isLoading = true) }
             try {
-                val response = apiService.login(
-                    email.value.trim(),
-                    password.value.trim()
-                )
+                val response = apiService.login(email, password)
                 SessionManager.save(response.token, response.user)
-                _state.value = LoginState.Success(response.user.role)
+                _uiEvent.send(LoginUiEvent.NavigateToHome(response.user.role))
             } catch (e: Exception) {
-                _state.value = LoginState.Error(
-                    e.message ?: "Login failed"
-                )
+                _uiEvent.send(LoginUiEvent.ShowSnackbar(e.message ?: "Login failed"))
+            } finally {
+                _state.update { it.copy(isLoading = false) }
             }
         }
     }

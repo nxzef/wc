@@ -76,6 +76,7 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation" }
 # Material Icons
 material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version = "2.0.17" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
