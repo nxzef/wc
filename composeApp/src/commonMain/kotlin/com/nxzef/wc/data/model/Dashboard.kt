@@ -26,7 +26,10 @@ data class Lead(
     val eventDate: String? = null,
     val location: String? = null,
     val status: String,
+    val lostReason: String? = null,
     val notes: String? = null,
+    val addedBy: String,
+    val assignedTo: String,
     val createdAt: String
 )
 

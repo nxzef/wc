@@ -1,28 +1,24 @@
 package com.nxzef.wc.presentation.navigation
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.nxzef.wc.data.model.UserRole
 import com.nxzef.wc.data.session.SessionManager
+import com.nxzef.wc.presentation.components.WCPermanentSidebar
+import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
 import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
+import com.nxzef.wc.presentation.screens.leads.LeadPipelineScreen
 import com.nxzef.wc.presentation.theme.WCTheme
 
 @Composable
@@ -33,10 +29,8 @@ fun WCNavigation() {
         Surface {
             NavHost(
                 navController = navController,
-                startDestination = Route.Login,
-
-                ) {
-                // Login Screen
+                startDestination = Route.Login
+            ) {
                 composable<Route.Login> {
                     LoginScreen(
                         onLoginSuccess = { role ->
@@ -47,58 +41,79 @@ fun WCNavigation() {
                                 UserRole.PHOTOGRAPHER -> Route.MyShoots
                                 UserRole.EDITOR -> Route.EditingQueue
                             }
-
                             navController.navigate(destination) {
-                                // Pop up to Login to remove it from history
                                 popUpTo<Route.Login> { inclusive = true }
                             }
                         }
                     )
                 }
 
-                // Owner Dashboard
                 composable<Route.OwnerDashboard> {
                     DashboardScreen(
+                        currentRoute = Route.OwnerDashboard,
+                        onNavigate = { navController.navigate(it) },
                         onLogout = { handleLogout(navController) }
                     )
                 }
 
-                // Lead Pipeline
                 composable<Route.LeadPipeline> {
-                    PlaceholderScreen(
-                        title = "🔥 Lead Pipeline",
-                        subtitle = "Welcome, ${SessionManager.currentUser?.name}!",
-                        role = SessionManager.currentUser?.role?.name ?: "",
+                    LeadPipelineScreen(
+                        currentRoute = Route.LeadPipeline,
+                        onNavigate = { navController.navigate(it) },
                         onLogout = { handleLogout(navController) }
                     )
                 }
 
-                // Marketing
                 composable<Route.Marketing> {
                     PlaceholderScreen(
                         title = "📣 Marketing",
-                        subtitle = "Welcome, ${SessionManager.currentUser?.name}!",
-                        role = SessionManager.currentUser?.role?.name ?: "",
+                        currentRoute = Route.Marketing,
+                        onNavigate = { navController.navigate(it) },
                         onLogout = { handleLogout(navController) }
                     )
                 }
 
-                // My Shoots
                 composable<Route.MyShoots> {
                     PlaceholderScreen(
                         title = "📸 My Shoots",
-                        subtitle = "Welcome, ${SessionManager.currentUser?.name}!",
-                        role = SessionManager.currentUser?.role?.name ?: "",
+                        currentRoute = Route.MyShoots,
+                        onNavigate = { navController.navigate(it) },
                         onLogout = { handleLogout(navController) }
                     )
                 }
 
-                // Editing Queue
                 composable<Route.EditingQueue> {
                     PlaceholderScreen(
                         title = "🎨 Editing Queue",
-                        subtitle = "Welcome, ${SessionManager.currentUser?.name}!",
-                        role = SessionManager.currentUser?.role?.name ?: "",
+                        currentRoute = Route.EditingQueue,
+                        onNavigate = { navController.navigate(it) },
+                        onLogout = { handleLogout(navController) }
+                    )
+                }
+
+                composable<Route.TeamManagement> {
+                    PlaceholderScreen(
+                        title = "👥 Team Management",
+                        currentRoute = Route.TeamManagement,
+                        onNavigate = { navController.navigate(it) },
+                        onLogout = { handleLogout(navController) }
+                    )
+                }
+
+                composable<Route.Invoices> {
+                    PlaceholderScreen(
+                        title = "🧾 Invoices",
+                        currentRoute = Route.Invoices,
+                        onNavigate = { navController.navigate(it) },
+                        onLogout = { handleLogout(navController) }
+                    )
+                }
+
+                composable<Route.Settings> {
+                    PlaceholderScreen(
+                        title = "⚙️ Settings",
+                        currentRoute = Route.Settings,
+                        onNavigate = { navController.navigate(it) },
                         onLogout = { handleLogout(navController) }
                     )
                 }
@@ -110,40 +125,36 @@ fun WCNavigation() {
 @Composable
 fun PlaceholderScreen(
     title: String,
-    subtitle: String,
-    role: String,
+    currentRoute: Route,
+    onNavigate: (Route) -> Unit,
     onLogout: () -> Unit
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    WCPermanentSidebar(
+        currentRoute = currentRoute,
+        onNavigate = onNavigate,
+        onLogout = onLogout
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(text = title,    fontSize = 32.sp)
-            Text(text = subtitle, fontSize = 18.sp)
-            Text(
-                text  = "Role: $role",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onLogout) {
-                Text("Logout")
+        Column(modifier = Modifier.fillMaxSize()) {
+            WCTopBar(title = title)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Coming soon...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
 
-/**
- * Helper function to handle logout logic consistently
- */
-private fun handleLogout(navController: NavController) {
+private fun handleLogout(
+    navController: androidx.navigation.NavController
+) {
     SessionManager.clear()
     navController.navigate(Route.Login) {
-        // Clears the entire backstack so user can't go back to dashboard
         popUpTo(0) { inclusive = true }
     }
 }
