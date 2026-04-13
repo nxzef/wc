@@ -1,16 +1,24 @@
 package com.nxzef.wc.data.repository
 
 import com.nxzef.wc.data.db.tables.LeadsTable
-import com.nxzef.wc.domain.model.*
+import com.nxzef.wc.domain.model.CreateLeadRequest
+import com.nxzef.wc.domain.model.EventType
 import com.nxzef.wc.domain.model.Lead
-import org.jetbrains.exposed.sql.*
+import com.nxzef.wc.domain.model.LeadSource
+import com.nxzef.wc.domain.model.LeadStatus
+import com.nxzef.wc.domain.model.UpdateLeadStatusRequest
+import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import java.time.Instant
 import java.time.LocalDate
 
 class LeadRepository {
 
-    private fun rowToLead(row: ResultRow): Lead {
+    fun rowToLead(row: ResultRow): Lead {
         return Lead(
             id          = row[LeadsTable.id].toString(),
             fullName    = row[LeadsTable.fullName],

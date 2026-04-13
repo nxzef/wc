@@ -22,6 +22,7 @@ import androidx.navigation.compose.rememberNavController
 import com.nxzef.wc.data.model.UserRole
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
+import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
 import com.nxzef.wc.presentation.theme.WCTheme
 
 @Composable
@@ -57,10 +58,7 @@ fun WCNavigation() {
 
                 // Owner Dashboard
                 composable<Route.OwnerDashboard> {
-                    PlaceholderScreen(
-                        title = "👑 Owner Dashboard",
-                        subtitle = "Welcome, ${SessionManager.currentUser?.name}!",
-                        role = SessionManager.currentUser?.role?.name ?: "",
+                    DashboardScreen(
                         onLogout = { handleLogout(navController) }
                     )
                 }
