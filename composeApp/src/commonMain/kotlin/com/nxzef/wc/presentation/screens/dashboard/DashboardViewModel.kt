@@ -2,8 +2,8 @@ package com.nxzef.wc.presentation.screens.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nxzef.wc.data.model.DashboardStats
 import com.nxzef.wc.data.remote.ApiService
+import com.nxzef.wc.shared.model.DashboardStats
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

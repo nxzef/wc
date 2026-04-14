@@ -1,16 +1,15 @@
 package com.nxzef.wc.data.repository
 
-//import com.nxzef.wc.domain.model.*
 import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.InvoicesTable
 import com.nxzef.wc.data.db.tables.LeadsTable
-import com.nxzef.wc.domain.model.Booking
-import com.nxzef.wc.domain.model.BookingStatus
-import com.nxzef.wc.domain.model.DashboardStats
-import com.nxzef.wc.domain.model.EventType
-import com.nxzef.wc.domain.model.Lead
-import com.nxzef.wc.domain.model.LeadSource
-import com.nxzef.wc.domain.model.LeadStatus
+import com.nxzef.wc.shared.model.Booking
+import com.nxzef.wc.shared.model.BookingStatus
+import com.nxzef.wc.shared.model.DashboardStats
+import com.nxzef.wc.shared.model.EventType
+import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.model.LeadSource
+import com.nxzef.wc.shared.model.LeadStatus
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
@@ -24,11 +23,11 @@ class DashboardRepository {
     fun getStats(): DashboardStats {
         return transaction {
 
-            val now         = LocalDate.now()
-            val monthStart  = now.withDayOfMonth(1)
+            val now = LocalDate.now()
+            val monthStart = now.withDayOfMonth(1)
                 .atStartOfDay()
                 .toInstant(ZoneOffset.UTC)
-            val monthEnd    = Instant.now()
+            val monthEnd = Instant.now()
 
             // Leads this month
             val totalLeadsThisMonth = LeadsTable
@@ -92,7 +91,7 @@ class DashboardRepository {
                 }
                 .toList()
                 .sumOf { row ->
-                    val total   = row[InvoicesTable.totalAmount].toDouble()
+                    val total = row[InvoicesTable.totalAmount].toDouble()
                     val deposit = row[InvoicesTable.depositAmount].toDouble()
                     val depPaid = row[InvoicesTable.depositPaid]
                     if (depPaid) total - deposit else total
@@ -111,20 +110,20 @@ class DashboardRepository {
                 .limit(5)
                 .map { row ->
                     Lead(
-                        id         = row[LeadsTable.id].toString(),
-                        fullName   = row[LeadsTable.fullName],
-                        phone      = row[LeadsTable.phone],
-                        email      = row[LeadsTable.email],
-                        source     = LeadSource.valueOf(row[LeadsTable.leadSource]),
-                        eventType  = EventType.valueOf(row[LeadsTable.eventType]),
-                        eventDate  = row[LeadsTable.eventDate]?.toString(),
-                        location   = row[LeadsTable.location],
-                        status     = LeadStatus.valueOf(row[LeadsTable.status]),
+                        id = row[LeadsTable.id].toString(),
+                        fullName = row[LeadsTable.fullName],
+                        phone = row[LeadsTable.phone],
+                        email = row[LeadsTable.email],
+                        source = LeadSource.valueOf(row[LeadsTable.leadSource]),
+                        eventType = EventType.valueOf(row[LeadsTable.eventType]),
+                        eventDate = row[LeadsTable.eventDate]?.toString(),
+                        location = row[LeadsTable.location],
+                        status = LeadStatus.valueOf(row[LeadsTable.status]),
                         lostReason = row[LeadsTable.lostReason],
-                        notes      = row[LeadsTable.notes],
-                        addedBy    = row[LeadsTable.addedBy].toString(),
+                        notes = row[LeadsTable.notes],
+                        addedBy = row[LeadsTable.addedBy].toString(),
                         assignedTo = row[LeadsTable.assignedTo].toString(),
-                        createdAt  = row[LeadsTable.createdAt].toString()
+                        createdAt = row[LeadsTable.createdAt].toString()
                     )
                 }
 
@@ -139,30 +138,30 @@ class DashboardRepository {
                 .limit(5)
                 .map { row ->
                     Booking(
-                        id             = row[BookingsTable.id].toString(),
-                        leadId         = row[BookingsTable.leadId].toString(),
-                        quoteId        = row[BookingsTable.quoteId].toString(),
+                        id = row[BookingsTable.id].toString(),
+                        leadId = row[BookingsTable.leadId].toString(),
+                        quoteId = row[BookingsTable.quoteId].toString(),
                         photographerId = row[BookingsTable.photographerId]?.toString(),
-                        editorId       = row[BookingsTable.editorId]?.toString(),
-                        eventDate      = row[BookingsTable.eventDate].toString(),
-                        eventType      = row[BookingsTable.eventType],
-                        location       = row[BookingsTable.location],
-                        status         = BookingStatus.valueOf(row[BookingsTable.status]),
-                        notes          = row[BookingsTable.notes],
-                        createdAt      = row[BookingsTable.createdAt].toString()
+                        editorId = row[BookingsTable.editorId]?.toString(),
+                        eventDate = row[BookingsTable.eventDate].toString(),
+                        eventType = row[BookingsTable.eventType],
+                        location = row[BookingsTable.location],
+                        status = BookingStatus.valueOf(row[BookingsTable.status]),
+                        notes = row[BookingsTable.notes],
+                        createdAt = row[BookingsTable.createdAt].toString()
                     )
                 }
 
             DashboardStats(
-                totalLeadsThisMonth    = totalLeadsThisMonth,
+                totalLeadsThisMonth = totalLeadsThisMonth,
                 totalBookingsThisMonth = totalBookingsThisMonth,
-                totalRevenueThisMonth  = totalRevenueThisMonth,
-                pendingPayments        = pendingPayments,
-                openLeads              = openLeads,
-                pendingDeliveries      = pendingDeliveries,
-                leadsBySource          = leadsBySource,
-                recentLeads            = recentLeads,
-                upcomingBookings       = upcomingBookings
+                totalRevenueThisMonth = totalRevenueThisMonth,
+                pendingPayments = pendingPayments,
+                openLeads = openLeads,
+                pendingDeliveries = pendingDeliveries,
+                leadsBySource = leadsBySource,
+                recentLeads = recentLeads,
+                upcomingBookings = upcomingBookings
             )
         }
     }

@@ -35,7 +35,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nxzef.wc.data.model.UserRole
+import com.nxzef.wc.shared.model.UserRole
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable

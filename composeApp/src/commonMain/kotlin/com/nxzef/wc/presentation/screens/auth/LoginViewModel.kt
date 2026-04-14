@@ -2,8 +2,7 @@ package com.nxzef.wc.presentation.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nxzef.wc.data.remote.ApiService
-import com.nxzef.wc.data.session.SessionManager
+import com.nxzef.wc.domain.repository.AuthRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
-    private val apiService: ApiService
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginScreenState())
@@ -27,9 +26,11 @@ class LoginViewModel(
             is LoginAction.EmailChanged -> {
                 _state.update { it.copy(email = action.email) }
             }
+
             is LoginAction.PasswordChanged -> {
                 _state.update { it.copy(password = action.password) }
             }
+
             LoginAction.Login -> login()
         }
     }
@@ -48,15 +49,14 @@ class LoginViewModel(
 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            try {
-                val response = apiService.login(email, password)
-                SessionManager.save(response.token, response.user)
-                _uiEvent.send(LoginUiEvent.NavigateToHome(response.user.role))
-            } catch (e: Exception) {
-                _uiEvent.send(LoginUiEvent.ShowSnackbar(e.message ?: "Login failed"))
-            } finally {
-                _state.update { it.copy(isLoading = false) }
-            }
+            authRepository.login(email, password)
+                .onSuccess { response ->
+                    _uiEvent.send(LoginUiEvent.NavigateToHome(response.user.role))
+                }
+                .onFailure { e ->
+                    _uiEvent.send(LoginUiEvent.ShowSnackbar(e.message ?: "Login failed"))
+                }
+            _state.update { it.copy(isLoading = false) }
         }
     }
 }

@@ -38,7 +38,7 @@ fun Application.configureRouting() {
         authenticate("auth-jwt") {
             get("/me") {
                 val principal = call.principal<JWTPrincipal>()
-                val role  = principal?.payload?.getClaim("role")?.asString()
+                val role = principal?.payload?.getClaim("role")?.asString()
                 val email = principal?.payload?.getClaim("email")?.asString()
                 call.respond(mapOf("email" to email, "role" to role))
             }

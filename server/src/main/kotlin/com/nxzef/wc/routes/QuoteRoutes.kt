@@ -1,14 +1,18 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.QuoteRepository
-import com.nxzef.wc.domain.model.CreateQuoteRequest
-import com.nxzef.wc.domain.model.UpdateQuoteStatusRequest
-import io.ktor.http.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import com.nxzef.wc.shared.model.CreateQuoteRequest
+import com.nxzef.wc.shared.model.UpdateQuoteStatusRequest
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 
 fun Route.quoteRoutes(quoteRepository: QuoteRepository) {
     route("/quotes") {

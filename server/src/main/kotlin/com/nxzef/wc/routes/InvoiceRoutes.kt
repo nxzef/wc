@@ -1,12 +1,16 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.InvoiceRepository
-import com.nxzef.wc.domain.model.CreateInvoiceRequest
-import com.nxzef.wc.domain.model.UpdatePaymentRequest
-import io.ktor.http.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import com.nxzef.wc.shared.model.CreateInvoiceRequest
+import com.nxzef.wc.shared.model.UpdatePaymentRequest
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 
 fun Route.invoiceRoutes(invoiceRepository: InvoiceRepository) {
     route("/invoices") {

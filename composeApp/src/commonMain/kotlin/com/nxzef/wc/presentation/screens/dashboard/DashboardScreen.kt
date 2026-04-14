@@ -37,28 +37,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nxzef.wc.data.model.Booking
-import com.nxzef.wc.data.model.DashboardStats
-import com.nxzef.wc.data.model.Lead
-import com.nxzef.wc.presentation.components.WCPermanentSidebar
+import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.components.WCTopBar
-import com.nxzef.wc.presentation.navigation.Route
+import com.nxzef.wc.shared.model.Booking
+import com.nxzef.wc.shared.model.DashboardStats
+import com.nxzef.wc.shared.model.Lead
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun DashboardScreen(
-    currentRoute: Route,
-    onNavigate: (Route) -> Unit,
-    onLogout: () -> Unit,
-    viewModel: DashboardViewModel = koinViewModel()
+    viewModel: DashboardViewModel = koinViewModel(),
+    sessionManager: SessionManager = koinInject()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val user by sessionManager.currentUser.collectAsStateWithLifecycle()
 
-    WCPermanentSidebar(
-        currentRoute = currentRoute,
-        onNavigate = onNavigate,
-        onLogout = onLogout
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        WCTopBar(
+            title = "Dashboard",
+            subtitle = "Welcome back, ${user?.name ?: "User"}!"
+        )
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -74,7 +73,7 @@ fun DashboardScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Failed to load",
+                        text = state.error!!,
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -83,7 +82,9 @@ fun DashboardScreen(
                     }
                 }
 
-                state.stats != null -> DashboardContent(stats = state.stats!!)
+                state.stats != null -> DashboardContent(
+                    stats = state.stats!!
+                )
             }
         }
     }
@@ -97,7 +98,7 @@ fun DashboardContent(stats: DashboardStats) {
     ) {
         item {
             WCTopBar(
-                title    = "Dashboard",
+                title = "Dashboard",
                 subtitle = "Welcome back, Niyas! Here's what's happening."
             )
         }
@@ -111,31 +112,31 @@ fun DashboardContent(stats: DashboardStats) {
                 ) {
                     KpiCard(
                         modifier = Modifier.weight(1f),
-                        title    = "Revenue This Month",
-                        value    = "₹${stats.totalRevenueThisMonth.toLong()}",
-                        icon     = Icons.Default.CurrencyRupee,
-                        color    = Color(0xFF4CAF50)
+                        title = "Revenue This Month",
+                        value = "₹${stats.totalRevenueThisMonth.toLong()}",
+                        icon = Icons.Default.CurrencyRupee,
+                        color = Color(0xFF4CAF50)
                     )
                     KpiCard(
                         modifier = Modifier.weight(1f),
-                        title    = "Bookings This Month",
-                        value    = stats.totalBookingsThisMonth.toString(),
-                        icon     = Icons.Default.CalendarMonth,
-                        color    = Color(0xFF2196F3)
+                        title = "Bookings This Month",
+                        value = stats.totalBookingsThisMonth.toString(),
+                        icon = Icons.Default.CalendarMonth,
+                        color = Color(0xFF2196F3)
                     )
                     KpiCard(
                         modifier = Modifier.weight(1f),
-                        title    = "Open Leads",
-                        value    = stats.openLeads.toString(),
-                        icon     = Icons.Default.People,
-                        color    = Color(0xFFFF9800)
+                        title = "Open Leads",
+                        value = stats.openLeads.toString(),
+                        icon = Icons.Default.People,
+                        color = Color(0xFFFF9800)
                     )
                     KpiCard(
                         modifier = Modifier.weight(1f),
-                        title    = "Pending Deliveries",
-                        value    = stats.pendingDeliveries.toString(),
-                        icon     = Icons.Default.Pending,
-                        color    = Color(0xFFE91E63)
+                        title = "Pending Deliveries",
+                        value = stats.pendingDeliveries.toString(),
+                        icon = Icons.Default.Pending,
+                        color = Color(0xFFE91E63)
                     )
                 }
             }
@@ -146,25 +147,25 @@ fun DashboardContent(stats: DashboardStats) {
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors   = CardDefaults.cardColors(
+                    colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     )
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
-                        verticalAlignment     = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text       = "💸 Pending Payments",
+                            text = "💸 Pending Payments",
                             fontWeight = FontWeight.SemiBold,
-                            color      = MaterialTheme.colorScheme.onErrorContainer
+                            color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            text       = "₹${stats.pendingPayments.toLong()}",
+                            text = "₹${stats.pendingPayments.toLong()}",
                             fontWeight = FontWeight.Bold,
-                            fontSize   = 18.sp,
-                            color      = MaterialTheme.colorScheme.onErrorContainer
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onErrorContainer
                         )
                     }
                 }
@@ -175,8 +176,8 @@ fun DashboardContent(stats: DashboardStats) {
             item {
                 Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     Text(
-                        text       = "Leads by Source",
-                        style      = MaterialTheme.typography.titleMedium,
+                        text = "Leads by Source",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -192,10 +193,10 @@ fun DashboardContent(stats: DashboardStats) {
         if (stats.recentLeads.isNotEmpty()) {
             item {
                 Text(
-                    text       = "Recent Leads",
-                    style      = MaterialTheme.typography.titleMedium,
+                    text = "Recent Leads",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    modifier   = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp)
                 )
             }
             items(stats.recentLeads) { lead ->
@@ -208,10 +209,10 @@ fun DashboardContent(stats: DashboardStats) {
         if (stats.upcomingBookings.isNotEmpty()) {
             item {
                 Text(
-                    text       = "Upcoming Shoots",
-                    style      = MaterialTheme.typography.titleMedium,
+                    text = "Upcoming Shoots",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    modifier   = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp)
                 )
             }
             items(stats.upcomingBookings) { booking ->
@@ -333,7 +334,7 @@ fun RecentLeadCard(lead: Lead) {
                     )
                 }
             }
-            StatusBadge(status = lead.status)
+            StatusBadge(status = lead.status.name)
         }
     }
 }
@@ -372,7 +373,7 @@ fun UpcomingBookingCard(booking: Booking) {
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            StatusBadge(status = booking.status)
+            StatusBadge(status = booking.status.name)
         }
     }
 }

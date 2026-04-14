@@ -48,11 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nxzef.wc.data.model.Lead
-import com.nxzef.wc.presentation.components.WCPermanentSidebar
 import com.nxzef.wc.presentation.components.WCTopBar
-import com.nxzef.wc.presentation.navigation.Route
 import com.nxzef.wc.presentation.screens.dashboard.StatusBadge
+import com.nxzef.wc.shared.model.Lead
 import org.koin.compose.viewmodel.koinViewModel
 
 val PIPELINE_STAGES = listOf(
@@ -69,101 +67,77 @@ val STAGE_COLORS = mapOf(
 
 @Composable
 fun LeadPipelineScreen(
-    currentRoute: Route,
-    onNavigate: (Route) -> Unit,
-    onLogout: () -> Unit,
     viewModel: LeadPipelineViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Row(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        WCTopBar(
+            title = "Lead Pipeline",
+            subtitle = "${state.leads.size} total leads",
+            actions = {
+                Button(onClick = { /* Add lead next */ }) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Add Lead")
+                }
+            }
+        )
 
-        // Sidebar
-        WCPermanentSidebar(
-            currentRoute = currentRoute,
-            onNavigate = onNavigate,
-            onLogout = onLogout
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                WCTopBar(
-                    title = "Lead Pipeline",
-                    subtitle = "${state.leads.size} total leads",
-                    actions = {
-                        Button(
-                            onClick = { /* Add lead next */ }
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add Lead")
-                        }
-                    }
+            when {
+                state.isLoading -> CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
                 )
 
-                // Kanban board below
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp)
+                state.error != null -> Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    when {
-                        state.isLoading -> {
-                            CircularProgressIndicator(
-                                modifier = Modifier.align(Alignment.Center)
-                            )
-                        }
+                    Text(
+                        text = state.error!!,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Button(onClick = {
+                        viewModel.onAction(LeadPipelineAction.LoadLeads)
+                    }) { Text("Retry") }
+                }
 
-                        state.error != null -> {
-                            Column(
-                                modifier = Modifier.align(Alignment.Center),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = state.error!!,
-                                    color = MaterialTheme.colorScheme.error
+                else -> Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    PIPELINE_STAGES.forEach { stage ->
+                        KanbanColumn(
+                            modifier = Modifier.weight(1f),
+                            stage = stage,
+                            leads = state.leads.filter {
+                                it.status.name == stage
+                            },
+                            onLeadClick = { lead ->
+                                viewModel.onAction(
+                                    LeadPipelineAction.SelectLead(lead)
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(onClick = {
-                                    viewModel.onAction(LeadPipelineAction.LoadLeads)
-                                }) { Text("Retry") }
                             }
-                        }
-
-                        else -> {
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                PIPELINE_STAGES.forEach { stage ->
-                                    KanbanColumn(
-                                        modifier = Modifier.weight(1f),
-                                        stage = stage,
-                                        leads = state.leads.filter {
-                                            it.status == stage
-                                        },
-                                        onLeadClick = { lead ->
-                                            viewModel.onAction(
-                                                LeadPipelineAction.SelectLead(lead)
-                                            )
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                        )
                     }
                 }
             }
         }
     }
 
-    // Lead detail dialog
     state.selectedLead?.let { lead ->
         LeadDetailDialog(
             lead = lead,
@@ -267,7 +241,7 @@ fun LeadCard(lead: Lead, onClick: () -> Unit) {
                 fontSize = 13.sp
             )
             Text(
-                text = lead.eventType,
+                text = lead.eventType.name,
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -311,7 +285,7 @@ fun LeadCard(lead: Lead, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Text(
-                    text = lead.source,
+                    text = lead.source.name,
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(
@@ -344,7 +318,7 @@ fun LeadDetailDialog(
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
-                StatusBadge(status = lead.status)
+                StatusBadge(status = lead.status.name)
             }
         },
         text = {
@@ -355,14 +329,14 @@ fun LeadDetailDialog(
                 lead.email?.let {
                     DetailRow("📧 Email", it)
                 }
-                DetailRow("🎉 Event", lead.eventType)
+                DetailRow("🎉 Event", lead.eventType.name)
                 lead.eventDate?.let {
                     DetailRow("📅 Date", it)
                 }
                 lead.location?.let {
                     DetailRow("📍 Location", it)
                 }
-                DetailRow("📣 Source", lead.source)
+                DetailRow("📣 Source", lead.source.name)
 
                 HorizontalDivider()
 
@@ -383,7 +357,7 @@ fun LeadDetailDialog(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PIPELINE_STAGES.forEach { stage ->
-                        if (stage != lead.status) {
+                        if (stage != lead.status.name) {
                             val color = STAGE_COLORS[stage] ?: Color.Gray
                             OutlinedButton(
                                 onClick = {

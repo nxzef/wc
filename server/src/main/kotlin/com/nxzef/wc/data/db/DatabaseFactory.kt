@@ -21,10 +21,10 @@ object DatabaseFactory {
             ?: error("DATABASE_URL environment variable not set")
 
         val config = HikariConfig().apply {
-            jdbcUrl         = dbUrl
+            jdbcUrl = dbUrl
             driverClassName = "org.postgresql.Driver"
             maximumPoolSize = 10
-            isAutoCommit    = false
+            isAutoCommit = false
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"
             connectionTimeout = 60000
             validate()

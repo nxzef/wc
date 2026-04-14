@@ -1,6 +1,6 @@
 package com.nxzef.wc.presentation.screens.auth
 
-import com.nxzef.wc.data.model.UserRole
+import com.nxzef.wc.shared.model.UserRole
 
 /**
  * User actions triggered from the UI

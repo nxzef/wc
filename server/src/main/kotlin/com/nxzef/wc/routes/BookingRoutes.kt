@@ -1,8 +1,8 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.BookingRepository
-import com.nxzef.wc.domain.model.CreateBookingRequest
-import com.nxzef.wc.domain.model.UpdateBookingRequest
+import com.nxzef.wc.shared.model.CreateBookingRequest
+import com.nxzef.wc.shared.model.UpdateBookingRequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond

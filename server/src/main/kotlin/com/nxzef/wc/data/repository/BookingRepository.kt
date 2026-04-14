@@ -2,7 +2,7 @@ package com.nxzef.wc.data.repository
 
 import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.LeadsTable
-import com.nxzef.wc.domain.model.*
+import com.nxzef.wc.shared.model.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
@@ -12,17 +12,17 @@ class BookingRepository {
 
     private fun rowToBooking(row: ResultRow): Booking {
         return Booking(
-            id              = row[BookingsTable.id].toString(),
-            leadId          = row[BookingsTable.leadId].toString(),
-            quoteId         = row[BookingsTable.quoteId].toString(),
-            photographerId  = row[BookingsTable.photographerId]?.toString(),
-            editorId        = row[BookingsTable.editorId]?.toString(),
-            eventDate       = row[BookingsTable.eventDate].toString(),
-            eventType       = row[BookingsTable.eventType],
-            location        = row[BookingsTable.location],
-            status          = BookingStatus.valueOf(row[BookingsTable.status]),
-            notes           = row[BookingsTable.notes],
-            createdAt       = row[BookingsTable.createdAt].toString()
+            id = row[BookingsTable.id].toString(),
+            leadId = row[BookingsTable.leadId].toString(),
+            quoteId = row[BookingsTable.quoteId].toString(),
+            photographerId = row[BookingsTable.photographerId]?.toString(),
+            editorId = row[BookingsTable.editorId]?.toString(),
+            eventDate = row[BookingsTable.eventDate].toString(),
+            eventType = row[BookingsTable.eventType],
+            location = row[BookingsTable.location],
+            status = BookingStatus.valueOf(row[BookingsTable.status]),
+            notes = row[BookingsTable.notes],
+            createdAt = row[BookingsTable.createdAt].toString()
         )
     }
 
@@ -84,14 +84,14 @@ class BookingRepository {
             }
 
             val id = BookingsTable.insert {
-                it[leadId]      = java.util.UUID.fromString(request.leadId)
-                it[quoteId]     = java.util.UUID.fromString(request.quoteId)
-                it[eventDate]   = LocalDate.parse(request.eventDate)
-                it[eventType]   = request.eventType
-                it[location]    = request.location
-                it[status]      = BookingStatus.BOOKED.name
-                it[notes]       = request.notes
-                it[createdAt]   = Instant.now()
+                it[leadId] = java.util.UUID.fromString(request.leadId)
+                it[quoteId] = java.util.UUID.fromString(request.quoteId)
+                it[eventDate] = LocalDate.parse(request.eventDate)
+                it[eventType] = request.eventType
+                it[location] = request.location
+                it[status] = BookingStatus.BOOKED.name
+                it[notes] = request.notes
+                it[createdAt] = Instant.now()
             } get BookingsTable.id
 
             getById(id.toString())!!
