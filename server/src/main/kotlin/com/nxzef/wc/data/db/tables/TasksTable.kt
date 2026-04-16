@@ -6,14 +6,21 @@ import org.jetbrains.exposed.sql.javatime.timestamp
 
 object TasksTable : Table("tasks") {
     val id = uuid("id").autoGenerate()
-    val bookingId = uuid("booking_id").references(BookingsTable.id)
+    val leadId = uuid("lead_id")
+        .references(LeadsTable.id)
+        .nullable()      // ← nullable now
+    val bookingId = uuid("booking_id")
+        .references(BookingsTable.id)
+        .nullable()      // ← nullable now
     val title = varchar("title", 200)
     val description = text("description").nullable()
-    val assignedTo = uuid("assigned_to").references(UsersTable.id)
+    val assignedTo = uuid("assigned_to")
+        .references(UsersTable.id)
     val dueDate = date("due_date").nullable()
     val isDone = bool("is_done").default(false)
     val doneAt = timestamp("done_at").nullable()
-    val createdBy = uuid("created_by").references(UsersTable.id)
+    val createdBy = uuid("created_by")
+        .references(UsersTable.id)
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

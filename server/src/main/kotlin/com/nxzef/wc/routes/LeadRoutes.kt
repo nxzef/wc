@@ -1,6 +1,7 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.LeadRepository
+import com.nxzef.wc.data.repository.TaskRepository
 import com.nxzef.wc.shared.model.CreateLeadRequest
 import com.nxzef.wc.shared.model.UpdateLeadStatusRequest
 import io.ktor.http.HttpStatusCode
@@ -14,7 +15,10 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
-fun Route.leadRoutes(leadRepository: LeadRepository) {
+fun Route.leadRoutes(
+    leadRepository: LeadRepository,
+    taskRepository: TaskRepository
+) {
     route("/leads") {
 
         // GET all leads
@@ -44,11 +48,18 @@ fun Route.leadRoutes(leadRepository: LeadRepository) {
             val addedBy = principal?.payload
                 ?.getClaim("userId")?.asString()
                 ?: return@post call.respond(
-                    HttpStatusCode.Unauthorized,
-                    "Unauthorized"
+                    HttpStatusCode.Unauthorized, "Unauthorized"
                 )
             val request = call.receive<CreateLeadRequest>()
             val lead = leadRepository.create(request, addedBy)
+
+            // Auto create default tasks for this lead
+            taskRepository.createDefaultLeadTasks(
+                leadId = lead.id,
+                assignedTo = request.assignedTo,
+                createdBy = addedBy
+            )
+
             call.respond(HttpStatusCode.Created, lead)
         }
 

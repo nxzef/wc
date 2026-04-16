@@ -10,7 +10,7 @@ import org.koin.dsl.module
 
 val serviceModule = module {
     single { ApiClient.client }
-    single { SessionManager() }
+    single { SessionManager }
     single { ApiService(get()) }
     single { AuthService(get()) }
     single { LeadService(get(), get()) }

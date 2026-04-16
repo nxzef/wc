@@ -18,7 +18,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.nxzef.wc.data.session.SessionManager
-import com.nxzef.wc.domain.repository.AuthRepository
 import com.nxzef.wc.presentation.components.WCPermanentSidebar
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
@@ -26,16 +25,11 @@ import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineScreen
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.UserRole
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
 
 @Composable
-fun WCNavigation(
-    authRepository: AuthRepository = koinInject()
-) {
+fun WCNavigation() {
     val navController = rememberNavController()
-    val isLoggedIn by authRepository.isLoggedIn.collectAsState()
+    val isLoggedIn by SessionManager.isLoggedIn.collectAsState()
 
     WCTheme {
         Surface {
@@ -51,9 +45,7 @@ fun WCNavigation(
                             launchSingleTop = true
                         }
                     },
-                    onLogout = { 
-                        handleLogout(navController, authRepository) 
-                    }
+                    onLogout = { handleLogout(navController) }
                 ) {
                     AppNavHost(navController = navController)
                 }
@@ -127,7 +119,7 @@ private fun getCurrentRoute(
     backStackEntry: androidx.navigation.NavBackStackEntry?
 ): Route {
     val destination = backStackEntry?.destination ?: return Route.OwnerDashboard
-    
+
     return when {
         destination.hasRoute<Route.OwnerDashboard>() -> Route.OwnerDashboard
         destination.hasRoute<Route.LeadPipeline>() -> Route.LeadPipeline
@@ -158,14 +150,9 @@ fun PlaceholderScreen(title: String) {
     }
 }
 
-private fun handleLogout(
-    navController: NavHostController,
-    authRepository: AuthRepository
-) {
-    MainScope().launch {
-        authRepository.logout()
-        navController.navigate(Route.Login) {
-            popUpTo(0) { inclusive = true }
-        }
+private fun handleLogout(navController: NavHostController) {
+    SessionManager.clear()
+    navController.navigate(Route.Login) {
+        popUpTo(0) { inclusive = true }
     }
 }

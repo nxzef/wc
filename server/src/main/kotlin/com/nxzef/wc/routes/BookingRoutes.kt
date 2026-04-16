@@ -1,9 +1,12 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.BookingRepository
+import com.nxzef.wc.data.repository.TaskRepository
 import com.nxzef.wc.shared.model.CreateBookingRequest
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -12,7 +15,10 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
-fun Route.bookingRoutes(bookingRepository: BookingRepository) {
+fun Route.bookingRoutes(
+    bookingRepository: BookingRepository,
+    taskRepository: TaskRepository
+) {
     route("/bookings") {
 
         // GET all bookings
@@ -61,8 +67,22 @@ fun Route.bookingRoutes(bookingRepository: BookingRepository) {
 
         // POST create booking (lead becomes WON)
         post {
+            val principal = call.principal<JWTPrincipal>()
+            val createdBy = principal?.payload
+                ?.getClaim("userId")?.asString()
+                ?: return@post call.respond(
+                    HttpStatusCode.Unauthorized, "Unauthorized"
+                )
             val request = call.receive<CreateBookingRequest>()
             val booking = bookingRepository.create(request)
+
+            // Auto create default tasks for this booking
+            taskRepository.createDefaultBookingTasks(
+                bookingId = booking.id,
+                assignedTo = createdBy,
+                createdBy = createdBy
+            )
+
             call.respond(HttpStatusCode.Created, booking)
         }
 
