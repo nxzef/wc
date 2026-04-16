@@ -222,7 +222,8 @@ fun WCPermanentSidebar(
                         icon = {
                             Icon(
                                 imageVector = item.icon,
-                                contentDescription = item.label
+                                contentDescription = item.label,
+                                modifier = if (isCollapsed) Modifier.size(24.dp) else Modifier
                             )
                         },
                         label = {
@@ -238,7 +239,7 @@ fun WCPermanentSidebar(
                         selected = selected,
                         onClick = { onNavigate(item.route) },
                         modifier = Modifier.padding(
-                            horizontal = 12.dp,
+                            horizontal = if (isCollapsed) 10.dp else 12.dp,
                             vertical = 2.dp
                         ),
                         colors = NavigationDrawerItemDefaults.colors(
@@ -256,7 +257,8 @@ fun WCPermanentSidebar(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Logout,
                             contentDescription = "Logout",
-                            tint = MaterialTheme.colorScheme.error
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = if (isCollapsed) Modifier.size(24.dp) else Modifier
                         )
                     },
                     label = {
@@ -271,7 +273,7 @@ fun WCPermanentSidebar(
                     selected = false,
                     onClick = onLogout,
                     modifier = Modifier.padding(
-                        horizontal = 12.dp,
+                        horizontal = if (isCollapsed) 10.dp else 12.dp,
                         vertical = 8.dp
                     ),
                     colors = NavigationDrawerItemDefaults.colors(
