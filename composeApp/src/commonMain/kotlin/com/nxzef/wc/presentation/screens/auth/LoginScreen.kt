@@ -95,7 +95,7 @@ fun LoginScreen(
 
                     OutlinedTextField(
                         value = state.email,
-                        onValueChange = { viewModel.onAction(LoginAction.EmailChanged(it)) },
+                        onValueChange = { viewModel.onAction(LoginAction.OnEmailChange(it)) },
                         label = { Text("Email") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -104,7 +104,7 @@ fun LoginScreen(
 
                     OutlinedTextField(
                         value = state.password,
-                        onValueChange = { viewModel.onAction(LoginAction.PasswordChanged(it)) },
+                        onValueChange = { viewModel.onAction(LoginAction.OnPasswordChange(it)) },
                         label = { Text("Password") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -113,7 +113,7 @@ fun LoginScreen(
                     )
 
                     Button(
-                        onClick = { viewModel.onAction(LoginAction.Login) },
+                        onClick = { viewModel.onAction(LoginAction.OnLoginClick) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),

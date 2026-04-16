@@ -37,8 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import com.nxzef.wc.data.session.SessionManager
-import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.DashboardStats
 import com.nxzef.wc.shared.model.Lead
@@ -53,39 +53,33 @@ fun DashboardScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val user by sessionManager.currentUser.collectAsStateWithLifecycle()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        WCTopBar(
-            title = "Dashboard",
-            subtitle = "Welcome back, ${user?.name ?: "User"}!"
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            when {
-                state.isLoading -> CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        when {
+            state.isLoading -> CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
 
-                state.error != null -> Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = state.error!!,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = viewModel::loadStats) {
-                        Text("Retry")
-                    }
+            state.error != null -> Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = state.error!!,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { viewModel.onAction(DashboardAction.LoadStats) }) {
+                    Text("Retry")
                 }
-
-                state.stats != null -> DashboardContent(
-                    stats = state.stats!!
-                )
             }
+
+            state.stats != null -> DashboardContent(
+                stats = state.stats!!
+            )
         }
     }
 }
@@ -96,13 +90,6 @@ fun DashboardContent(stats: DashboardStats) {
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        item {
-            WCTopBar(
-                title = "Dashboard",
-                subtitle = "Welcome back, Niyas! Here's what's happening."
-            )
-        }
-
         item {
             // KPI cards — wrap in padding
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {

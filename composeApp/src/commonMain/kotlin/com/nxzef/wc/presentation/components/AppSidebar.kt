@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.components
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,19 +13,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Surface
@@ -34,8 +39,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nxzef.wc.data.session.SessionManager
@@ -104,6 +111,8 @@ val sidebarItems = listOf(
 @Composable
 fun WCPermanentSidebar(
     currentRoute: Route,
+    isCollapsed: Boolean,
+    onToggleCollapse: () -> Unit,
     onNavigate: (Route) -> Unit,
     onLogout: () -> Unit,
     sessionManager: SessionManager = koinInject(),
@@ -116,38 +125,44 @@ fun WCPermanentSidebar(
         userRole != null && userRole in item.roles
     }
 
+    val drawerWidth by animateDpAsState(targetValue = if (isCollapsed) 80.dp else 240.dp)
+
     PermanentNavigationDrawer(
         drawerContent = {
             PermanentDrawerSheet(
-                modifier = Modifier.width(240.dp),
+                modifier = Modifier.width(drawerWidth),
                 drawerShape = RoundedCornerShape(0.dp),
                 drawerTonalElevation = 2.dp
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Brand header
+                // Toggle & Brand Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = if (isCollapsed) Arrangement.Center else Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "☁️",
-                        fontSize = 24.sp
-                    )
-                    Column {
-                        Text(
-                            text = "Wedding Clouds",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Management Suite",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (!isCollapsed) {
+                        Text(text = "☁️", fontSize = 24.sp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Wedding Clouds",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    
+                    IconButton(onClick = onToggleCollapse) {
+                        Icon(
+                            imageVector = if (isCollapsed) Icons.Default.Menu else Icons.AutoMirrored.Filled.MenuOpen,
+                            contentDescription = "Toggle Sidebar",
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -168,7 +183,7 @@ fun WCPermanentSidebar(
                         Row(
                             modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = if (isCollapsed) Arrangement.Center else Arrangement.spacedBy(10.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AccountCircle,
@@ -176,19 +191,23 @@ fun WCPermanentSidebar(
                                 modifier = Modifier.size(32.dp),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                            Column {
-                                Text(
-                                    text = currentUser.name,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Text(
-                                    text = currentUser.role.name,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme
-                                        .onPrimaryContainer.copy(alpha = 0.7f)
-                                )
+                            if (!isCollapsed) {
+                                Column {
+                                    Text(
+                                        text = currentUser.name,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = currentUser.role.name,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme
+                                            .onPrimaryContainer.copy(alpha = 0.7f)
+                                    )
+                                }
                             }
                         }
                     }
@@ -207,16 +226,23 @@ fun WCPermanentSidebar(
                             )
                         },
                         label = {
-                            Text(
-                                text = item.label,
-                                style = MaterialTheme.typography.labelLarge
-                            )
+                            if (!isCollapsed) {
+                                Text(
+                                    text = item.label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         },
                         selected = selected,
                         onClick = { onNavigate(item.route) },
                         modifier = Modifier.padding(
                             horizontal = 12.dp,
                             vertical = 2.dp
+                        ),
+                        colors = NavigationDrawerItemDefaults.colors(
+                            unselectedContainerColor = Color.Transparent
                         )
                     )
                 }
@@ -234,17 +260,22 @@ fun WCPermanentSidebar(
                         )
                     },
                     label = {
-                        Text(
-                            text = "Logout",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.labelLarge
-                        )
+                        if (!isCollapsed) {
+                            Text(
+                                text = "Logout",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
                     },
                     selected = false,
                     onClick = onLogout,
                     modifier = Modifier.padding(
                         horizontal = 12.dp,
                         vertical = 8.dp
+                    ),
+                    colors = NavigationDrawerItemDefaults.colors(
+                        unselectedContainerColor = Color.Transparent
                     )
                 )
 

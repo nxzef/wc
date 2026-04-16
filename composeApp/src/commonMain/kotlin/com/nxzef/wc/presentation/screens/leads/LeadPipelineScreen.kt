@@ -48,7 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nxzef.wc.presentation.components.WCTopBar
+import androidx.navigation.NavHostController
 import com.nxzef.wc.presentation.screens.dashboard.StatusBadge
 import com.nxzef.wc.shared.model.Lead
 import org.koin.compose.viewmodel.koinViewModel
@@ -71,68 +71,46 @@ fun LeadPipelineScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp)
     ) {
-        WCTopBar(
-            title = "Lead Pipeline",
-            subtitle = "${state.leads.size} total leads",
-            actions = {
-                Button(onClick = { /* Add lead next */ }) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Lead")
-                }
-            }
-        )
+        when {
+            state.isLoading -> CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-        ) {
-            when {
-                state.isLoading -> CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
+            state.error != null -> Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = state.error!!,
+                    color = MaterialTheme.colorScheme.error
                 )
+                Button(onClick = {
+                    viewModel.onAction(LeadPipelineAction.LoadLeads)
+                }) { Text("Retry") }
+            }
 
-                state.error != null -> Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = state.error!!,
-                        color = MaterialTheme.colorScheme.error
+            else -> Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                PIPELINE_STAGES.forEach { stage ->
+                    KanbanColumn(
+                        modifier = Modifier.weight(1f),
+                        stage = stage,
+                        leads = state.leads.filter {
+                            it.status.name == stage
+                        },
+                        onLeadClick = { lead ->
+                            viewModel.onAction(
+                                LeadPipelineAction.SelectLead(lead)
+                            )
+                        }
                     )
-                    Button(onClick = {
-                        viewModel.onAction(LeadPipelineAction.LoadLeads)
-                    }) { Text("Retry") }
-                }
-
-                else -> Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    PIPELINE_STAGES.forEach { stage ->
-                        KanbanColumn(
-                            modifier = Modifier.weight(1f),
-                            stage = stage,
-                            leads = state.leads.filter {
-                                it.status.name == stage
-                            },
-                            onLeadClick = { lead ->
-                                viewModel.onAction(
-                                    LeadPipelineAction.SelectLead(lead)
-                                )
-                            }
-                        )
-                    }
                 }
             }
         }

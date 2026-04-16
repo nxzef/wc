@@ -2,42 +2,29 @@ package com.nxzef.wc.presentation.screens.leads
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nxzef.wc.domain.repository.LeadRepository
-import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
+import com.nxzef.wc.domain.usecase.leads.UpdateLeadStatusUseCase
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class LeadPipelineState(
-    val isLoading: Boolean = false,
-    val leads: List<Lead> = emptyList(),
-    val error: String? = null,
-    val selectedLead: Lead? = null
-)
-
-sealed interface LeadPipelineAction {
-    object LoadLeads : LeadPipelineAction
-    data class SelectLead(val lead: Lead) : LeadPipelineAction
-    data class UpdateStatus(
-        val leadId: String,
-        val status: String,
-        val notes: String? = null
-    ) : LeadPipelineAction
-
-    object DismissDetail : LeadPipelineAction
-}
-
 class LeadPipelineViewModel(
-    private val leadRepository: LeadRepository
+    private val getAllLeadsUseCase: GetAllLeadsUseCase,
+    private val updateLeadStatusUseCase: UpdateLeadStatusUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LeadPipelineState())
     val state: StateFlow<LeadPipelineState> = _state.asStateFlow()
 
+    private val _uiEvent = Channel<LeadPipelineUiEvent>()
+    val uiEvent = _uiEvent.receiveAsFlow()
+
     init {
-        loadLeads()
+        onAction(LeadPipelineAction.LoadLeads)
     }
 
     fun onAction(action: LeadPipelineAction) {
@@ -59,18 +46,19 @@ class LeadPipelineViewModel(
     private fun loadLeads() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            leadRepository.getAllLeads()
-                .onSuccess { leads ->
+            getAllLeadsUseCase().fold(
+                onSuccess = { leads ->
                     _state.update { it.copy(leads = leads, isLoading = false) }
-                }
-                .onFailure { e ->
+                },
+                onFailure = { error ->
                     _state.update {
                         it.copy(
-                            error = e.message ?: "Failed to load leads",
+                            error = error.message ?: "Failed to load leads",
                             isLoading = false
                         )
                     }
                 }
+            )
         }
     }
 
@@ -80,19 +68,16 @@ class LeadPipelineViewModel(
         notes: String?
     ) {
         viewModelScope.launch {
-            leadRepository.updateLeadStatus(leadId, status, notes)
-                .onSuccess {
+            updateLeadStatusUseCase(leadId, status, notes).fold(
+                onSuccess = {
                     loadLeads() // refresh
-                }
-                .onFailure { e ->
+                },
+                onFailure = { error ->
                     _state.update {
-                        it.copy(error = e.message ?: "Failed to update")
+                        it.copy(error = error.message ?: "Failed to update")
                     }
                 }
+            )
         }
     }
-
-    // Helpers for pipeline columns
-    fun leadsByStatus(status: String) =
-        _state.value.leads.filter { it.status.name == status }
 }

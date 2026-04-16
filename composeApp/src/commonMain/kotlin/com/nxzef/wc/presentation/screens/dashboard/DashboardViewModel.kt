@@ -2,45 +2,51 @@ package com.nxzef.wc.presentation.screens.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nxzef.wc.data.remote.ApiService
-import com.nxzef.wc.shared.model.DashboardStats
+import com.nxzef.wc.domain.usecase.dashboard.GetDashboardStatsUseCase
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class DashboardScreenState(
-    val isLoading: Boolean = false,
-    val stats: DashboardStats? = null,
-    val error: String? = null
-)
-
 class DashboardViewModel(
-    private val apiService: ApiService
+    private val getDashboardStatsUseCase: GetDashboardStatsUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(DashboardScreenState())
-    val state: StateFlow<DashboardScreenState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(DashboardState())
+    val state: StateFlow<DashboardState> = _state.asStateFlow()
+
+    private val _uiEvent = Channel<DashboardUiEvent>()
+    val uiEvent = _uiEvent.receiveAsFlow()
 
     init {
-        loadStats()
+        onAction(DashboardAction.LoadStats)
     }
 
-    fun loadStats() {
+    fun onAction(action: DashboardAction) {
+        when (action) {
+            DashboardAction.LoadStats -> loadStats()
+        }
+    }
+
+    private fun loadStats() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            try {
-                val stats = apiService.getDashboardStats()
-                _state.update { it.copy(stats = stats, isLoading = false) }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        error = e.message ?: "Failed to load",
-                        isLoading = false
-                    )
+            getDashboardStatsUseCase().fold(
+                onSuccess = { stats ->
+                    _state.update { it.copy(stats = stats, isLoading = false) }
+                },
+                onFailure = { error ->
+                    _state.update {
+                        it.copy(
+                            error = error.message ?: "Failed to load",
+                            isLoading = false
+                        )
+                    }
                 }
-            }
+            )
         }
     }
 }

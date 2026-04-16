@@ -1,21 +1,8 @@
 package com.nxzef.wc.plugins
 
-import com.nxzef.wc.data.repository.BookingRepository
-import com.nxzef.wc.data.repository.DashboardRepository
-import com.nxzef.wc.data.repository.InvoiceRepository
-import com.nxzef.wc.data.repository.LeadRepository
-import com.nxzef.wc.data.repository.NotificationRepository
-import com.nxzef.wc.data.repository.QuoteRepository
-import com.nxzef.wc.data.repository.TaskRepository
-import com.nxzef.wc.data.repository.UserRepository
-import com.nxzef.wc.routes.authRoutes
-import com.nxzef.wc.routes.bookingRoutes
-import com.nxzef.wc.routes.dashboardRoutes
-import com.nxzef.wc.routes.invoiceRoutes
-import com.nxzef.wc.routes.leadRoutes
-import com.nxzef.wc.routes.notificationRoutes
-import com.nxzef.wc.routes.quoteRoutes
-import com.nxzef.wc.routes.taskRoutes
+import com.nxzef.wc.data.repository.*
+import com.nxzef.wc.domain.service.AuthService
+import com.nxzef.wc.routes.*
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -23,22 +10,25 @@ import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import org.koin.ktor.ext.inject
 
 fun Application.configureRouting() {
-    val userRepository = UserRepository()
-    val leadRepository = LeadRepository()
-    val quoteRepository = QuoteRepository()
-    val bookingRepository = BookingRepository()
-    val invoiceRepository = InvoiceRepository()
-    val dashboardRepository = DashboardRepository()
-    val taskRepository = TaskRepository()
-    val notificationRepository = NotificationRepository()
+    val userRepository by inject<UserRepository>()
+    val leadRepository by inject<LeadRepository>()
+    val quoteRepository by inject<QuoteRepository>()
+    val bookingRepository by inject<BookingRepository>()
+    val invoiceRepository by inject<InvoiceRepository>()
+    val dashboardRepository by inject<DashboardRepository>()
+    val taskRepository by inject<TaskRepository>()
+    val notificationRepository by inject<NotificationRepository>()
+
+    val authService by inject<AuthService>()
 
     userRepository.seedOwner()
 
     routing {
         // Public
-        authRoutes(userRepository)
+        authRoutes(authService)
 
         // Protected
         authenticate("auth-jwt") {
