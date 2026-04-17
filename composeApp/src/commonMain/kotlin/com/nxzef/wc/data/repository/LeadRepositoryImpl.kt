@@ -3,23 +3,24 @@ package com.nxzef.wc.data.repository
 import com.nxzef.wc.data.remote.LeadService
 import com.nxzef.wc.domain.repository.LeadRepository
 import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.util.AppResult
 
 class LeadRepositoryImpl(
     private val leadService: LeadService
 ) : LeadRepository {
-    override suspend fun getAllLeads(): Result<List<Lead>> {
+    override suspend fun getAllLeads(): AppResult<List<Lead>> {
         return try {
-            Result.success(leadService.getAllLeads())
+            AppResult.Success(leadService.getAllLeads())
         } catch (e: Exception) {
-            Result.failure(e)
+            AppResult.Failure(e)
         }
     }
 
-    override suspend fun updateLeadStatus(id: String, status: String, notes: String?): Result<Lead> {
+    override suspend fun updateLeadStatus(id: String, status: String, notes: String?): AppResult<Lead> {
         return try {
-            Result.success(leadService.updateLeadStatus(id, status, notes))
+            AppResult.Success(leadService.updateLeadStatus(id, status, notes))
         } catch (e: Exception) {
-            Result.failure(e)
+            AppResult.Failure(e)
         }
     }
 }

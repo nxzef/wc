@@ -3,6 +3,8 @@ package com.nxzef.wc.presentation.screens.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.dashboard.GetDashboardStatsUseCase
+import com.nxzef.wc.shared.util.onFailure
+import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,11 +36,11 @@ class DashboardViewModel(
     private fun loadStats() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            getDashboardStatsUseCase().fold(
-                onSuccess = { stats ->
+            getDashboardStatsUseCase()
+                .onSuccess { stats ->
                     _state.update { it.copy(stats = stats, isLoading = false) }
-                },
-                onFailure = { error ->
+                }
+                .onFailure { error ->
                     _state.update {
                         it.copy(
                             error = error.message ?: "Failed to load",
@@ -46,7 +48,6 @@ class DashboardViewModel(
                         )
                     }
                 }
-            )
         }
     }
 }

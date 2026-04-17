@@ -3,15 +3,16 @@ package com.nxzef.wc.data.repository
 import com.nxzef.wc.data.remote.DashboardService
 import com.nxzef.wc.domain.repository.DashboardRepository
 import com.nxzef.wc.shared.model.DashboardStats
+import com.nxzef.wc.shared.util.AppResult
 
 class DashboardRepositoryImpl(
     private val dashboardService: DashboardService
 ) : DashboardRepository {
-    override suspend fun getDashboardStats(): Result<DashboardStats> {
+    override suspend fun getDashboardStats(): AppResult<DashboardStats> {
         return try {
-            Result.success(dashboardService.getDashboardStats())
+            AppResult.Success(dashboardService.getDashboardStats())
         } catch (e: Exception) {
-            Result.failure(e)
+            AppResult.Failure(e)
         }
     }
 }

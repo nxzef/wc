@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.domain.usecase.leads.UpdateLeadStatusUseCase
+import com.nxzef.wc.shared.util.onFailure
+import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,11 +48,11 @@ class LeadPipelineViewModel(
     private fun loadLeads() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            getAllLeadsUseCase().fold(
-                onSuccess = { leads ->
+            getAllLeadsUseCase()
+                .onSuccess { leads ->
                     _state.update { it.copy(leads = leads, isLoading = false) }
-                },
-                onFailure = { error ->
+                }
+                .onFailure { error ->
                     _state.update {
                         it.copy(
                             error = error.message ?: "Failed to load leads",
@@ -58,7 +60,6 @@ class LeadPipelineViewModel(
                         )
                     }
                 }
-            )
         }
     }
 
@@ -68,16 +69,15 @@ class LeadPipelineViewModel(
         notes: String?
     ) {
         viewModelScope.launch {
-            updateLeadStatusUseCase(leadId, status, notes).fold(
-                onSuccess = {
+            updateLeadStatusUseCase(leadId, status, notes)
+                .onSuccess {
                     loadLeads() // refresh
-                },
-                onFailure = { error ->
+                }
+                .onFailure { error ->
                     _state.update {
                         it.copy(error = error.message ?: "Failed to update")
                     }
                 }
-            )
         }
     }
 }

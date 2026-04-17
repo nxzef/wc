@@ -1,5 +1,7 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.shared.dto.LoginResponseDto
+import com.nxzef.wc.shared.dto.toDomain
 import com.nxzef.wc.shared.model.LoginRequest
 import com.nxzef.wc.shared.model.LoginResponse
 import io.ktor.client.HttpClient
@@ -13,9 +15,10 @@ class AuthService(private val client: HttpClient) {
     private val baseUrl = ApiClient.BASE_URL
 
     suspend fun login(email: String, password: String): LoginResponse {
-        return client.post("$baseUrl/auth/login") {
+        val dto: LoginResponseDto = client.post("$baseUrl/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(LoginRequest(email, password))
         }.body()
+        return dto.toDomain()
     }
 }

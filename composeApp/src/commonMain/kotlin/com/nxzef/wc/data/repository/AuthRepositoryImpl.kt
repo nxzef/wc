@@ -5,6 +5,7 @@ import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.domain.repository.AuthRepository
 import com.nxzef.wc.shared.model.LoginResponse
 import com.nxzef.wc.shared.model.User
+import com.nxzef.wc.shared.util.AppResult
 import kotlinx.coroutines.flow.StateFlow
 
 class AuthRepositoryImpl(
@@ -14,13 +15,13 @@ class AuthRepositoryImpl(
     override val currentUser: StateFlow<User?> = sessionManager.currentUser
     override val isLoggedIn: StateFlow<Boolean> = sessionManager.isLoggedIn
 
-    override suspend fun login(email: String, password: String): Result<LoginResponse> {
+    override suspend fun login(email: String, password: String): AppResult<LoginResponse> {
         return try {
             val response = authService.login(email, password)
             sessionManager.save(response.token, response.user)
-            Result.success(response)
+            AppResult.Success(response)
         } catch (e: Exception) {
-            Result.failure(e)
+            AppResult.Failure(e)
         }
     }
 

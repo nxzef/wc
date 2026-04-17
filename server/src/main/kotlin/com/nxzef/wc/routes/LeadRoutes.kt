@@ -2,6 +2,7 @@ package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.LeadRepository
 import com.nxzef.wc.data.repository.TaskRepository
+import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.CreateLeadRequest
 import com.nxzef.wc.shared.model.UpdateLeadStatusRequest
 import io.ktor.http.HttpStatusCode
@@ -24,7 +25,7 @@ fun Route.leadRoutes(
         // GET all leads
         get {
             val leads = leadRepository.getAll()
-            call.respond(leads)
+            call.respond(leads.map { it.toDto() })
         }
 
         // GET lead by id
@@ -39,7 +40,7 @@ fun Route.leadRoutes(
                     HttpStatusCode.NotFound,
                     "Lead not found"
                 )
-            call.respond(lead)
+            call.respond(lead.toDto())
         }
 
         // POST create lead
@@ -60,7 +61,7 @@ fun Route.leadRoutes(
                 createdBy = addedBy
             )
 
-            call.respond(HttpStatusCode.Created, lead)
+            call.respond(HttpStatusCode.Created, lead.toDto())
         }
 
         // PUT update lead status
@@ -76,7 +77,7 @@ fun Route.leadRoutes(
                     HttpStatusCode.NotFound,
                     "Lead not found"
                 )
-            call.respond(lead)
+            call.respond(lead.toDto())
         }
     }
 }

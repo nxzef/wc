@@ -1,6 +1,8 @@
 package com.nxzef.wc.data.remote
 
 import com.nxzef.wc.data.session.SessionManager
+import com.nxzef.wc.shared.dto.DashboardStatsDto
+import com.nxzef.wc.shared.dto.toDomain
 import com.nxzef.wc.shared.model.DashboardStats
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -14,8 +16,9 @@ class DashboardService(
     private val baseUrl = ApiClient.BASE_URL
 
     suspend fun getDashboardStats(): DashboardStats {
-        return client.get("$baseUrl/dashboard/stats") {
+        val dto: DashboardStatsDto = client.get("$baseUrl/dashboard/stats") {
             header("Authorization", "Bearer ${sessionManager.getToken()}")
         }.body()
+        return dto.toDomain()
     }
 }
