@@ -27,6 +27,7 @@ import com.nxzef.wc.presentation.components.WCPermanentSidebar
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
 import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
+import com.nxzef.wc.presentation.screens.leads.AddLeadScreen
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineScreen
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.UserRole
@@ -117,7 +118,22 @@ fun AppNavHost(navController: NavHostController) {
         }
 
         composable<Route.LeadPipeline> {
-            LeadPipelineScreen()
+            LeadPipelineScreen(
+                onAddLead = {
+                    navController.navigate(Route.AddLead)
+                }
+            )
+        }
+
+        composable<Route.AddLead> {
+            AddLeadScreen(
+                onLeadCreated = {
+                    navController.navigate(Route.LeadPipeline) {
+                        popUpTo<Route.AddLead> { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable<Route.Marketing> {
