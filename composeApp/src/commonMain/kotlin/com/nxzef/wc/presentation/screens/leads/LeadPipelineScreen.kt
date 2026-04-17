@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.AlertDialog
@@ -32,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -65,51 +67,87 @@ val STAGE_COLORS = mapOf(
 
 @Composable
 fun LeadPipelineScreen(
-    onAddLead : () -> Unit,
+    onAddLead: () -> Unit,
     viewModel: LeadPipelineViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        when {
-            state.isLoading -> CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center)
-            )
-
-            state.error != null -> Column(
-                modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally
+    Scaffold(
+        containerColor = Color.Transparent
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp)
+        ) {
+            // Screen Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = state.error!!,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Button(onClick = {
-                    viewModel.onAction(LeadPipelineAction.LoadLeads)
-                }) { Text("Retry") }
+                Column {
+                    Text(
+                        text = "Lead Pipeline",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${state.leads.size} total leads",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Button(
+                    onClick = onAddLead
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Add Lead")
+                }
             }
 
-            else -> Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                PIPELINE_STAGES.forEach { stage ->
-                    KanbanColumn(
-                        modifier = Modifier.weight(1f),
-                        stage = stage,
-                        leads = state.leads.filter {
-                            it.status.name == stage
-                        },
-                        onLeadClick = { lead ->
-                            viewModel.onAction(
-                                LeadPipelineAction.SelectLead(lead)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Box(modifier = Modifier.weight(1f)) {
+                when {
+                    state.isLoading -> CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+
+                    state.error != null -> Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = state.error!!,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Button(onClick = {
+                            viewModel.onAction(LeadPipelineAction.LoadLeads)
+                        }) { Text("Retry") }
+                    }
+
+                    else -> Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        PIPELINE_STAGES.forEach { stage ->
+                            KanbanColumn(
+                                modifier = Modifier.weight(1f),
+                                stage = stage,
+                                leads = state.leads.filter {
+                                    it.status.name == stage
+                                },
+                                onLeadClick = { lead ->
+                                    viewModel.onAction(
+                                        LeadPipelineAction.SelectLead(lead)
+                                    )
+                                }
                             )
                         }
-                    )
+                    }
                 }
             }
         }
