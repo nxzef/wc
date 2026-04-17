@@ -11,6 +11,48 @@ import java.time.Instant
 
 class UserRepository {
 
+    fun getAllUsers(): List<User> {
+        return transaction {
+            UsersTable
+                .selectAll()
+                .map { row ->
+                    User(
+                        id = row[UsersTable.id].toString(),
+                        name = row[UsersTable.name],
+                        email = row[UsersTable.email],
+                        role = UserRole.valueOf(row[UsersTable.role]),
+                        isActive = row[UsersTable.isActive]
+                    )
+                }
+        }
+    }
+
+    fun createUser(
+        name: String,
+        email: String,
+        passwordHash: String,
+        role: String
+    ): User {
+        return transaction {
+            val id = UsersTable.insert {
+                it[UsersTable.name] = name
+                it[UsersTable.email] = email
+                it[UsersTable.passwordHash] = passwordHash
+                it[UsersTable.role] = role
+                it[UsersTable.isActive] = true
+                it[UsersTable.createdAt] = Instant.now()
+            } get UsersTable.id
+
+            com.nxzef.wc.shared.model.User(
+                id = id.toString(),
+                name = name,
+                email = email,
+                role = UserRole.valueOf(role),
+                isActive = true
+            )
+        }
+    }
+
     fun findByEmail(email: String): Pair<User, String>? {
         return transaction {
             UsersTable

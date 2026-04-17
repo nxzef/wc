@@ -1,8 +1,23 @@
 package com.nxzef.wc.plugins
 
-import com.nxzef.wc.data.repository.*
+import com.nxzef.wc.data.repository.BookingRepository
+import com.nxzef.wc.data.repository.DashboardRepository
+import com.nxzef.wc.data.repository.InvoiceRepository
+import com.nxzef.wc.data.repository.LeadRepository
+import com.nxzef.wc.data.repository.NotificationRepository
+import com.nxzef.wc.data.repository.QuoteRepository
+import com.nxzef.wc.data.repository.TaskRepository
+import com.nxzef.wc.data.repository.UserRepository
 import com.nxzef.wc.domain.service.AuthService
-import com.nxzef.wc.routes.*
+import com.nxzef.wc.routes.authRoutes
+import com.nxzef.wc.routes.bookingRoutes
+import com.nxzef.wc.routes.dashboardRoutes
+import com.nxzef.wc.routes.invoiceRoutes
+import com.nxzef.wc.routes.leadRoutes
+import com.nxzef.wc.routes.notificationRoutes
+import com.nxzef.wc.routes.quoteRoutes
+import com.nxzef.wc.routes.taskRoutes
+import com.nxzef.wc.routes.userRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -53,6 +68,8 @@ fun Application.configureRouting() {
             taskRoutes(taskRepository)
             // Notification
             notificationRoutes(notificationRepository)
+            // User
+            userRoutes(userRepository)
         }
     }
 }
