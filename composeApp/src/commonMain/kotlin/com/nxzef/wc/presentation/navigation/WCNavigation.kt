@@ -28,9 +28,13 @@ import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
 import com.nxzef.wc.presentation.screens.bookings.BookingScreen
 import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
+import com.nxzef.wc.presentation.screens.editor.EditorScreen
 import com.nxzef.wc.presentation.screens.invoices.InvoiceScreen
 import com.nxzef.wc.presentation.screens.leads.AddLeadScreen
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineScreen
+import com.nxzef.wc.presentation.screens.marketing.MarketingScreen
+import com.nxzef.wc.presentation.screens.photographer.PhotographerScreen
+import com.nxzef.wc.presentation.screens.settings.SettingsScreen
 import com.nxzef.wc.presentation.screens.team.TeamScreen
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.UserRole
@@ -140,15 +144,19 @@ fun AppNavHost(navController: NavHostController) {
         }
 
         composable<Route.Marketing> {
-            PlaceholderScreen(title = "📣 Marketing")
+            MarketingScreen(
+                onAddLead = {
+                    navController.navigate(Route.AddLead)
+                }
+            )
         }
 
         composable<Route.MyShoots> {
-            PlaceholderScreen(title = "📸 My Shoots")
+            PhotographerScreen()
         }
 
         composable<Route.EditingQueue> {
-            PlaceholderScreen(title = "🎨 Editing Queue")
+            EditorScreen()
         }
 
         composable<Route.TeamManagement> {
@@ -159,12 +167,12 @@ fun AppNavHost(navController: NavHostController) {
             InvoiceScreen()
         }
 
-        composable<Route.Settings> {
-            PlaceholderScreen(title = "⚙️ Settings")
-        }
-
         composable<Route.Bookings> {
             BookingScreen()
+        }
+
+        composable<Route.Settings> {
+            SettingsScreen()
         }
     }
 }
