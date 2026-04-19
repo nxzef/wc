@@ -29,6 +29,7 @@ import com.nxzef.wc.presentation.screens.auth.LoginScreen
 import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
 import com.nxzef.wc.presentation.screens.leads.AddLeadScreen
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineScreen
+import com.nxzef.wc.presentation.screens.team.TeamScreen
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.UserRole
 import org.koin.compose.koinInject
@@ -40,7 +41,7 @@ fun WCNavigation() {
     val currentRoute = getCurrentRoute(navBackStackEntry)
     val sessionManager: SessionManager = koinInject()
     val user by sessionManager.currentUser.collectAsState()
-    
+
     var isSidebarCollapsed by remember { mutableStateOf(false) }
 
     WCTheme {
@@ -149,7 +150,7 @@ fun AppNavHost(navController: NavHostController) {
         }
 
         composable<Route.TeamManagement> {
-            PlaceholderScreen(title = "👥 Team Management")
+            TeamScreen()
         }
 
         composable<Route.Invoices> {

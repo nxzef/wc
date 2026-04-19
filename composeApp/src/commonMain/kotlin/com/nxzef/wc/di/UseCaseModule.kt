@@ -5,6 +5,8 @@ import com.nxzef.wc.domain.usecase.dashboard.GetDashboardStatsUseCase
 import com.nxzef.wc.domain.usecase.leads.CreateLeadUseCase
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.domain.usecase.leads.UpdateLeadStatusUseCase
+import com.nxzef.wc.domain.usecase.team.CreateTeamMemberUseCase
+import com.nxzef.wc.domain.usecase.team.GetTeamUseCase
 import org.koin.dsl.module
 
 val useCaseModule = module {
@@ -13,4 +15,6 @@ val useCaseModule = module {
     factory { GetAllLeadsUseCase(get()) }
     factory { UpdateLeadStatusUseCase(get()) }
     factory { CreateLeadUseCase(get()) }
+    factory { GetTeamUseCase(get()) }
+    factory { CreateTeamMemberUseCase(get()) }
 }
