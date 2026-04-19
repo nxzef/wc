@@ -80,6 +80,7 @@ navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-co
 material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version = "2.0.17" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.11.0" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.7.1" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

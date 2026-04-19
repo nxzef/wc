@@ -9,7 +9,7 @@ import com.nxzef.wc.shared.util.AppResult
 class LeadRepositoryImpl(
     private val leadService: LeadService
 ) : LeadRepository {
-    override suspend fun getAllLeads(): AppResult<List<Lead>> {
+    override suspend fun getAll(): AppResult<List<Lead>> {
         return try {
             AppResult.Success(leadService.getAllLeads())
         } catch (e: Exception) {

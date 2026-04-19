@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Edit
@@ -71,6 +72,15 @@ val sidebarItems = listOf(
         roles = listOf(UserRole.OWNER, UserRole.LEAD_MANAGER)
     ),
     SidebarNavItem(
+        icon = Icons.Default.CalendarMonth,
+        label = "Bookings",
+        route = Route.Bookings,
+        roles = listOf(
+            UserRole.OWNER,
+            UserRole.LEAD_MANAGER
+        )
+    ),
+    SidebarNavItem(
         icon = Icons.AutoMirrored.Filled.TrendingUp,
         label = "Marketing",
         route = Route.Marketing,
@@ -120,7 +130,7 @@ fun WCPermanentSidebar(
 ) {
     val user by sessionManager.currentUser.collectAsState()
     val userRole = user?.role
-    
+
     val visibleItems = sidebarItems.filter { item ->
         userRole != null && userRole in item.roles
     }
@@ -142,7 +152,9 @@ fun WCPermanentSidebar(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = if (isCollapsed) Arrangement.Center else Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = if (isCollapsed) Arrangement.Center else Arrangement.spacedBy(
+                        8.dp
+                    )
                 ) {
                     if (!isCollapsed) {
                         Text(text = "☁️", fontSize = 24.sp)
@@ -157,7 +169,7 @@ fun WCPermanentSidebar(
                             )
                         }
                     }
-                    
+
                     IconButton(onClick = onToggleCollapse) {
                         Icon(
                             imageVector = if (isCollapsed) Icons.Default.Menu else Icons.AutoMirrored.Filled.MenuOpen,
@@ -183,7 +195,9 @@ fun WCPermanentSidebar(
                         Row(
                             modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = if (isCollapsed) Arrangement.Center else Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = if (isCollapsed) Arrangement.Center else Arrangement.spacedBy(
+                                10.dp
+                            )
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AccountCircle,

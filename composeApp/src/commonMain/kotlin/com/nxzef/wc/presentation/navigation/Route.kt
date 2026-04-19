@@ -22,4 +22,5 @@ sealed interface Route {
     data object Invoices : Route
     @Serializable data object Settings : Route
     @Serializable data object AddLead : Route
+    @Serializable data object Bookings : Route
 }

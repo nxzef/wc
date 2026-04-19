@@ -1,7 +1,9 @@
 package com.nxzef.wc.di
 
 import com.nxzef.wc.presentation.screens.auth.LoginViewModel
+import com.nxzef.wc.presentation.screens.bookings.BookingViewModel
 import com.nxzef.wc.presentation.screens.dashboard.DashboardViewModel
+import com.nxzef.wc.presentation.screens.invoices.InvoiceViewModel
 import com.nxzef.wc.presentation.screens.leads.AddLeadViewModel
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineViewModel
 import com.nxzef.wc.presentation.screens.team.TeamViewModel
@@ -14,4 +16,6 @@ val viewModelModule = module {
     viewModelOf(::LeadPipelineViewModel)
     viewModelOf(::AddLeadViewModel)
     viewModelOf(::TeamViewModel)
+    viewModelOf(::BookingViewModel)
+    viewModelOf(::InvoiceViewModel)
 }

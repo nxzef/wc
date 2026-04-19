@@ -26,7 +26,9 @@ import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.components.WCPermanentSidebar
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
+import com.nxzef.wc.presentation.screens.bookings.BookingScreen
 import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
+import com.nxzef.wc.presentation.screens.invoices.InvoiceScreen
 import com.nxzef.wc.presentation.screens.leads.AddLeadScreen
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineScreen
 import com.nxzef.wc.presentation.screens.team.TeamScreen
@@ -154,11 +156,15 @@ fun AppNavHost(navController: NavHostController) {
         }
 
         composable<Route.Invoices> {
-            PlaceholderScreen(title = "🧾 Invoices")
+            InvoiceScreen()
         }
 
         composable<Route.Settings> {
             PlaceholderScreen(title = "⚙️ Settings")
+        }
+
+        composable<Route.Bookings> {
+            BookingScreen()
         }
     }
 }

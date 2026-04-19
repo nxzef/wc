@@ -8,6 +8,6 @@ class GetAllLeadsUseCase(
     private val repository: LeadRepository
 ) {
     suspend operator fun invoke(): AppResult<List<Lead>> {
-        return repository.getAllLeads()
+        return repository.getAll()
     }
 }

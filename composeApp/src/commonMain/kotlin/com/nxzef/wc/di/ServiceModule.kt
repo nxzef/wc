@@ -4,6 +4,7 @@ import com.nxzef.wc.data.remote.ApiClient
 import com.nxzef.wc.data.remote.AuthService
 import com.nxzef.wc.data.remote.BookingService
 import com.nxzef.wc.data.remote.DashboardService
+import com.nxzef.wc.data.remote.InvoiceService
 import com.nxzef.wc.data.remote.LeadService
 import com.nxzef.wc.data.remote.NotificationService
 import com.nxzef.wc.data.remote.TaskService
@@ -26,4 +27,5 @@ val serviceModule = module {
     single { TaskService(get()) }
     single { NotificationService(get()) }
     single { UserService(get()) }
+    single { InvoiceService(get()) }
 }
