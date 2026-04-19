@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class MarketingViewModel(
-    private val getAllLeadsUseCase: GetAllLeadsUseCase
+    private val getAllLeadsUseCase: GetAllLeadsUseCase,
+    private val sessionManager: com.nxzef.wc.data.session.SessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MarketingState())
@@ -24,6 +25,8 @@ class MarketingViewModel(
     val uiEvent = _uiEvent.receiveAsFlow()
 
     init {
+        val currentUser = sessionManager.getUser()
+        _state.update { it.copy(userName = currentUser?.name ?: "User") }
         load()
     }
 

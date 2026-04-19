@@ -2,9 +2,7 @@ package com.nxzef.wc.presentation.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +22,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.components.WCPermanentSidebar
-import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
 import com.nxzef.wc.presentation.screens.bookings.BookingScreen
 import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
@@ -73,23 +70,8 @@ fun WCNavigation() {
                         }
                     }
                 ) {
-                    Scaffold(
-                        topBar = {
-                            WCTopBar(
-                                title = getRouteTitle(currentRoute),
-                                subtitle = if (currentRoute == Route.OwnerDashboard) "Welcome back, ${user?.name ?: "User"}!" else null,
-                                onLogout = {
-                                    sessionManager.clear()
-                                    navController.navigate(Route.Login) {
-                                        popUpTo(0) { inclusive = true }
-                                    }
-                                }
-                            )
-                        }
-                    ) { padding ->
-                        Box(modifier = Modifier.padding(padding)) {
-                            AppNavHost(navController = navController)
-                        }
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AppNavHost(navController = navController)
                     }
                 }
             }
@@ -181,28 +163,31 @@ fun getRouteTitle(route: Route): String {
     return when (route) {
         Route.OwnerDashboard -> "Dashboard"
         Route.LeadPipeline -> "Lead Pipeline"
+        Route.AddLead -> "Add Lead"
         Route.Marketing -> "Marketing"
         Route.MyShoots -> "My Shoots"
         Route.EditingQueue -> "Editing Queue"
         Route.TeamManagement -> "Team Management"
         Route.Invoices -> "Invoices"
+        Route.Bookings -> "Bookings"
         Route.Settings -> "Settings"
-        else -> ""
+        Route.Login -> ""
     }
 }
 
 fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
     val destination = backStackEntry?.destination ?: return Route.Login
-
     return when {
         destination.hasRoute<Route.Login>() -> Route.Login
         destination.hasRoute<Route.OwnerDashboard>() -> Route.OwnerDashboard
         destination.hasRoute<Route.LeadPipeline>() -> Route.LeadPipeline
+        destination.hasRoute<Route.AddLead>() -> Route.AddLead
         destination.hasRoute<Route.Marketing>() -> Route.Marketing
         destination.hasRoute<Route.MyShoots>() -> Route.MyShoots
         destination.hasRoute<Route.EditingQueue>() -> Route.EditingQueue
         destination.hasRoute<Route.TeamManagement>() -> Route.TeamManagement
         destination.hasRoute<Route.Invoices>() -> Route.Invoices
+        destination.hasRoute<Route.Bookings>() -> Route.Bookings
         destination.hasRoute<Route.Settings>() -> Route.Settings
         else -> Route.Login
     }

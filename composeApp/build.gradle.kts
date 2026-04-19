@@ -63,6 +63,12 @@ kotlin {
 
             // Material icons
             implementation(libs.material.icons.extended)
+
+            // DataStore
+            implementation(libs.datastore.preferences)
+
+            // Okio
+            implementation(libs.okio)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -80,7 +80,7 @@ fun MarketingScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Welcome, ${SessionManager.getUser()?.name}",
+                            text = "Welcome, ${state.userName}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

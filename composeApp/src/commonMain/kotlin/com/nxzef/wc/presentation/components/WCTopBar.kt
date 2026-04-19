@@ -2,7 +2,6 @@ package com.nxzef.wc.presentation.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -14,62 +13,71 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nxzef.wc.presentation.screens.notifications.NotificationAction
+import com.nxzef.wc.presentation.screens.notifications.NotificationPanel
+import com.nxzef.wc.presentation.screens.notifications.NotificationViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WCTopBar(
     title: String,
     subtitle: String? = null,
-    notificationCount: Int = 0,
-    onNotificationClick: () -> Unit = {},
-    onLogout: (() -> Unit)? = null,
+    notificationViewModel: NotificationViewModel = koinViewModel(),
     actions: @Composable () -> Unit = {}
 ) {
+    val notifState by notificationViewModel.state.collectAsStateWithLifecycle()
+
     TopAppBar(
         title = {
-            Column {
+            if (subtitle != null) {
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         },
         actions = {
             actions()
             BadgedBox(
                 badge = {
-                    if (notificationCount > 0) {
+                    if (notifState.unreadCount > 0) {
                         Badge {
                             Text(
-                                if (notificationCount > 99) "99+"
-                                else notificationCount.toString()
+                                if (notifState.unreadCount > 99) "99+"
+                                else notifState.unreadCount.toString()
                             )
                         }
                     }
                 }
             ) {
-                IconButton(onClick = onNotificationClick) {
+                IconButton(
+                    onClick = {
+                        notificationViewModel.onAction(
+                            NotificationAction.Show
+                        )
+                    }
+                ) {
                     Icon(
-                        imageVector = Icons.Default.Notifications,
+                        Icons.Default.Notifications,
                         contentDescription = "Notifications"
-                    )
-                }
-            }
-            if (onLogout != null) {
-                IconButton(onClick = onLogout) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = "Logout",
-                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -77,5 +85,11 @@ fun WCTopBar(
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
+    )
+
+    // Notification panel overlay
+    NotificationPanel(
+        state = notifState,
+        onAction = notificationViewModel::onAction
     )
 }

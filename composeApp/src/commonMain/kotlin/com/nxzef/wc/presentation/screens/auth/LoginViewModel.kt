@@ -3,8 +3,7 @@ package com.nxzef.wc.presentation.screens.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.auth.LoginUseCase
-import com.nxzef.wc.shared.util.onFailure
-import com.nxzef.wc.shared.util.onSuccess
+import com.nxzef.wc.shared.util.AppResult
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,18 +38,29 @@ class LoginViewModel(
 
     private fun login() {
         val currentState = _state.value
-        
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            
-            loginUseCase(currentState.email, currentState.password)
-                .onSuccess { response ->
-                    _uiEvent.send(LoginUiEvent.NavigateToHome(response.user.role))
-                }
-                .onFailure { e ->
-                    _uiEvent.send(LoginUiEvent.ShowSnackbar(e.message ?: "Login failed"))
-                }
-                
+
+            when (val result = loginUseCase(
+                currentState.email.trim(),
+                currentState.password.trim()
+            )) {
+                is AppResult.Success ->
+                    _uiEvent.send(
+                        LoginUiEvent.NavigateToHome(result.data.user.role)
+                    )
+
+                is AppResult.Failure ->
+                    _uiEvent.send(
+                        LoginUiEvent.ShowSnackbar(
+                            result.exception.message ?: "Login failed"
+                        )
+                    )
+
+                is AppResult.Loading -> Unit
+            }
+
             _state.update { it.copy(isLoading = false) }
         }
     }

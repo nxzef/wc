@@ -6,6 +6,7 @@ import com.nxzef.wc.shared.model.LeadSource
 data class MarketingState(
     val leads: List<Lead> = emptyList(),
     val sourceStats: Map<LeadSource, Int> = emptyMap(),
+    val userName: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
     val sourceFilter: LeadSource? = null
