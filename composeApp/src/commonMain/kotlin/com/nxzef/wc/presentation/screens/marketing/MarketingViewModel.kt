@@ -1,0 +1,75 @@
+package com.nxzef.wc.presentation.screens.marketing
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
+import com.nxzef.wc.shared.util.onFailure
+import com.nxzef.wc.shared.util.onSuccess
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+class MarketingViewModel(
+    private val getAllLeadsUseCase: GetAllLeadsUseCase
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(MarketingState())
+    val state: StateFlow<MarketingState> = _state.asStateFlow()
+
+    private val _uiEvent = Channel<MarketingUiEvent>()
+    val uiEvent = _uiEvent.receiveAsFlow()
+
+    init {
+        load()
+    }
+
+    fun onAction(action: MarketingAction) {
+        when (action) {
+            MarketingAction.Load ->
+                load()
+
+            is MarketingAction.FilterBySource ->
+                _state.update { it.copy(sourceFilter = action.source) }
+        }
+    }
+
+    private fun load() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            getAllLeadsUseCase()
+                .onSuccess { leads ->
+                    val stats = leads.groupingBy { it.source }
+                        .eachCount()
+                        .toList()
+                        .sortedByDescending { it.second }
+                        .toMap()
+
+                    _state.update {
+                        it.copy(
+                            leads = leads,
+                            sourceStats = stats,
+                            isLoading = false
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(
+                            error = e.message ?: "Failed",
+                            isLoading = false
+                        )
+                    }
+                }
+        }
+    }
+
+    val filteredLeads
+        get() = _state.value.let { s ->
+            if (s.sourceFilter == null) s.leads
+            else s.leads.filter { it.source == s.sourceFilter }
+        }
+}
