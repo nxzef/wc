@@ -45,6 +45,11 @@ fun Application.configureRouting() {
         // Public
         authRoutes(authService)
 
+        // Health check
+        get("/health") {
+            call.respond(mapOf("status" to "ok"))
+        }
+
         // Protected
         authenticate("auth-jwt") {
             get("/me") {

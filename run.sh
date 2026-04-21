@@ -3,7 +3,7 @@
 # --- CONFIGURATION ---
 PORT=8080
 # The URL to check. If your server has a specific health path, use that.
-HEALTH_URL="http://localhost:$PORT"
+HEALTH_URL="http://localhost:$PORT/health"
 
 # --- CLEANUP LOGIC ---
 cleanup() {
