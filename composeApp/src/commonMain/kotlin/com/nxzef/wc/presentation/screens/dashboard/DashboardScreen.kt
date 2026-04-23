@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -106,20 +107,29 @@ fun DashboardScreen(
                     }
                 }
 
-                state.stats != null -> DashboardContent(
-                    stats = state.stats!!
-                )
+                state.stats != null -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    DashboardContent(
+                        stats = state.stats!!,
+                        modifier = Modifier.widthIn(max = 800.dp)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun DashboardContent(stats: DashboardStats) {
+fun DashboardContent(
+    stats: DashboardStats,
+    modifier: Modifier = Modifier
+) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(24.dp),
-        contentPadding = PaddingValues(vertical = 24.dp)
+        contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         item {
             // Summary Stats Row
@@ -161,11 +171,11 @@ fun DashboardContent(stats: DashboardStats) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                     ),
-                    elevation = CardDefaults.cardElevation(2.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Box(modifier = Modifier.padding(16.dp)) {
                         RevenueChart(
@@ -218,13 +228,13 @@ fun DashboardContent(stats: DashboardStats) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
                     ),
                     border = CardDefaults.outlinedCardBorder().copy(
                         brush = Brush.linearGradient(
-                            listOf(MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.errorContainer)
+                            listOf(MaterialTheme.colorScheme.error.copy(alpha = 0.4f), MaterialTheme.colorScheme.errorContainer)
                         )
                     )
                 ) {
@@ -300,7 +310,7 @@ fun SummaryStatCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = color.copy(alpha = 0.08f)
         )
@@ -312,7 +322,7 @@ fun SummaryStatCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.small,
                     color = color.copy(alpha = 0.15f)
                 ) {
                     Icon(
@@ -404,11 +414,11 @@ fun KpiCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -448,8 +458,8 @@ fun SourceChip(source: String, count: Int) {
     }
 
     Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -480,11 +490,11 @@ fun SourceChip(source: String, count: Int) {
 fun RecentLeadCard(lead: Lead) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
-        elevation = CardDefaults.cardElevation(1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -527,11 +537,11 @@ fun RecentLeadCard(lead: Lead) {
 fun UpcomingBookingCard(booking: Booking) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
-        elevation = CardDefaults.cardElevation(1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier

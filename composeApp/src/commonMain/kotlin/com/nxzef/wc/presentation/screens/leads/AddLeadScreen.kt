@@ -51,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.WCTopBar
@@ -94,16 +95,18 @@ fun AddLeadScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.background),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             // Form
             Column(
                 modifier = Modifier
+                    .widthIn(max = 800.dp) // Professional desktop width constraint
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 // Section: Contact Info
                 SectionHeader(
@@ -119,12 +122,16 @@ fun AddLeadScreen(
                     label = { Text("Full Name *") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
                     leadingIcon = {
                         Icon(Icons.Default.Person, null)
                     }
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     OutlinedTextField(
                         value = state.phone,
                         onValueChange = {
@@ -135,6 +142,7 @@ fun AddLeadScreen(
                         label = { Text("Phone *") },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         leadingIcon = {
                             Icon(Icons.Default.Phone, null)
                         }
@@ -146,9 +154,10 @@ fun AddLeadScreen(
                                 AddLeadAction.OnEmailChange(it)
                             )
                         },
-                        label = { Text("Email") },
+                        label = { Text("Email *") },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         leadingIcon = {
                             Icon(Icons.Default.Email, null)
                         }
@@ -161,7 +170,10 @@ fun AddLeadScreen(
                     title = "Event Details"
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     // Source dropdown
                     WCDropdown(
                         modifier = Modifier.weight(1f),
@@ -193,7 +205,10 @@ fun AddLeadScreen(
                     )
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     OutlinedTextField(
                         value = state.eventDate,
                         onValueChange = {
@@ -204,6 +219,7 @@ fun AddLeadScreen(
                         label = { Text("Event Date (YYYY-MM-DD)") },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         leadingIcon = {
                             Icon(Icons.Default.CalendarMonth, null)
                         }
@@ -218,6 +234,7 @@ fun AddLeadScreen(
                         label = { Text("Location") },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         leadingIcon = {
                             Icon(Icons.Default.LocationOn, null)
                         }
@@ -264,12 +281,13 @@ fun AddLeadScreen(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     maxLines = 5,
+                    shape = MaterialTheme.shapes.medium,
                     leadingIcon = {
                         Icon(Icons.AutoMirrored.Filled.Notes, null)
                     }
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Submit button
                 Button(
@@ -277,8 +295,10 @@ fun AddLeadScreen(
                         viewModel.onAction(AddLeadAction.OnSubmit)
                     },
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .align(Alignment.End)
+                        .widthIn(min = 200.dp)
                         .height(52.dp),
+                    shape = MaterialTheme.shapes.large,
                     enabled = !state.isLoading
                 ) {
                     if (state.isLoading) {

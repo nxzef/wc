@@ -85,11 +85,11 @@ class AddLeadViewModel(
 
     private fun submit() {
         val s = _state.value
-        if (s.fullName.isBlank() || s.phone.isBlank()) {
+        if (s.fullName.isBlank() || s.phone.isBlank() || s.email.isBlank()) {
             viewModelScope.launch {
                 _uiEvent.send(
                     AddLeadUiEvent.ShowSnackbar(
-                        "Name and phone are required"
+                        "Name, phone and email are required"
                     )
                 )
             }

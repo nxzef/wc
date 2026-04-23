@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.screens.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Cloud
@@ -25,15 +26,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.background
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.components.WCTopBar
 
@@ -50,127 +48,133 @@ fun SettingsScreen(onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // Profile card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme
-                        .primaryContainer
-                )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 800.dp)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                // Profile card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(56.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Surface(
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = user?.name?.first()
+                                        ?.uppercase() ?: "?",
+                                    style = MaterialTheme.typography
+                                        .headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme
+                                        .onPrimary
+                                )
+                            }
+                        }
+                        Column {
                             Text(
-                                text = user?.name?.first()
-                                    ?.uppercase() ?: "?",
-                                style = MaterialTheme.typography
-                                    .headlineSmall,
+                                text = user?.name ?: "Unknown",
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme
-                                    .onPrimary
+                                    .onPrimaryContainer
+                            )
+                            Text(
+                                text = user?.email ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme
+                                    .onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = user?.role?.name?.replace("_", " ")
+                                    ?: "",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
-                    Column {
-                        Text(
-                            text = user?.name ?: "Unknown",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme
-                                .onPrimaryContainer
-                        )
-                        Text(
-                            text = user?.email ?: "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme
-                                .onPrimaryContainer.copy(alpha = 0.7f)
-                        )
-                        Text(
-                            text = user?.role?.name?.replace("_", " ")
-                                ?: "",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
                 }
+
+                // App info section
+                Text(
+                    text = "Application",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                SettingsItem(
+                    icon = Icons.Default.Info,
+                    title = "Version",
+                    value = "1.0.0 MVP"
+                )
+
+                SettingsItem(
+                    icon = Icons.Default.Cloud,
+                    title = "Server",
+                    value = "Connected"
+                )
+
+                SettingsItem(
+                    icon = Icons.Default.Business,
+                    title = "Company",
+                    value = "The Wedding Clouds"
+                )
+
+                HorizontalDivider()
+
+                Text(
+                    text = "Coming Soon",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                SettingsItem(
+                    icon = Icons.Default.DarkMode,
+                    title = "Dark Mode",
+                    value = "Coming soon",
+                    enabled = false
+                )
+
+                SettingsItem(
+                    icon = Icons.Default.Notifications,
+                    title = "Push Notifications",
+                    value = "Coming soon",
+                    enabled = false
+                )
+
+                SettingsItem(
+                    icon = Icons.Default.Language,
+                    title = "Language",
+                    value = "Coming soon",
+                    enabled = false
+                )
             }
-
-            // App info section
-            Text(
-                text = "Application",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            SettingsItem(
-                icon = Icons.Default.Info,
-                title = "Version",
-                value = "1.0.0 MVP"
-            )
-
-            SettingsItem(
-                icon = Icons.Default.Cloud,
-                title = "Server",
-                value = "Connected"
-            )
-
-            SettingsItem(
-                icon = Icons.Default.Business,
-                title = "Company",
-                value = "The Wedding Clouds"
-            )
-
-            HorizontalDivider()
-
-            Text(
-                text = "Coming Soon",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            SettingsItem(
-                icon = Icons.Default.DarkMode,
-                title = "Dark Mode",
-                value = "Coming soon",
-                enabled = false
-            )
-
-            SettingsItem(
-                icon = Icons.Default.Notifications,
-                title = "Push Notifications",
-                value = "Coming soon",
-                enabled = false
-            )
-
-            SettingsItem(
-                icon = Icons.Default.Language,
-                title = "Language",
-                value = "Coming soon",
-                enabled = false
-            )
         }
     }
 }
@@ -184,16 +188,16 @@ fun SettingsItem(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = if (enabled)
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.surfaceContainerLow
             else
                 MaterialTheme.colorScheme.surfaceVariant
                     .copy(alpha = 0.5f)
         ),
         elevation = CardDefaults.cardElevation(
-            if (enabled) 1.dp else 0.dp
+            if (enabled) 0.dp else 0.dp
         )
     ) {
         Row(

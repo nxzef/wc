@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.screens.bookings
 
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -111,47 +112,54 @@ fun BookingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.background),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Status filter chips
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(
-                    horizontal = 24.dp,
-                    vertical = 12.dp
-                ),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item {
-                    FilterChip(
-                        selected = state.filterStatus == null,
-                        onClick = {
-                            viewModel.onAction(
-                                BookingAction.OnFilterStatus(null)
-                            )
-                        },
-                        label = { Text("All") }
-                    )
+            Column(modifier = Modifier.widthIn(max = 800.dp)) {
+                // Status filter chips
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(
+                        horizontal = 24.dp,
+                        vertical = 12.dp
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = state.filterStatus == null,
+                            onClick = {
+                                viewModel.onAction(
+                                    BookingAction.OnFilterStatus(null)
+                                )
+                            },
+                            label = { Text("All") }
+                        )
+                    }
+                    items(BookingStatus.entries) { status ->
+                        FilterChip(
+                            selected = state.filterStatus == status,
+                            onClick = {
+                                viewModel.onAction(
+                                    BookingAction.OnFilterStatus(status)
+                                )
+                            },
+                            label = {
+                                Text(status.name.replace("_", " "))
+                            }
+                        )
+                    }
                 }
-                items(BookingStatus.entries) { status ->
-                    FilterChip(
-                        selected = state.filterStatus == status,
-                        onClick = {
-                            viewModel.onAction(
-                                BookingAction.OnFilterStatus(status)
-                            )
-                        },
-                        label = {
-                            Text(status.name.replace("_", " "))
-                        }
-                    )
-                }
+
+                HorizontalDivider()
             }
 
-            HorizontalDivider()
-
             // Content
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .widthIn(max = 800.dp)
+            ) {
                 when {
                     state.isLoading -> {
                         CircularProgressIndicator(
@@ -243,10 +251,10 @@ fun BookingCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(2.dp),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
         Row(

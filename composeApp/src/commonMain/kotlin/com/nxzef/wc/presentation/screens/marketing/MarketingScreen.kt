@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.screens.marketing
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -73,176 +75,185 @@ fun MarketingScreen(
         topBar = {
             WCTopBar(
                 title = "Marketing",
-                subtitle = "Welcome, ${state.userName}",
+                subtitle = "Dashboard overview",
                 onBack = onBack,
                 actions = {
                     Button(
                         onClick = onAddLead,
-                        modifier = Modifier.padding(end = 16.dp)
+                        modifier = Modifier.padding(end = 16.dp),
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Icon(
                             Icons.Default.PersonAdd,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text("Add Lead")
                     }
                 }
             )
         }
     ) { padding ->
-        when {
-            state.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
-            }
-
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Source stats
-                    item {
-                        Text(
-                            text = "Lead Sources",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            state.sourceStats.forEach { (source, count) ->
-                                SourceStatCard(
-                                    modifier = Modifier.weight(1f),
-                                    source = source,
-                                    count = count,
-                                    total = state.leads.size
-                                )
-                            }
-                        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 800.dp)
+            ) {
+                when {
+                    state.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) { CircularProgressIndicator() }
                     }
 
-                    // Conversion summary
-                    item {
-                        val won = state.leads.count {
-                            it.status == LeadStatus.WON
-                        }
-                        val lost = state.leads.count {
-                            it.status == LeadStatus.LOST
-                        }
-                        val total = state.leads.size
-                        val rate = if (total > 0)
-                            (won * 100 / total) else 0
-
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme
-                                    .colorScheme.primaryContainer
-                            )
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement =
-                                    Arrangement.SpaceAround
-                            ) {
-                                ConversionStat(
-                                    label = "Total",
-                                    value = total.toString(),
-                                    color = MaterialTheme.colorScheme
-                                        .onPrimaryContainer
-                                )
-                                ConversionStat(
-                                    label = "Won",
-                                    value = won.toString(),
-                                    color = WCTheme.colors.statusWon
-                                )
-                                ConversionStat(
-                                    label = "Lost",
-                                    value = lost.toString(),
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                                ConversionStat(
-                                    label = "Rate",
-                                    value = "$rate%",
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-
-                    // Source filter chips
-                    item {
-                        Text(
-                            text = "All Leads",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        LazyRow(
-                            horizontalArrangement =
-                                Arrangement.spacedBy(8.dp)
-                        ) {
+                            // Source stats
                             item {
-                                FilterChip(
-                                    selected = state.sourceFilter == null,
-                                    onClick = {
-                                        viewModel.onAction(
-                                            MarketingAction.FilterBySource(null)
-                                        )
-                                    },
-                                    label = { Text("All") }
-                                )
-                            }
-                            items(LeadSource.entries) { source ->
-                                FilterChip(
-                                    selected = state.sourceFilter == source,
-                                    onClick = {
-                                        viewModel.onAction(
-                                            MarketingAction.FilterBySource(
-                                                source
-                                            )
-                                        )
-                                    },
-                                    label = { Text(source.name) }
-                                )
-                            }
-                        }
-                    }
-
-                    // Leads list
-                    if (viewModel.filteredLeads.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
                                 Text(
-                                    text = "No leads found",
-                                    color = MaterialTheme.colorScheme
-                                        .onSurfaceVariant
+                                    text = "Lead Sources",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
                                 )
+                                Spacer(Modifier.height(12.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    state.sourceStats.forEach { (source, count) ->
+                                        SourceStatCard(
+                                            modifier = Modifier.weight(1f),
+                                            source = source,
+                                            count = count,
+                                            total = state.leads.size
+                                        )
+                                    }
+                                }
                             }
-                        }
-                    } else {
-                        items(viewModel.filteredLeads) { lead ->
-                            MarketingLeadCard(lead = lead)
+
+                            // Conversion summary
+                            item {
+                                val won = state.leads.count {
+                                    it.status == LeadStatus.WON
+                                }
+                                val lost = state.leads.count {
+                                    it.status == LeadStatus.LOST
+                                }
+                                val total = state.leads.size
+                                val rate = if (total > 0)
+                                    (won * 100 / total) else 0
+
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.medium,
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(24.dp),
+                                        horizontalArrangement =
+                                        Arrangement.SpaceAround
+                                    ) {
+                                        ConversionStat(
+                                            label = "Total Leads",
+                                            value = total.toString(),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        ConversionStat(
+                                            label = "Won",
+                                            value = won.toString(),
+                                            color = WCTheme.colors.statusWon
+                                        )
+                                        ConversionStat(
+                                            label = "Lost",
+                                            value = lost.toString(),
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        ConversionStat(
+                                            label = "Conversion",
+                                            value = "$rate%",
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Source filter chips
+                            item {
+                                Text(
+                                    text = "All Leads",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                LazyRow(
+                                    horizontalArrangement =
+                                    Arrangement.spacedBy(8.dp)
+                                ) {
+                                    item {
+                                        FilterChip(
+                                            selected = state.sourceFilter == null,
+                                            onClick = {
+                                                viewModel.onAction(
+                                                    MarketingAction.FilterBySource(null)
+                                                )
+                                            },
+                                            label = { Text("All") }
+                                        )
+                                    }
+                                    items(LeadSource.entries) { source ->
+                                        FilterChip(
+                                            selected = state.sourceFilter == source,
+                                            onClick = {
+                                                viewModel.onAction(
+                                                    MarketingAction.FilterBySource(
+                                                        source
+                                                    )
+                                                )
+                                            },
+                                            label = { Text(source.name) }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Leads list
+                            if (viewModel.filteredLeads.isEmpty()) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "No leads found",
+                                            color = MaterialTheme.colorScheme
+                                                .onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            } else {
+                                items(viewModel.filteredLeads) { lead ->
+                                    MarketingLeadCard(lead = lead)
+                                }
+                            }
                         }
                     }
                 }
@@ -270,20 +281,20 @@ fun SourceStatCard(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
+            containerColor = color.copy(alpha = 0.08f)
         )
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = count.toString(),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
                 color = color
             )
             Text(
@@ -335,10 +346,10 @@ fun MarketingLeadCard(lead: Lead) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(1.dp),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
         Row(
