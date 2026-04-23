@@ -1,5 +1,8 @@
 package com.nxzef.wc.presentation.screens.dashboard
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -7,12 +10,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +28,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,7 +42,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -106,22 +118,78 @@ fun DashboardScreen(
 fun DashboardContent(stats: DashboardStats) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        contentPadding = PaddingValues(vertical = 24.dp)
     ) {
         item {
-            // KPI cards — wrap in padding
+            // Summary Stats Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                SummaryStatCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Revenue",
+                    value = "₹${stats.totalRevenueThisMonth.toLong() / 1000}k",
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                    color = MaterialTheme.colorScheme.primary,
+                    subtitle = "+12% from last month"
+                )
+                SummaryStatCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Conversion",
+                    value = "64%",
+                    icon = Icons.Default.People,
+                    color = WCTheme.colors.statusWon,
+                    subtitle = "8 won this month"
+                )
+            }
+        }
+
+        item {
+            // Revenue Chart
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Text(
+                    text = "Revenue Overview",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(2.dp)
+                ) {
+                    Box(modifier = Modifier.padding(16.dp)) {
+                        RevenueChart(
+                            data = listOf(0.2f, 0.5f, 0.4f, 0.8f, 0.6f, 0.9f, 0.7f),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            // KPI Grid
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Text(
+                    text = "Key Metrics",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    KpiCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Revenue",
-                        value = "₹${stats.totalRevenueThisMonth.toLong()}",
-                        icon = Icons.Default.CurrencyRupee,
-                        color = MaterialTheme.colorScheme.primary
-                    )
                     KpiCard(
                         modifier = Modifier.weight(1f),
                         title = "Bookings",
@@ -131,68 +199,59 @@ fun DashboardContent(stats: DashboardStats) {
                     )
                     KpiCard(
                         modifier = Modifier.weight(1f),
-                        title = "Leads",
+                        title = "Open Leads",
                         value = stats.openLeads.toString(),
                         icon = Icons.Default.People,
                         color = MaterialTheme.colorScheme.tertiary
                     )
-                    KpiCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Pending",
-                        value = stats.pendingDeliveries.toString(),
-                        icon = Icons.Default.Pending,
-                        color = MaterialTheme.colorScheme.error
-                    )
                 }
             }
         }
 
-        // rest of items with horizontal padding
         item {
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Text(
+                    text = "Pending Actions",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                    ),
+                    border = CardDefaults.outlinedCardBorder().copy(
+                        brush = Brush.linearGradient(
+                            listOf(MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.errorContainer)
+                        )
                     )
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "💸 Pending Payments",
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Text(
-                            text = "₹${stats.pendingPayments.toLong()}",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-            }
-        }
-
-        if (stats.leadsBySource.isNotEmpty()) {
-            item {
-                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                    Text(
-                        text = "Leads by Source",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.horizontalScroll(rememberScrollState())
-                    ) {
-                        stats.leadsBySource.forEach { (source, count) ->
-                            SourceChip(source = source, count = count)
+                        Column {
+                            Text(
+                                text = "Uncollected Payments",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = "₹${stats.pendingPayments.toLong()}",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
+                        Icon(
+                            imageVector = Icons.Default.Pending,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(32.dp)
+                        )
                     }
                 }
             }
@@ -200,37 +259,138 @@ fun DashboardContent(stats: DashboardStats) {
 
         if (stats.recentLeads.isNotEmpty()) {
             item {
-                Text(
-                    text = "Recent Leads",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Recent Leads",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "View All",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
-            items(stats.recentLeads) { lead ->
+            items(stats.recentLeads.take(3)) { lead ->
                 Box(modifier = Modifier.padding(horizontal = 24.dp)) {
                     RecentLeadCard(lead = lead)
                 }
             }
         }
 
-        if (stats.upcomingBookings.isNotEmpty()) {
-            item {
-                Text(
-                    text = "Upcoming Shoots",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
-            }
-            items(stats.upcomingBookings) { booking ->
-                Box(modifier = Modifier.padding(horizontal = 24.dp)) {
-                    UpcomingBookingCard(booking = booking)
+        item { Spacer(modifier = Modifier.height(24.dp)) }
+    }
+}
+
+@Composable
+fun SummaryStatCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    value: String,
+    icon: ImageVector,
+    color: Color,
+    subtitle: String
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.08f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = color.copy(alpha = 0.15f)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(20.dp)
+                    )
                 }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = color
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = color.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+fun RevenueChart(
+    data: List<Float>,
+    color: Color
+) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val width = size.width
+        val height = size.height
+        val spacing = width / (data.size - 1)
+
+        val path = Path()
+        val fillPath = Path()
+
+        data.forEachIndexed { index, value ->
+            val x = index * spacing
+            val y = height - (value * height)
+
+            if (index == 0) {
+                path.moveTo(x, y)
+                fillPath.moveTo(x, height)
+                fillPath.lineTo(x, y)
+            } else {
+                path.lineTo(x, y)
+                fillPath.lineTo(x, y)
+            }
+
+            if (index == data.size - 1) {
+                fillPath.lineTo(x, height)
+                fillPath.close()
             }
         }
 
-        item { Spacer(modifier = Modifier.height(24.dp)) }
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(color.copy(alpha = 0.3f), Color.Transparent)
+            )
+        )
+
+        drawPath(
+            path = path,
+            color = color,
+            style = Stroke(width = 3.dp.toPx())
+        )
     }
 }
 
@@ -244,7 +404,7 @@ fun KpiCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -320,7 +480,7 @@ fun SourceChip(source: String, count: Int) {
 fun RecentLeadCard(lead: Lead) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -367,7 +527,7 @@ fun RecentLeadCard(lead: Lead) {
 fun UpcomingBookingCard(booking: Booking) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),

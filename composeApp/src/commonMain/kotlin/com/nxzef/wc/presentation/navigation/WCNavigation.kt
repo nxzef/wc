@@ -1,18 +1,22 @@
 package com.nxzef.wc.presentation.navigation
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.core.EaseOutQuart
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
@@ -45,7 +49,7 @@ fun WCNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = getCurrentRoute(navBackStackEntry)
     val sessionManager: SessionManager = koinInject()
-    val user by sessionManager.currentUser.collectAsState()
+//    val user by sessionManager.currentUser.collectAsState()
 
     var isSidebarCollapsed by remember { mutableStateOf(false) }
 
@@ -72,9 +76,12 @@ fun WCNavigation() {
                         }
                     }
                 ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        AppNavHost(navController = navController)
-                    }
+                    AppNavHost(
+                        navController = navController,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clipToBounds()
+                    )
                 }
             }
         }
@@ -82,10 +89,58 @@ fun WCNavigation() {
 }
 
 @Composable
-fun AppNavHost(navController: NavHostController) {
+fun AppNavHost(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
     NavHost(
         navController = navController,
-        startDestination = Route.Login
+        startDestination = Route.Login,
+        modifier = modifier,
+        enterTransition = {
+            fadeIn(animationSpec = tween(300, easing = EaseOutQuart)) +
+                    slideInHorizontally(
+                        initialOffsetX = { it / 8 },
+                        animationSpec = tween(300, easing = EaseOutQuart)
+                    ) +
+                    scaleIn(
+                        initialScale = 0.96f,
+                        animationSpec = tween(300, easing = EaseOutQuart)
+                    )
+        },
+        exitTransition = {
+            fadeOut(animationSpec = tween(300, easing = EaseOutQuart)) +
+                    slideOutHorizontally(
+                        targetOffsetX = { -it / 8 },
+                        animationSpec = tween(300, easing = EaseOutQuart)
+                    ) +
+                    scaleOut(
+                        targetScale = 1.04f,
+                        animationSpec = tween(300, easing = EaseOutQuart)
+                    )
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = tween(300, easing = EaseOutQuart)) +
+                    slideInHorizontally(
+                        initialOffsetX = { -it / 8 },
+                        animationSpec = tween(300, easing = EaseOutQuart)
+                    ) +
+                    scaleIn(
+                        initialScale = 1.04f,
+                        animationSpec = tween(300, easing = EaseOutQuart)
+                    )
+        },
+        popExitTransition = {
+            fadeOut(animationSpec = tween(300, easing = EaseOutQuart)) +
+                    slideOutHorizontally(
+                        targetOffsetX = { it / 8 },
+                        animationSpec = tween(300, easing = EaseOutQuart)
+                    ) +
+                    scaleOut(
+                        targetScale = 0.96f,
+                        animationSpec = tween(300, easing = EaseOutQuart)
+                    )
+        }
     ) {
         composable<Route.Login> {
             LoginScreen(
@@ -174,23 +229,6 @@ fun AppNavHost(navController: NavHostController) {
     }
 }
 
-fun getRouteTitle(route: Route): String {
-    return when (route) {
-        Route.OwnerDashboard -> "Dashboard"
-        Route.LeadPipeline -> "Lead Pipeline"
-        Route.AddLead -> "Add Lead"
-        Route.Marketing -> "Marketing"
-        Route.MyShoots -> "My Shoots"
-        Route.EditingQueue -> "Editing Queue"
-        Route.TeamManagement -> "Team Management"
-        Route.Invoices -> "Invoices"
-        Route.Bookings -> "Bookings"
-        Route.Settings -> "Settings"
-        is Route.Quotes -> "Quotes"
-        Route.Login -> ""
-    }
-}
-
 fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
     val destination = backStackEntry?.destination ?: return Route.Login
     return when {
@@ -209,20 +247,7 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
             val leadId = backStackEntry.toRoute<Route.Quotes>().leadId
             Route.Quotes(leadId)
         }
-        else -> Route.Login
-    }
-}
 
-@Composable
-fun PlaceholderScreen(title: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "$title Coming soon...",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        else -> Route.Login
     }
 }

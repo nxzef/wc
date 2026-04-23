@@ -162,39 +162,22 @@ fun EditorScreen(
 
                         if (priority.isNotEmpty()) {
                             item {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme
-                                        .errorContainer
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                horizontal = 12.dp,
-                                                vertical = 6.dp
-                                            ),
-                                        verticalAlignment =
-                                        Alignment.CenterVertically,
-                                        horizontalArrangement =
-                                        Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.PriorityHigh,
-                                            contentDescription = null,
-                                            tint = MaterialTheme
-                                                .colorScheme.onErrorContainer,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Text(
-                                            text = "Ready for Editing",
-                                            style = MaterialTheme.typography
-                                                .labelLarge,
-                                            color = MaterialTheme.colorScheme
-                                                .onErrorContainer,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(width = 4.dp, height = 16.dp)
+                                    ) {}
+                                    Text(
+                                        text = "Ready for Editing",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
                                 }
                             }
                             items(priority) { job ->
@@ -211,14 +194,24 @@ fun EditorScreen(
 
                         if (inProgress.isNotEmpty()) {
                             item {
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = "In Progress",
-                                    style = MaterialTheme.typography
-                                        .titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = WCTheme.colors.statusEditing
-                                )
+                                Spacer(Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = WCTheme.colors.statusEditing,
+                                        modifier = Modifier.size(width = 4.dp, height = 16.dp)
+                                    ) {}
+                                    Text(
+                                        text = "In Progress",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = WCTheme.colors.statusEditing
+                                    )
+                                }
                             }
                             items(inProgress) { job ->
                                 ShootCard(
@@ -234,15 +227,24 @@ fun EditorScreen(
 
                         if (rest.isNotEmpty()) {
                             item {
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = "Others",
-                                    style = MaterialTheme.typography
-                                        .titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme
-                                        .onSurfaceVariant
-                                )
+                                Spacer(Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(width = 4.dp, height = 16.dp)
+                                    ) {}
+                                    Text(
+                                        text = "Others",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                             items(rest) { job ->
                                 ShootCard(

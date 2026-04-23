@@ -1,6 +1,8 @@
 package com.nxzef.wc.presentation.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Notifications
@@ -37,6 +39,7 @@ fun WCTopBar(
     val notifState by notificationViewModel.state.collectAsStateWithLifecycle()
 
     TopAppBar(
+        modifier = Modifier.zIndex(0f),
         title = {
             if (subtitle != null) {
                 Column {

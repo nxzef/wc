@@ -184,7 +184,7 @@ fun SettingsItem(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (enabled)
                 MaterialTheme.colorScheme.surface

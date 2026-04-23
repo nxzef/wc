@@ -159,13 +159,23 @@ fun PhotographerScreen(
 
                         if (upcoming.isNotEmpty()) {
                             item {
-                                Text(
-                                    text = "Upcoming Shoots",
-                                    style = MaterialTheme.typography
-                                        .titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(width = 4.dp, height = 16.dp)
+                                    ) {}
+                                    Text(
+                                        text = "Upcoming Shoots",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                             }
                             items(upcoming) { shoot ->
                                 ShootCard(
@@ -181,15 +191,24 @@ fun PhotographerScreen(
 
                         if (done.isNotEmpty()) {
                             item {
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    text = "Completed",
-                                    style = MaterialTheme.typography
-                                        .titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme
-                                        .onSurfaceVariant
-                                )
+                                Spacer(Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(width = 4.dp, height = 16.dp)
+                                    ) {}
+                                    Text(
+                                        text = "Completed",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                             items(done) { shoot ->
                                 ShootCard(
@@ -236,7 +255,7 @@ fun ShootCard(shoot: Booking, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -245,37 +264,58 @@ fun ShootCard(shoot: Booking, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Surface(
+            Box(
                 modifier = Modifier
-                    .width(4.dp)
-                    .height(56.dp),
-                shape = RoundedCornerShape(4.dp),
-                color = if (isUpcoming)
-                    WCTheme.colors.statusBooked
-                else WCTheme.colors.statusShootDone
-            ) {}
+                    .size(48.dp)
+                    .background(
+                        color = if (isUpcoming)
+                            WCTheme.colors.statusBooked.copy(alpha = 0.1f)
+                        else WCTheme.colors.statusShootDone.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = null,
+                    tint = if (isUpcoming)
+                        WCTheme.colors.statusBooked
+                    else WCTheme.colors.statusShootDone,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = shoot.eventType,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = "📍 ${shoot.location}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "📅 ${shoot.eventDate}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = shoot.location,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "•",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = shoot.eventDate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
             BookingStatusBadge(status = shoot.status)
         }

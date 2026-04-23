@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.navigation.Route
 import com.nxzef.wc.shared.model.UserRole
@@ -140,7 +141,7 @@ fun WCPermanentSidebar(
     PermanentNavigationDrawer(
         drawerContent = {
             PermanentDrawerSheet(
-                modifier = Modifier.width(drawerWidth),
+                modifier = Modifier.width(drawerWidth).zIndex(0f),
                 drawerShape = RoundedCornerShape(0.dp),
                 drawerTonalElevation = 2.dp
             ) {

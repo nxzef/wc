@@ -1,10 +1,20 @@
 package com.nxzef.wc.presentation.screens.leads
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,15 +22,20 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -30,6 +45,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -38,25 +54,38 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.components.LeadStatusBadge
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Lead
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.math.roundToInt
 
 val PIPELINE_STAGES = listOf(
     "NEW", "CONTACTED", "NEGOTIATING", "WON", "LOST"
@@ -70,6 +99,7 @@ fun LeadPipelineScreen(
     viewModel: LeadPipelineViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var draggingLeadId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -80,6 +110,7 @@ fun LeadPipelineScreen(
                 actions = {
                     Button(
                         onClick = onAddLead,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.padding(end = 16.dp)
                     ) {
                         Icon(
@@ -88,7 +119,7 @@ fun LeadPipelineScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Add Lead")
+                        Text("New Lead")
                     }
                 }
             )
@@ -99,6 +130,7 @@ fun LeadPipelineScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
+                .graphicsLayer { clip = false }
         ) {
             when {
                 state.isLoading -> CircularProgressIndicator(
@@ -119,26 +151,70 @@ fun LeadPipelineScreen(
                     }) { Text("Retry") }
                 }
 
-                else -> Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    PIPELINE_STAGES.forEach { stage ->
-                        KanbanColumn(
-                            modifier = Modifier.width(280.dp),
-                            stage = stage,
-                            leads = state.leads.filter {
-                                it.status.name == stage
-                            },
-                            onLeadClick = { lead ->
-                                viewModel.onAction(
-                                    LeadPipelineAction.SelectLead(lead)
-                                )
+                else -> {
+                    var columnBounds by remember { mutableStateOf(mapOf<String, androidx.compose.ui.layout.LayoutCoordinates>()) }
+                    var hoveredStage by remember { mutableStateOf<String?>(null) }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .horizontalScroll(rememberScrollState())
+                            .graphicsLayer { 
+                                clip = false 
+                                translationX = 0f // Force layer
                             }
-                        )
+                            .padding(horizontal = 24.dp, vertical = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        PIPELINE_STAGES.forEach { stage ->
+                            val isDraggingFromThisColumn = state.leads.any { it.id == draggingLeadId && it.status.name == stage }
+                            
+                            KanbanColumn(
+                                modifier = Modifier
+                                    .width(300.dp)
+                                    .zIndex(if (isDraggingFromThisColumn) 100f else 0f)
+                                    .onGloballyPositioned { coords ->
+                                        columnBounds = columnBounds + (stage to coords)
+                                    },
+                                stage = stage,
+                                leads = state.leads.filter {
+                                    it.status.name == stage
+                                },
+                                onLeadClick = { lead ->
+                                    viewModel.onAction(
+                                        LeadPipelineAction.SelectLead(lead)
+                                    )
+                                },
+                                isHighlighted = hoveredStage == stage,
+                                draggingLeadId = draggingLeadId,
+                                onDragStart = { draggingLeadId = it },
+                                onDrag = { _, currentPosition ->
+                                    var found = false
+                                    columnBounds.forEach { (s, coords) ->
+                                        if (coords.isAttached && coords.boundsInWindow().contains(currentPosition)) {
+                                            hoveredStage = s
+                                            found = true
+                                        }
+                                    }
+                                    if (!found) hoveredStage = null
+                                },
+                                onDragEnd = { leadId, finalPosition ->
+                                    draggingLeadId = null
+                                    hoveredStage = null
+                                    // Find which column the lead was dropped in
+                                    columnBounds.forEach { (columnStage, coords) ->
+                                        if (coords.isAttached) {
+                                            val rect = coords.boundsInWindow()
+                                            if (rect.contains(finalPosition)) {
+                                                viewModel.onAction(
+                                                    LeadPipelineAction.UpdateStatus(leadId, columnStage)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -170,7 +246,12 @@ fun KanbanColumn(
     modifier: Modifier = Modifier,
     stage: String,
     leads: List<Lead>,
-    onLeadClick: (Lead) -> Unit
+    onLeadClick: (Lead) -> Unit,
+    isHighlighted: Boolean = false,
+    draggingLeadId: String?,
+    onDragStart: (String) -> Unit,
+    onDrag: (String, Offset) -> Unit,
+    onDragEnd: (String, Offset) -> Unit
 ) {
     val color = when (stage) {
         "NEW" -> WCTheme.colors.statusNew
@@ -184,53 +265,65 @@ fun KanbanColumn(
     Column(
         modifier = modifier
             .fillMaxHeight()
+            .graphicsLayer { clip = false }
             .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                RoundedCornerShape(12.dp)
+                if (isHighlighted) color.copy(alpha = 0.15f) 
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                RoundedCornerShape(16.dp)
+            )
+            .then(
+                if (isHighlighted) Modifier.border(
+                    2.dp, color, RoundedCornerShape(16.dp)
+                ) else Modifier
             )
             .padding(12.dp)
     ) {
         // Column header
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(bottom = 16.dp, start = 4.dp, end = 4.dp)
         ) {
             Surface(
                 shape = RoundedCornerShape(4.dp),
                 color = color,
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(10.dp)
             ) {}
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = stage,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
-                color = color
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (isHighlighted) FontWeight.ExtraBold else FontWeight.Bold,
+                color = if (isHighlighted) color else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
             )
             Spacer(modifier = Modifier.weight(1f))
             Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = color.copy(alpha = 0.15f)
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 1.dp
             ) {
                 Text(
                     text = leads.size.toString(),
-                    fontSize = 11.sp,
-                    color = color,
-                    modifier = Modifier.padding(
-                        horizontal = 8.dp, vertical = 2.dp
-                    )
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                 )
             }
         }
 
         // Lead cards
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { clip = false }
         ) {
-            items(leads) { lead ->
-                LeadCard(
+            items(leads, key = { it.id }) { lead ->
+                DraggableLeadCard(
                     lead = lead,
-                    onClick = { onLeadClick(lead) }
+                    onClick = { onLeadClick(lead) },
+                    onDragStart = { onDragStart(lead.id) },
+                    onDrag = { currentPosition -> onDrag(lead.id, currentPosition) },
+                    onDragEnd = { finalPosition -> onDragEnd(lead.id, finalPosition) }
                 )
             }
         }
@@ -238,68 +331,149 @@ fun KanbanColumn(
 }
 
 @Composable
-fun LeadCard(lead: Lead, onClick: () -> Unit) {
+fun DraggableLeadCard(
+    lead: Lead,
+    onClick: () -> Unit,
+    onDragStart: () -> Unit,
+    onDrag: (Offset) -> Unit,
+    onDragEnd: (Offset) -> Unit
+) {
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    var isDragging by remember { mutableStateOf(false) }
+    var globalPosition by remember { mutableStateOf(Offset.Zero) }
+    var cardSize by remember { mutableStateOf(IntSize.Zero) }
+
+    val elevation by animateDpAsState(if (isDragging) 12.dp else 2.dp)
+
+    Box(
+        modifier = Modifier
+            .onGloballyPositioned { coords ->
+                if (!isDragging) {
+                    globalPosition = coords.positionInWindow()
+                    cardSize = coords.size
+                }
+            }
+            .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+            .zIndex(if (isDragging) 1000f else 0f)
+            .graphicsLayer {
+                if (isDragging) {
+                    clip = false
+                }
+            }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = {
+                        isDragging = true
+                        onDragStart()
+                    },
+                    onDragEnd = {
+                        val centerPos = globalPosition + offset + Offset(cardSize.width / 2f, cardSize.height / 2f)
+                        isDragging = false
+                        offset = Offset.Zero
+                        onDragEnd(centerPos)
+                    },
+                    onDragCancel = {
+                        isDragging = false
+                        offset = Offset.Zero
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        offset += dragAmount
+                        val centerPos = globalPosition + offset + Offset(cardSize.width / 2f, cardSize.height / 2f)
+                        onDrag(centerPos)
+                    }
+                )
+            }
+    ) {
+        LeadCard(
+            lead = lead,
+            onClick = onClick,
+            elevation = elevation
+        )
+    }
+}
+
+@Composable
+fun LeadCard(
+    lead: Lead,
+    onClick: () -> Unit,
+    elevation: androidx.compose.ui.unit.Dp = 2.dp
+) {
     Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(2.dp),
+            .clip(RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(elevation),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LeadSourceBadge(source = lead.source)
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             Text(
                 text = lead.fullName,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
             )
-            Text(
-                text = lead.eventType.name,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            lead.eventDate?.let {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                LeadInfoRow(Icons.Default.CalendarMonth, lead.eventDate ?: "Date not set")
+                LeadInfoRow(Icons.Default.Phone, lead.phone)
+            }
+
+            if (lead.eventType.name != "OTHER") {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(6.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = null,
-                        modifier = Modifier.size(11.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                     Text(
-                        text = it,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = lead.eventType.name,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PhoneAndroid,
-                    contentDescription = null,
-                    modifier = Modifier.size(11.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = lead.phone,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            // Source chip
-            LeadSourceBadge(source = lead.source)
         }
+    }
+}
+
+@Composable
+fun LeadInfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
