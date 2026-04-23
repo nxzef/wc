@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.screens.photographer
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,8 +36,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,8 +46,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nxzef.wc.data.session.SessionManager
-import com.nxzef.wc.presentation.screens.dashboard.StatusBadge
+import com.nxzef.wc.presentation.components.BookingStatusBadge
+import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.Task
@@ -57,6 +57,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotographerScreen(
+    onBack: () -> Unit,
     viewModel: PhotographerViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -77,144 +78,129 @@ fun PhotographerScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "My Shoots",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Welcome, ${SessionManager.getUser()?.name}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            WCTopBar(
+                title = "My Shoots",
+                subtitle = "Welcome, ${state.userName}",
+                onBack = onBack
             )
         }
     ) { padding ->
-        when {
-            state.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
-            }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            when {
+                state.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator() }
+                }
 
-            state.error != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                state.error != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = state.error!!,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Button(onClick = {
-                            viewModel.onAction(PhotographerAction.Load)
-                        }) { Text("Retry") }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = state.error!!,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Button(onClick = {
+                                viewModel.onAction(PhotographerAction.Load)
+                            }) { Text("Retry") }
+                        }
                     }
                 }
-            }
 
-            state.shoots.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                state.shoots.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            Icons.Default.CameraAlt,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "No shoots assigned yet",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "No shoots assigned yet",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
-            }
 
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Upcoming section
-                    val upcoming = state.shoots.filter {
-                        it.status == BookingStatus.BOOKED
-                    }
-                    val done = state.shoots.filter {
-                        it.status != BookingStatus.BOOKED
-                    }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Upcoming section
+                        val upcoming = state.shoots.filter {
+                            it.status == BookingStatus.BOOKED
+                        }
+                        val done = state.shoots.filter {
+                            it.status != BookingStatus.BOOKED
+                        }
 
-                    if (upcoming.isNotEmpty()) {
-                        item {
-                            Text(
-                                text = "Upcoming Shoots",
-                                style = MaterialTheme.typography
-                                    .titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                        if (upcoming.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "Upcoming Shoots",
+                                    style = MaterialTheme.typography
+                                        .titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            items(upcoming) { shoot ->
+                                ShootCard(
+                                    shoot = shoot,
+                                    onClick = {
+                                        viewModel.onAction(
+                                            PhotographerAction.SelectShoot(shoot)
+                                        )
+                                    }
+                                )
+                            }
                         }
-                        items(upcoming) { shoot ->
-                            ShootCard(
-                                shoot = shoot,
-                                onClick = {
-                                    viewModel.onAction(
-                                        PhotographerAction.SelectShoot(shoot)
-                                    )
-                                }
-                            )
-                        }
-                    }
 
-                    if (done.isNotEmpty()) {
-                        item {
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = "Completed",
-                                style = MaterialTheme.typography
-                                    .titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme
-                                    .onSurfaceVariant
-                            )
-                        }
-                        items(done) { shoot ->
-                            ShootCard(
-                                shoot = shoot,
-                                onClick = {
-                                    viewModel.onAction(
-                                        PhotographerAction.SelectShoot(shoot)
-                                    )
-                                }
-                            )
+                        if (done.isNotEmpty()) {
+                            item {
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = "Completed",
+                                    style = MaterialTheme.typography
+                                        .titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme
+                                        .onSurfaceVariant
+                                )
+                            }
+                            items(done) { shoot ->
+                                ShootCard(
+                                    shoot = shoot,
+                                    onClick = {
+                                        viewModel.onAction(
+                                            PhotographerAction.SelectShoot(shoot)
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -269,8 +255,8 @@ fun ShootCard(shoot: Booking, onClick: () -> Unit) {
                     .height(56.dp),
                 shape = RoundedCornerShape(4.dp),
                 color = if (isUpcoming)
-                    MaterialTheme.colorScheme.primary
-                else Color(0xFF4CAF50)
+                    WCTheme.colors.statusBooked
+                else WCTheme.colors.statusShootDone
             ) {}
 
             Column(modifier = Modifier.weight(1f)) {
@@ -291,7 +277,7 @@ fun ShootCard(shoot: Booking, onClick: () -> Unit) {
                     fontWeight = FontWeight.Medium
                 )
             }
-            StatusBadge(status = shoot.status.name)
+            BookingStatusBadge(status = shoot.status)
         }
     }
 }
@@ -325,7 +311,7 @@ fun ShootDetailDialog(
                         "📅 ${shoot.eventDate}",
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    StatusBadge(status = shoot.status.name)
+                    BookingStatusBadge(status = shoot.status)
                     Spacer(Modifier.height(8.dp))
                 }
 
@@ -356,7 +342,7 @@ fun ShootDetailDialog(
                             onClick = onMarkDone,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4CAF50)
+                                containerColor = WCTheme.colors.statusShootDone
                             )
                         ) {
                             Icon(Icons.Default.CheckCircle, null)

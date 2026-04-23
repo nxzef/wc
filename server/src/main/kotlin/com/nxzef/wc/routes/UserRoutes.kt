@@ -1,6 +1,7 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.UserRepository
+import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.UserRole
 import io.ktor.http.*
 import io.ktor.server.auth.*
@@ -36,7 +37,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                 return@get
             }
             val team = userRepository.getAllUsers()
-            call.respond(team)
+            call.respond(team.map { it.toDto() })
         }
 
         // POST create team member (owner only)
@@ -63,7 +64,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                 ),
                 role = request.role
             )
-            call.respond(HttpStatusCode.Created, user)
+            call.respond(HttpStatusCode.Created, user.toDto())
         }
     }
 }

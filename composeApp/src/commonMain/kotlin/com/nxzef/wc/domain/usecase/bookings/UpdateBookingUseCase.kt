@@ -2,6 +2,7 @@ package com.nxzef.wc.domain.usecase.bookings
 
 import com.nxzef.wc.domain.repository.BookingRepository
 import com.nxzef.wc.shared.model.UpdateBookingRequest
+import com.nxzef.wc.shared.util.AppResult
 
 class UpdateBookingUseCase(
     private val repository: BookingRepository

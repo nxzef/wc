@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.screens.bookings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,7 +52,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nxzef.wc.presentation.screens.dashboard.StatusBadge
+import com.nxzef.wc.presentation.components.BookingStatusBadge
+import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.presentation.screens.leads.WCDropdown
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
@@ -60,6 +63,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingScreen(
+    onBack: () -> Unit,
     viewModel: BookingViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -80,21 +84,10 @@ fun BookingScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Bookings",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${state.bookings.size} total bookings",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
+            WCTopBar(
+                title = "Bookings",
+                subtitle = "${state.bookings.size} total bookings",
+                onBack = onBack,
                 actions = {
                     Button(
                         onClick = {
@@ -110,10 +103,7 @@ fun BookingScreen(
                         Spacer(Modifier.width(6.dp))
                         Text("New Booking")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                }
             )
         }
     ) { padding ->
@@ -121,6 +111,7 @@ fun BookingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Status filter chips
             LazyRow(
@@ -160,22 +151,17 @@ fun BookingScreen(
             HorizontalDivider()
 
             // Content
-            when {
-                state.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
+            Box(modifier = Modifier.weight(1f)) {
+                when {
+                    state.isLoading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center)
+                        )
                     }
-                }
 
-                viewModel.filteredBookings.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    viewModel.filteredBookings.isEmpty() -> {
                         Column(
+                            modifier = Modifier.align(Alignment.Center),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -183,34 +169,32 @@ fun BookingScreen(
                                 Icons.Default.CalendarMonth,
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme
-                                    .onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "No bookings found",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme
-                                    .onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                }
 
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(viewModel.filteredBookings) { booking ->
-                            BookingCard(
-                                booking = booking,
-                                onClick = {
-                                    viewModel.onAction(
-                                        BookingAction.SelectBooking(booking)
-                                    )
-                                }
-                            )
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(viewModel.filteredBookings) { booking ->
+                                BookingCard(
+                                    booking = booking,
+                                    onClick = {
+                                        viewModel.onAction(
+                                            BookingAction.SelectBooking(booking)
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -249,11 +233,11 @@ fun BookingCard(
     onClick: () -> Unit
 ) {
     val statusColor = when (booking.status) {
-        BookingStatus.BOOKED -> Color(0xFF2196F3)
-        BookingStatus.SHOOT_DONE -> Color(0xFF009688)
-        BookingStatus.EDITING -> Color(0xFFFF9800)
-        BookingStatus.DELIVERED -> Color(0xFF8BC34A)
-        BookingStatus.CLOSED -> Color(0xFF4CAF50)
+        BookingStatus.BOOKED -> WCTheme.colors.statusBooked
+        BookingStatus.SHOOT_DONE -> WCTheme.colors.statusShootDone
+        BookingStatus.EDITING -> WCTheme.colors.statusEditing
+        BookingStatus.DELIVERED -> WCTheme.colors.statusDelivered
+        BookingStatus.CLOSED -> WCTheme.colors.statusClosed
     }
 
     Card(
@@ -299,7 +283,7 @@ fun BookingCard(
                 )
             }
 
-            StatusBadge(status = booking.status.name)
+            BookingStatusBadge(status = booking.status)
         }
     }
 }
@@ -324,10 +308,11 @@ fun BookingDetailDialog(
             ) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Current Status")
-                    StatusBadge(status = booking.status.name)
+                    BookingStatusBadge(status = booking.status)
                 }
 
                 HorizontalDivider()
@@ -361,26 +346,28 @@ fun BookingDetailDialog(
                     .filter { it != booking.status }
 
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 4.dp)
                 ) {
                     items(nextStatuses) { status ->
                         val color = when (status) {
-                            BookingStatus.BOOKED -> Color(0xFF2196F3)
-                            BookingStatus.SHOOT_DONE -> Color(0xFF009688)
-                            BookingStatus.EDITING -> Color(0xFFFF9800)
-                            BookingStatus.DELIVERED -> Color(0xFF8BC34A)
-                            BookingStatus.CLOSED -> Color(0xFF4CAF50)
+                            BookingStatus.BOOKED -> WCTheme.colors.statusBooked
+                            BookingStatus.SHOOT_DONE -> WCTheme.colors.statusShootDone
+                            BookingStatus.EDITING -> WCTheme.colors.statusEditing
+                            BookingStatus.DELIVERED -> WCTheme.colors.statusDelivered
+                            BookingStatus.CLOSED -> WCTheme.colors.statusClosed
                         }
                         OutlinedButton(
                             onClick = { onUpdateStatus(status) },
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = color
                             ),
-                            contentPadding = PaddingValues(horizontal = 10.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 text = status.name.replace("_", " "),
-                                style = MaterialTheme.typography.labelSmall
+                                style = MaterialTheme.typography.labelMedium
                             )
                         }
                     }

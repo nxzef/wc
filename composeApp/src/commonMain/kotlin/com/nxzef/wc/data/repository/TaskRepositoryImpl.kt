@@ -3,23 +3,50 @@ package com.nxzef.wc.data.repository
 import com.nxzef.wc.data.remote.TaskService
 import com.nxzef.wc.domain.repository.TaskRepository
 import com.nxzef.wc.shared.model.CreateTaskRequest
+import com.nxzef.wc.shared.model.Task
+import com.nxzef.wc.shared.util.AppResult
 
 class TaskRepositoryImpl(
     private val service: TaskService
 ) : TaskRepository {
 
-    override suspend fun getByLeadId(leadId: String) =
-        runCatching { service.getByLeadId(leadId) }
+    override suspend fun getByLeadId(leadId: String): AppResult<List<Task>> {
+        return try {
+            AppResult.Success(service.getByLeadId(leadId))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
 
-    override suspend fun getByBookingId(bookingId: String) =
-        runCatching { service.getByBookingId(bookingId) }
+    override suspend fun getByBookingId(bookingId: String): AppResult<List<Task>> {
+        return try {
+            AppResult.Success(service.getByBookingId(bookingId))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
 
-    override suspend fun getMyPending() =
-        runCatching { service.getMyPending() }
+    override suspend fun getMyPending(): AppResult<List<Task>> {
+        return try {
+            AppResult.Success(service.getMyPending())
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
 
-    override suspend fun create(request: CreateTaskRequest) =
-        runCatching { service.create(request) }
+    override suspend fun create(request: CreateTaskRequest): AppResult<Task> {
+        return try {
+            AppResult.Success(service.create(request))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
 
-    override suspend fun markDone(id: String, done: Boolean) =
-        runCatching { service.markDone(id, done) }
+    override suspend fun markDone(id: String, done: Boolean): AppResult<Task> {
+        return try {
+            AppResult.Success(service.markDone(id, done))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
 }

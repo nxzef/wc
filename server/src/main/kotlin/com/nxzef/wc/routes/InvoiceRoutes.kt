@@ -1,6 +1,7 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.InvoiceRepository
+import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.CreateInvoiceRequest
 import com.nxzef.wc.shared.model.UpdatePaymentRequest
 import io.ktor.http.HttpStatusCode
@@ -18,7 +19,7 @@ fun Route.invoiceRoutes(invoiceRepository: InvoiceRepository) {
         // GET all invoices
         get {
             val invoices = invoiceRepository.getAll()
-            call.respond(invoices)
+            call.respond(invoices.map { it.toDto() })
         }
 
         // GET invoice by booking id
@@ -33,14 +34,14 @@ fun Route.invoiceRoutes(invoiceRepository: InvoiceRepository) {
                     HttpStatusCode.NotFound,
                     "Invoice not found"
                 )
-            call.respond(invoice)
+            call.respond(invoice.toDto())
         }
 
         // POST create invoice
         post {
             val request = call.receive<CreateInvoiceRequest>()
             val invoice = invoiceRepository.create(request)
-            call.respond(HttpStatusCode.Created, invoice)
+            call.respond(HttpStatusCode.Created, invoice.toDto())
         }
 
         // PUT update payment status
@@ -56,7 +57,7 @@ fun Route.invoiceRoutes(invoiceRepository: InvoiceRepository) {
                     HttpStatusCode.NotFound,
                     "Invoice not found"
                 )
-            call.respond(invoice)
+            call.respond(invoice.toDto())
         }
     }
 }

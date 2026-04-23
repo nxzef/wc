@@ -1,6 +1,8 @@
 package com.nxzef.wc.data.remote
 
 import com.nxzef.wc.data.session.SessionManager
+import com.nxzef.wc.shared.dto.TaskDto
+import com.nxzef.wc.shared.dto.toDomain
 import com.nxzef.wc.shared.model.CreateTaskRequest
 import com.nxzef.wc.shared.model.Task
 import com.nxzef.wc.shared.model.UpdateTaskRequest
@@ -16,40 +18,50 @@ import io.ktor.http.contentType
 
 class TaskService(private val client: HttpClient) {
 
-    suspend fun getByLeadId(leadId: String): List<Task> =
-        client.get(
+    suspend fun getByLeadId(leadId: String): List<Task> {
+        val dtos: List<TaskDto> = client.get(
             "${ApiClient.BASE_URL}/tasks/lead/$leadId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
+        return dtos.map { it.toDomain() }
+    }
 
-    suspend fun getByBookingId(bookingId: String): List<Task> =
-        client.get(
+    suspend fun getByBookingId(bookingId: String): List<Task> {
+        val dtos: List<TaskDto> = client.get(
             "${ApiClient.BASE_URL}/tasks/booking/$bookingId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
+        return dtos.map { it.toDomain() }
+    }
 
-    suspend fun getMyPending(): List<Task> =
-        client.get(
+    suspend fun getMyPending(): List<Task> {
+        val dtos: List<TaskDto> = client.get(
             "${ApiClient.BASE_URL}/tasks/my/pending"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
+        return dtos.map { it.toDomain() }
+    }
 
-    suspend fun create(request: CreateTaskRequest): Task =
-        client.post("${ApiClient.BASE_URL}/tasks") {
+    suspend fun create(request: CreateTaskRequest): Task {
+        val dto: TaskDto = client.post("${ApiClient.BASE_URL}/tasks") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
+        return dto.toDomain()
+    }
 
-    suspend fun markDone(id: String, done: Boolean): Task =
-        client.put(
+    suspend fun markDone(id: String, done: Boolean): Task {
+        val dto: TaskDto = client.put(
             "${ApiClient.BASE_URL}/tasks/$id/done"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(UpdateTaskRequest(isDone = done))
         }.body()
+        return dto.toDomain()
+    }
 }

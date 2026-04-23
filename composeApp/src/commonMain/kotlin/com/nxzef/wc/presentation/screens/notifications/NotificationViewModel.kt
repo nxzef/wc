@@ -3,6 +3,8 @@ package com.nxzef.wc.presentation.screens.notifications
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.repository.NotificationRepository
+import com.nxzef.wc.shared.util.onFailure
+import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,7 +46,7 @@ class NotificationViewModel(
 
     private fun load() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            _state.update { it.copy(isLoading = true, error = null) }
             val notifResult = repository.getMyNotifications()
             val countResult = repository.getUnreadCount()
 
@@ -52,6 +54,8 @@ class NotificationViewModel(
                 _state.update {
                     it.copy(notifications = notifications)
                 }
+            }.onFailure { e ->
+                _state.update { it.copy(error = e.message) }
             }
             countResult.onSuccess { count ->
                 _state.update { it.copy(unreadCount = count) }
@@ -64,6 +68,9 @@ class NotificationViewModel(
         viewModelScope.launch {
             repository.markAsRead(id)
                 .onSuccess { load() }
+                .onFailure { e ->
+                    _uiEvent.send(NotificationUiEvent.ShowSnackbar(e.message ?: "Failed to mark as read"))
+                }
         }
     }
 
@@ -71,6 +78,9 @@ class NotificationViewModel(
         viewModelScope.launch {
             repository.markAllAsRead()
                 .onSuccess { load() }
+                .onFailure { e ->
+                    _uiEvent.send(NotificationUiEvent.ShowSnackbar(e.message ?: "Failed to mark all as read"))
+                }
         }
     }
 }

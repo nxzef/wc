@@ -1,6 +1,7 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.NotificationRepository
+import com.nxzef.wc.shared.dto.toDto
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -24,7 +25,7 @@ fun Route.notificationRoutes(
                     HttpStatusCode.Unauthorized, "Unauthorized"
                 )
             call.respond(
-                notificationRepository.getByUserId(userId)
+                notificationRepository.getByUserId(userId).map { it.toDto() }
             )
         }
 

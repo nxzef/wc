@@ -11,6 +11,7 @@ import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.CreateBookingRequest
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.UpdateBookingRequest
+import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow

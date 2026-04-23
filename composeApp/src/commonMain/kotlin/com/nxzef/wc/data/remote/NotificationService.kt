@@ -1,7 +1,7 @@
 package com.nxzef.wc.data.remote
 
 import com.nxzef.wc.data.session.SessionManager
-import com.nxzef.wc.shared.model.Notification
+import com.nxzef.wc.shared.dto.NotificationDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -10,12 +10,13 @@ import io.ktor.client.request.put
 
 class NotificationService(private val client: HttpClient) {
 
-    suspend fun getMyNotifications(): List<Notification> =
-        client.get(
+    suspend fun getMyNotifications(): List<NotificationDto> {
+        return client.get(
             "${ApiClient.BASE_URL}/notifications"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
+    }
 
     suspend fun getUnreadCount(): Int {
         val response = client.get(

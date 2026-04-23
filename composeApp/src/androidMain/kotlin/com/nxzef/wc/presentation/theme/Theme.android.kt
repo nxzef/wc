@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
@@ -25,9 +26,15 @@ actual fun WCTheme(
         else -> lightScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = typography(),
-        content = content
-    )
+    val wcColors = if (darkTheme) darkWCColors else lightWCColors
+
+    CompositionLocalProvider(
+        LocalWCColors provides wcColors
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = typography(),
+            content = content
+        )
+    }
 }

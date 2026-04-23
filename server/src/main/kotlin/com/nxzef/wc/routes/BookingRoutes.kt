@@ -2,6 +2,7 @@ package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.BookingRepository
 import com.nxzef.wc.data.repository.TaskRepository
+import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.CreateBookingRequest
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import io.ktor.http.HttpStatusCode
@@ -24,7 +25,7 @@ fun Route.bookingRoutes(
         // GET all bookings
         get {
             val bookings = bookingRepository.getAll()
-            call.respond(bookings)
+            call.respond(bookings.map { it.toDto() })
         }
 
         // GET booking by id
@@ -39,7 +40,7 @@ fun Route.bookingRoutes(
                     HttpStatusCode.NotFound,
                     "Booking not found"
                 )
-            call.respond(booking)
+            call.respond(booking.toDto())
         }
 
         // GET bookings by photographer
@@ -51,7 +52,7 @@ fun Route.bookingRoutes(
                 )
             val bookings = bookingRepository
                 .getByPhotographer(photographerId)
-            call.respond(bookings)
+            call.respond(bookings.map { it.toDto() })
         }
 
         // GET bookings by editor
@@ -62,7 +63,7 @@ fun Route.bookingRoutes(
                     "Missing editorId"
                 )
             val bookings = bookingRepository.getByEditor(editorId)
-            call.respond(bookings)
+            call.respond(bookings.map { it.toDto() })
         }
 
         // POST create booking (lead becomes WON)
@@ -83,7 +84,7 @@ fun Route.bookingRoutes(
                 createdBy = createdBy
             )
 
-            call.respond(HttpStatusCode.Created, booking)
+            call.respond(HttpStatusCode.Created, booking.toDto())
         }
 
         // PUT update booking
@@ -99,7 +100,7 @@ fun Route.bookingRoutes(
                     HttpStatusCode.NotFound,
                     "Booking not found"
                 )
-            call.respond(booking)
+            call.respond(booking.toDto())
         }
     }
 }

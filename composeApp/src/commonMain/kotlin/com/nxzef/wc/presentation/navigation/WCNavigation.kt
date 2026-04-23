@@ -20,6 +20,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.components.WCPermanentSidebar
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
@@ -31,6 +32,7 @@ import com.nxzef.wc.presentation.screens.leads.AddLeadScreen
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineScreen
 import com.nxzef.wc.presentation.screens.marketing.MarketingScreen
 import com.nxzef.wc.presentation.screens.photographer.PhotographerScreen
+import com.nxzef.wc.presentation.screens.quotes.QuoteScreen
 import com.nxzef.wc.presentation.screens.settings.SettingsScreen
 import com.nxzef.wc.presentation.screens.team.TeamScreen
 import com.nxzef.wc.presentation.theme.WCTheme
@@ -108,8 +110,12 @@ fun AppNavHost(navController: NavHostController) {
 
         composable<Route.LeadPipeline> {
             LeadPipelineScreen(
+                onBack = { navController.popBackStack() },
                 onAddLead = {
                     navController.navigate(Route.AddLead)
+                },
+                onViewQuotes = { leadId ->
+                    navController.navigate(Route.Quotes(leadId))
                 }
             )
         }
@@ -127,6 +133,7 @@ fun AppNavHost(navController: NavHostController) {
 
         composable<Route.Marketing> {
             MarketingScreen(
+                onBack = { navController.popBackStack() },
                 onAddLead = {
                     navController.navigate(Route.AddLead)
                 }
@@ -134,27 +141,35 @@ fun AppNavHost(navController: NavHostController) {
         }
 
         composable<Route.MyShoots> {
-            PhotographerScreen()
+            PhotographerScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.EditingQueue> {
-            EditorScreen()
+            EditorScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.TeamManagement> {
-            TeamScreen()
+            TeamScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.Invoices> {
-            InvoiceScreen()
+            InvoiceScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.Bookings> {
-            BookingScreen()
+            BookingScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.Settings> {
-            SettingsScreen()
+            SettingsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable<Route.Quotes> { backStackEntry ->
+            val route: Route.Quotes = backStackEntry.toRoute()
+            QuoteScreen(
+                leadId = route.leadId,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }
@@ -171,6 +186,7 @@ fun getRouteTitle(route: Route): String {
         Route.Invoices -> "Invoices"
         Route.Bookings -> "Bookings"
         Route.Settings -> "Settings"
+        is Route.Quotes -> "Quotes"
         Route.Login -> ""
     }
 }
@@ -189,6 +205,10 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
         destination.hasRoute<Route.Invoices>() -> Route.Invoices
         destination.hasRoute<Route.Bookings>() -> Route.Bookings
         destination.hasRoute<Route.Settings>() -> Route.Settings
+        destination.hasRoute<Route.Quotes>() -> {
+            val leadId = backStackEntry.toRoute<Route.Quotes>().leadId
+            Route.Quotes(leadId)
+        }
         else -> Route.Login
     }
 }

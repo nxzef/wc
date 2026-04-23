@@ -9,6 +9,7 @@ import com.nxzef.wc.data.remote.DashboardService
 import com.nxzef.wc.data.remote.InvoiceService
 import com.nxzef.wc.data.remote.LeadService
 import com.nxzef.wc.data.remote.NotificationService
+import com.nxzef.wc.data.remote.QuoteService
 import com.nxzef.wc.data.remote.TaskService
 import com.nxzef.wc.data.remote.UserService
 import com.nxzef.wc.data.session.SessionManager
@@ -30,6 +31,7 @@ val serviceModule = module {
     single { NotificationService(get()) }
     single { UserService(get()) }
     single { InvoiceService(get()) }
+    single { QuoteService(get()) }
     single { createDataStore() }
     single { TokenStorage(get()) }
 }

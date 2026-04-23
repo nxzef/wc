@@ -2,6 +2,7 @@ package com.nxzef.wc.presentation.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 
 @Composable
 actual fun WCTheme(
@@ -11,9 +12,15 @@ actual fun WCTheme(
 ) {
     val colorScheme = if (darkTheme) darkScheme else lightScheme
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = typography(),
-        content = content
-    )
+    val wcColors = if (darkTheme) darkWCColors else lightWCColors
+
+    CompositionLocalProvider(
+        LocalWCColors provides wcColors
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = typography(),
+            content = content
+        )
+    }
 }

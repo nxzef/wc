@@ -1,6 +1,7 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.TaskRepository
+import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.CreateTaskRequest
 import com.nxzef.wc.shared.model.UpdateTaskRequest
 import io.ktor.http.HttpStatusCode
@@ -23,7 +24,7 @@ fun Route.taskRoutes(taskRepository: TaskRepository) {
                 ?: return@get call.respond(
                     HttpStatusCode.BadRequest, "Missing leadId"
                 )
-            call.respond(taskRepository.getByLeadId(leadId))
+            call.respond(taskRepository.getByLeadId(leadId).map { it.toDto() })
         }
 
         // GET tasks by booking
@@ -32,7 +33,7 @@ fun Route.taskRoutes(taskRepository: TaskRepository) {
                 ?: return@get call.respond(
                     HttpStatusCode.BadRequest, "Missing bookingId"
                 )
-            call.respond(taskRepository.getByBookingId(bookingId))
+            call.respond(taskRepository.getByBookingId(bookingId).map { it.toDto() })
         }
 
         // GET my pending tasks
@@ -43,7 +44,7 @@ fun Route.taskRoutes(taskRepository: TaskRepository) {
                 ?: return@get call.respond(
                     HttpStatusCode.Unauthorized, "Unauthorized"
                 )
-            call.respond(taskRepository.getPendingByUser(userId))
+            call.respond(taskRepository.getPendingByUser(userId).map { it.toDto() })
         }
 
         // POST create task
@@ -56,7 +57,7 @@ fun Route.taskRoutes(taskRepository: TaskRepository) {
                 )
             val request = call.receive<CreateTaskRequest>()
             val task = taskRepository.create(request, createdBy)
-            call.respond(HttpStatusCode.Created, task)
+            call.respond(HttpStatusCode.Created, task.toDto())
         }
 
         // PUT mark done/undone
@@ -70,7 +71,7 @@ fun Route.taskRoutes(taskRepository: TaskRepository) {
                 ?: return@put call.respond(
                     HttpStatusCode.NotFound, "Task not found"
                 )
-            call.respond(task)
+            call.respond(task.toDto())
         }
     }
 }

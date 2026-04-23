@@ -23,4 +23,5 @@ sealed interface Route {
     @Serializable data object Settings : Route
     @Serializable data object AddLead : Route
     @Serializable data object Bookings : Route
+    @Serializable data class Quotes(val leadId: String) : Route
 }

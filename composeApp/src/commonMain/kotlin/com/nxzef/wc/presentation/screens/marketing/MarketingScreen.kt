@@ -31,8 +31,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,8 +41,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nxzef.wc.data.session.SessionManager
-import com.nxzef.wc.presentation.screens.dashboard.StatusBadge
+import com.nxzef.wc.presentation.components.LeadStatusBadge
+import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadSource
 import com.nxzef.wc.shared.model.LeadStatus
@@ -53,6 +52,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketingScreen(
+    onBack: () -> Unit,
     onAddLead: () -> Unit,
     viewModel: MarketingViewModel = koinViewModel()
 ) {
@@ -71,21 +71,10 @@ fun MarketingScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Marketing",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Welcome, ${state.userName}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
+            WCTopBar(
+                title = "Marketing",
+                subtitle = "Welcome, ${state.userName}",
+                onBack = onBack,
                 actions = {
                     Button(
                         onClick = onAddLead,
@@ -99,10 +88,7 @@ fun MarketingScreen(
                         Spacer(Modifier.width(6.dp))
                         Text("Add Lead")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                }
             )
         }
     ) { padding ->
@@ -183,7 +169,7 @@ fun MarketingScreen(
                                 ConversionStat(
                                     label = "Won",
                                     value = won.toString(),
-                                    color = Color(0xFF4CAF50)
+                                    color = WCTheme.colors.statusWon
                                 )
                                 ConversionStat(
                                     label = "Lost",
@@ -273,12 +259,12 @@ fun SourceStatCard(
     total: Int
 ) {
     val color = when (source) {
-        LeadSource.INSTAGRAM -> Color(0xFFE91E63)
-        LeadSource.FACEBOOK -> Color(0xFF1565C0)
-        LeadSource.GOOGLE -> Color(0xFF4CAF50)
-        LeadSource.REFERRAL -> Color(0xFF9C27B0)
-        LeadSource.WALK_IN -> Color(0xFFFF9800)
-        LeadSource.OTHER -> Color(0xFF607D8B)
+        LeadSource.INSTAGRAM -> WCTheme.colors.sourceInstagram
+        LeadSource.FACEBOOK -> WCTheme.colors.sourceFacebook
+        LeadSource.GOOGLE -> WCTheme.colors.sourceGoogle
+        LeadSource.REFERRAL -> WCTheme.colors.sourceReferral
+        LeadSource.WALK_IN -> WCTheme.colors.sourceWalkIn
+        LeadSource.OTHER -> WCTheme.colors.sourceOther
     }
     val pct = if (total > 0) (count * 100 / total) else 0
 
@@ -339,12 +325,12 @@ fun ConversionStat(
 @Composable
 fun MarketingLeadCard(lead: Lead) {
     val sourceColor = when (lead.source) {
-        LeadSource.INSTAGRAM -> Color(0xFFE91E63)
-        LeadSource.FACEBOOK -> Color(0xFF1565C0)
-        LeadSource.GOOGLE -> Color(0xFF4CAF50)
-        LeadSource.REFERRAL -> Color(0xFF9C27B0)
-        LeadSource.WALK_IN -> Color(0xFFFF9800)
-        LeadSource.OTHER -> Color(0xFF607D8B)
+        LeadSource.INSTAGRAM -> WCTheme.colors.sourceInstagram
+        LeadSource.FACEBOOK -> WCTheme.colors.sourceFacebook
+        LeadSource.GOOGLE -> WCTheme.colors.sourceGoogle
+        LeadSource.REFERRAL -> WCTheme.colors.sourceReferral
+        LeadSource.WALK_IN -> WCTheme.colors.sourceWalkIn
+        LeadSource.OTHER -> WCTheme.colors.sourceOther
     }
 
     Card(
@@ -390,7 +376,7 @@ fun MarketingLeadCard(lead: Lead) {
                 }
             }
 
-            StatusBadge(status = lead.status.name)
+            LeadStatusBadge(status = lead.status.name)
         }
     }
 }

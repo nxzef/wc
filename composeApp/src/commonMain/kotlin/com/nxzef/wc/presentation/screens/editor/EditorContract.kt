@@ -4,6 +4,7 @@ import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.Task
 
 data class EditorState(
+    val userName: String = "",
     val queue: List<Booking> = emptyList(),
     val tasks: List<Task> = emptyList(),
     val isLoading: Boolean = false,

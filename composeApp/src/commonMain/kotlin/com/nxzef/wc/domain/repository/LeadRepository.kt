@@ -7,5 +7,5 @@ import com.nxzef.wc.shared.util.AppResult
 interface LeadRepository {
     suspend fun getAll(): AppResult<List<Lead>>
     suspend fun updateLeadStatus(id: String, status: String, notes: String?): AppResult<Lead>
-    suspend fun create(request: CreateLeadRequest): Result<Lead>
+    suspend fun create(request: CreateLeadRequest): AppResult<Lead>
 }

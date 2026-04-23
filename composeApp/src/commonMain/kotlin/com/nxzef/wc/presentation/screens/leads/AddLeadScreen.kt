@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.screens.leads
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.shared.model.EventType
 import com.nxzef.wc.shared.model.LeadSource
 import org.koin.compose.viewmodel.koinViewModel
@@ -79,43 +81,21 @@ fun AddLeadScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            WCTopBar(
+                title = "Add New Lead",
+                subtitle = "Capture a new enquiry",
+                onBack = onBack
+            )
+        }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            // Top bar
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Add New Lead",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Capture a new enquiry",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-
-            HorizontalDivider()
 
             // Form
             Column(

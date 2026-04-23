@@ -1,6 +1,7 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.QuoteRepository
+import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.CreateQuoteRequest
 import com.nxzef.wc.shared.model.UpdateQuoteStatusRequest
 import io.ktor.http.HttpStatusCode
@@ -25,7 +26,7 @@ fun Route.quoteRoutes(quoteRepository: QuoteRepository) {
                     "Missing leadId"
                 )
             val quotes = quoteRepository.getByLeadId(leadId)
-            call.respond(quotes)
+            call.respond(quotes.map { it.toDto() })
         }
 
         // GET quote by id
@@ -40,7 +41,7 @@ fun Route.quoteRoutes(quoteRepository: QuoteRepository) {
                     HttpStatusCode.NotFound,
                     "Quote not found"
                 )
-            call.respond(quote)
+            call.respond(quote.toDto())
         }
 
         // POST create quote
@@ -54,7 +55,7 @@ fun Route.quoteRoutes(quoteRepository: QuoteRepository) {
                 )
             val request = call.receive<CreateQuoteRequest>()
             val quote = quoteRepository.create(request, createdBy)
-            call.respond(HttpStatusCode.Created, quote)
+            call.respond(HttpStatusCode.Created, quote.toDto())
         }
 
         // PUT update quote status
@@ -70,7 +71,7 @@ fun Route.quoteRoutes(quoteRepository: QuoteRepository) {
                     HttpStatusCode.NotFound,
                     "Quote not found"
                 )
-            call.respond(quote)
+            call.respond(quote.toDto())
         }
     }
 }

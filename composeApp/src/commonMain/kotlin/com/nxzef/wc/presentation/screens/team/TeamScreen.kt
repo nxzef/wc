@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.screens.team
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.screens.leads.WCDropdown
 import com.nxzef.wc.shared.model.User
 import com.nxzef.wc.shared.model.UserRole
@@ -57,6 +59,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamScreen(
+    onBack: () -> Unit,
     viewModel: TeamViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -77,21 +80,10 @@ fun TeamScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Team Management",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${state.team.size} members",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
+            WCTopBar(
+                title = "Team Management",
+                subtitle = "${state.team.size} members",
+                onBack = onBack,
                 actions = {
                     Button(
                         onClick = {
@@ -107,10 +99,7 @@ fun TeamScreen(
                         Spacer(Modifier.width(6.dp))
                         Text("Add Member")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                }
             )
         }
     ) { padding ->
@@ -118,6 +107,7 @@ fun TeamScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             when {
                 state.isLoading -> {
@@ -155,7 +145,7 @@ fun TeamScreen(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // Group by role
                         UserRole.entries.forEach { role ->

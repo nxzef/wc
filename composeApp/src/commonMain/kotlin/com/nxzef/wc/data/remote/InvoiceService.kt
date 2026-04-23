@@ -1,6 +1,8 @@
 package com.nxzef.wc.data.remote
 
 import com.nxzef.wc.data.session.SessionManager
+import com.nxzef.wc.shared.dto.InvoiceDto
+import com.nxzef.wc.shared.dto.toDomain
 import com.nxzef.wc.shared.model.CreateInvoiceRequest
 import com.nxzef.wc.shared.model.Invoice
 import com.nxzef.wc.shared.model.UpdatePaymentRequest
@@ -16,34 +18,42 @@ import io.ktor.http.contentType
 
 class InvoiceService(private val client: HttpClient) {
 
-    suspend fun getAll(): List<Invoice> =
-        client.get("${ApiClient.BASE_URL}/invoices") {
+    suspend fun getAll(): List<Invoice> {
+        val dtos: List<InvoiceDto> = client.get("${ApiClient.BASE_URL}/invoices") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
+        return dtos.map { it.toDomain() }
+    }
 
-    suspend fun getByBookingId(bookingId: String): Invoice =
-        client.get(
+    suspend fun getByBookingId(bookingId: String): Invoice {
+        val dto: InvoiceDto = client.get(
             "${ApiClient.BASE_URL}/invoices/booking/$bookingId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
+        return dto.toDomain()
+    }
 
-    suspend fun create(request: CreateInvoiceRequest): Invoice =
-        client.post("${ApiClient.BASE_URL}/invoices") {
+    suspend fun create(request: CreateInvoiceRequest): Invoice {
+        val dto: InvoiceDto = client.post("${ApiClient.BASE_URL}/invoices") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
+        return dto.toDomain()
+    }
 
     suspend fun updatePayment(
         id: String,
         request: UpdatePaymentRequest
-    ): Invoice =
-        client.put(
+    ): Invoice {
+        val dto: InvoiceDto = client.put(
             "${ApiClient.BASE_URL}/invoices/$id/payment"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
+        return dto.toDomain()
+    }
 }

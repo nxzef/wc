@@ -8,6 +8,8 @@ import com.nxzef.wc.domain.usecase.invoices.GetAllInvoicesUseCase
 import com.nxzef.wc.domain.usecase.invoices.UpdatePaymentUseCase
 import com.nxzef.wc.shared.model.CreateInvoiceRequest
 import com.nxzef.wc.shared.model.UpdatePaymentRequest
+import com.nxzef.wc.shared.util.onFailure
+import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

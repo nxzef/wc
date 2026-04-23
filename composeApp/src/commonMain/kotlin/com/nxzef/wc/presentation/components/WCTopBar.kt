@@ -2,7 +2,9 @@ package com.nxzef.wc.presentation.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,6 +28,9 @@ import org.koin.compose.viewmodel.koinViewModel
 fun WCTopBar(
     title: String,
     subtitle: String? = null,
+    showNotificationIcon: Boolean = false,
+    onBack: (() -> Unit)? = null,
+    navigationIcon: (@Composable () -> Unit)? = null,
     notificationViewModel: NotificationViewModel = koinViewModel(),
     actions: @Composable () -> Unit = {}
 ) {
@@ -54,31 +59,46 @@ fun WCTopBar(
                 )
             }
         },
+        navigationIcon = {
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
+            } else {
+                navigationIcon?.invoke()
+            }
+        },
         actions = {
             actions()
-            BadgedBox(
-                badge = {
-                    if (notifState.unreadCount > 0) {
-                        Badge {
-                            Text(
-                                if (notifState.unreadCount > 99) "99+"
-                                else notifState.unreadCount.toString()
-                            )
+            if (showNotificationIcon) {
+                BadgedBox(
+                    badge = {
+                        if (notifState.unreadCount > 0) {
+                            Badge {
+                                Text(
+                                    if (notifState.unreadCount > 99) "99+"
+                                    else notifState.unreadCount.toString()
+                                )
+                            }
                         }
                     }
-                }
-            ) {
-                IconButton(
-                    onClick = {
-                        notificationViewModel.onAction(
-                            NotificationAction.Show
+                ) {
+                    IconButton(
+                        onClick = {
+                            notificationViewModel.onAction(
+                                NotificationAction.Show
+                            )
+                        }
+                    ) {
+                        Icon(
+                            if (notifState.unreadCount > 0) Icons.Default.Notifications
+                            else Icons.Default.NotificationsNone,
+                            contentDescription = "Notifications"
                         )
                     }
-                ) {
-                    Icon(
-                        Icons.Default.Notifications,
-                        contentDescription = "Notifications"
-                    )
                 }
             }
         },

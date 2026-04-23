@@ -4,6 +4,7 @@ import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.Task
 
 data class PhotographerState(
+    val userName: String = "",
     val shoots: List<Booking> = emptyList(),
     val tasks: List<Task> = emptyList(),
     val isLoading: Boolean = false,

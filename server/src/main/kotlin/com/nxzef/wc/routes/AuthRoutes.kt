@@ -1,6 +1,7 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.domain.service.AuthService
+import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.LoginRequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -15,7 +16,7 @@ fun Route.authRoutes(authService: AuthService) {
             val request = call.receive<LoginRequest>()
             authService.login(request).fold(
                 onSuccess = { response ->
-                    call.respond(response)
+                    call.respond(response.toDto())
                 },
                 onFailure = { error ->
                     val status = when(error.message) {

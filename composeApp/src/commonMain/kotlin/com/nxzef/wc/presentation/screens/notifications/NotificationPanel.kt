@@ -97,7 +97,23 @@ fun NotificationPanel(
 
                 HorizontalDivider()
 
-                when {
+                if (state.error != null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = state.error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            TextButton(onClick = { onAction(NotificationAction.Load) }) {
+                                Text("Retry")
+                            }
+                        }
+                    }
+                } else when {
                     state.isLoading -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),

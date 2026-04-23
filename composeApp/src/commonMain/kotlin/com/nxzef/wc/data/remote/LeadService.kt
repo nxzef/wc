@@ -46,10 +46,12 @@ class LeadService(
         return dto.toDomain()
     }
 
-    suspend fun create(request: CreateLeadRequest): Lead =
-        client.post("${ApiClient.BASE_URL}/leads") {
+    suspend fun create(request: CreateLeadRequest): Lead {
+        val dto: LeadDto = client.post("${ApiClient.BASE_URL}/leads") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
+        return dto.toDomain()
+    }
 }

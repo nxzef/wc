@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.screens.invoices
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nxzef.wc.presentation.components.InvoiceStatusBadge
+import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.presentation.screens.leads.WCDropdown
 import com.nxzef.wc.shared.model.Invoice
 import com.nxzef.wc.shared.util.DateUtils
@@ -58,6 +62,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InvoiceScreen(
+    onBack: () -> Unit,
     viewModel: InvoiceViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -81,21 +86,10 @@ fun InvoiceScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Invoices",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${state.invoices.size} invoices",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
+            WCTopBar(
+                title = "Invoices",
+                subtitle = "${state.invoices.size} invoices",
+                onBack = onBack,
                 actions = {
                     Button(
                         onClick = {
@@ -111,31 +105,26 @@ fun InvoiceScreen(
                         Spacer(Modifier.width(6.dp))
                         Text("New Invoice")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                }
             )
         }
     ) { padding ->
-        when {
-            state.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
-            }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            when {
+                state.isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
 
-            state.invoices.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
+                state.invoices.isEmpty() -> {
                     Column(
+                        modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -143,40 +132,35 @@ fun InvoiceScreen(
                             Icons.Default.Receipt,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme
-                                .onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = "No invoices yet",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme
-                                .onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-            }
 
-            else -> {
-                // Summary cards at top
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        InvoiceSummaryRow(invoices = state.invoices)
-                    }
-                    items(state.invoices) { invoice ->
-                        InvoiceCard(
-                            invoice = invoice,
-                            onClick = {
-                                viewModel.onAction(
-                                    InvoiceAction.SelectInvoice(invoice)
-                                )
-                            }
-                        )
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        item {
+                            InvoiceSummaryRow(invoices = state.invoices)
+                        }
+                        items(state.invoices) { invoice ->
+                            InvoiceCard(
+                                invoice = invoice,
+                                onClick = {
+                                    viewModel.onAction(
+                                        InvoiceAction.SelectInvoice(invoice)
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -246,13 +230,13 @@ fun InvoiceSummaryRow(invoices: List<Invoice>) {
             modifier = Modifier.weight(1f),
             label = "Collected",
             value = "₹${collected.toLong()}",
-            color = Color(0xFF4CAF50)
+            color = WCTheme.colors.statusWon
         )
         SummaryCard(
             modifier = Modifier.weight(1f),
             label = "Pending",
             value = "₹${pending.toLong()}",
-            color = MaterialTheme.colorScheme.error
+            color = WCTheme.colors.statusLost
         )
     }
 }
@@ -300,11 +284,6 @@ fun InvoiceCard(
         invoice.depositPaid -> "DEPOSIT PAID"
         else -> "UNPAID"
     }
-    val statusColor = when {
-        invoice.finalPaid -> Color(0xFF4CAF50)
-        invoice.depositPaid -> Color(0xFFFF9800)
-        else -> MaterialTheme.colorScheme.error
-    }
 
     Card(
         onClick = onClick,
@@ -340,25 +319,11 @@ fun InvoiceCard(
                     color = if (invoice.remainingAmount > 0)
                         MaterialTheme.colorScheme.error
                     else
-                        Color(0xFF4CAF50)
+                        WCTheme.colors.statusWon
                 )
             }
 
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = statusColor.copy(alpha = 0.15f)
-            ) {
-                Text(
-                    text = paymentStatus,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = statusColor,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(
-                        horizontal = 10.dp,
-                        vertical = 4.dp
-                    )
-                )
-            }
+            InvoiceStatusBadge(status = paymentStatus)
         }
     }
 }
@@ -414,7 +379,7 @@ fun InvoiceDetailDialog(
                             else "Pending",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (invoice.depositPaid)
-                                Color(0xFF4CAF50)
+                                WCTheme.colors.statusWon
                             else MaterialTheme.colorScheme.error
                         )
                     }
@@ -426,7 +391,7 @@ fun InvoiceDetailDialog(
                         Icon(
                             Icons.Default.CheckCircle,
                             contentDescription = null,
-                            tint = Color(0xFF4CAF50)
+                            tint = WCTheme.colors.statusWon
                         )
                     }
                 }
@@ -448,7 +413,7 @@ fun InvoiceDetailDialog(
                             else "Pending",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (invoice.finalPaid)
-                                Color(0xFF4CAF50)
+                                WCTheme.colors.statusWon
                             else MaterialTheme.colorScheme.error
                         )
                     }
@@ -460,7 +425,7 @@ fun InvoiceDetailDialog(
                         Icon(
                             Icons.Default.CheckCircle,
                             contentDescription = null,
-                            tint = Color(0xFF4CAF50)
+                            tint = WCTheme.colors.statusWon
                         )
                     }
                 }

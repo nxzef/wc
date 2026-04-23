@@ -1,6 +1,7 @@
 package com.nxzef.wc.presentation.screens.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -25,6 +27,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,11 +40,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavHostController
 import com.nxzef.wc.data.session.SessionManager
+import com.nxzef.wc.presentation.components.LeadSourceBadge
+import com.nxzef.wc.presentation.components.LeadStatusBadge
+import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.DashboardStats
 import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.model.LeadSource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -53,33 +60,44 @@ fun DashboardScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val user by sessionManager.currentUser.collectAsStateWithLifecycle()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        when {
-            state.isLoading -> CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center)
+    Scaffold(
+        topBar = {
+            WCTopBar(
+                title = "Dashboard",
+                subtitle = "Welcome back, ${user?.name ?: "User"}!",
+                showNotificationIcon = true
             )
-
-            state.error != null -> Column(
-                modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = state.error!!,
-                    color = MaterialTheme.colorScheme.error
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            when {
+                state.isLoading -> CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { viewModel.onAction(DashboardAction.LoadStats) }) {
-                    Text("Retry")
-                }
-            }
 
-            state.stats != null -> DashboardContent(
-                stats = state.stats!!
-            )
+                state.error != null -> Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = state.error!!,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { viewModel.onAction(DashboardAction.LoadStats) }) {
+                        Text("Retry")
+                    }
+                }
+
+                state.stats != null -> DashboardContent(
+                    stats = state.stats!!
+                )
+            }
         }
     }
 }
@@ -99,31 +117,31 @@ fun DashboardContent(stats: DashboardStats) {
                 ) {
                     KpiCard(
                         modifier = Modifier.weight(1f),
-                        title = "Revenue This Month",
+                        title = "Revenue",
                         value = "₹${stats.totalRevenueThisMonth.toLong()}",
                         icon = Icons.Default.CurrencyRupee,
-                        color = Color(0xFF4CAF50)
+                        color = MaterialTheme.colorScheme.primary
                     )
                     KpiCard(
                         modifier = Modifier.weight(1f),
-                        title = "Bookings This Month",
+                        title = "Bookings",
                         value = stats.totalBookingsThisMonth.toString(),
                         icon = Icons.Default.CalendarMonth,
-                        color = Color(0xFF2196F3)
+                        color = MaterialTheme.colorScheme.secondary
                     )
                     KpiCard(
                         modifier = Modifier.weight(1f),
-                        title = "Open Leads",
+                        title = "Leads",
                         value = stats.openLeads.toString(),
                         icon = Icons.Default.People,
-                        color = Color(0xFFFF9800)
+                        color = MaterialTheme.colorScheme.tertiary
                     )
                     KpiCard(
                         modifier = Modifier.weight(1f),
-                        title = "Pending Deliveries",
+                        title = "Pending",
                         value = stats.pendingDeliveries.toString(),
                         icon = Icons.Default.Pending,
-                        color = Color(0xFFE91E63)
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -168,7 +186,10 @@ fun DashboardContent(stats: DashboardStats) {
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.horizontalScroll(rememberScrollState())
+                    ) {
                         stats.leadsBySource.forEach { (source, count) ->
                             SourceChip(source = source, count = count)
                         }
@@ -260,21 +281,31 @@ fun KpiCard(
 
 @Composable
 fun SourceChip(source: String, count: Int) {
+    val leadSource = try {
+        LeadSource.valueOf(source.uppercase())
+    } catch (e: Exception) {
+        null
+    }
+
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.primaryContainer
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = source,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            if (leadSource != null) {
+                LeadSourceBadge(source = leadSource)
+            } else {
+                Text(
+                    text = source,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Text(
                 text = count.toString(),
                 fontSize = 12.sp,
@@ -308,11 +339,17 @@ fun RecentLeadCard(lead: Lead) {
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp
                 )
-                Text(
-                    text = "${lead.eventType} • ${lead.source}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = lead.eventType.name,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    LeadSourceBadge(source = lead.source)
+                }
                 lead.eventDate?.let {
                     Text(
                         text = it,
@@ -321,7 +358,7 @@ fun RecentLeadCard(lead: Lead) {
                     )
                 }
             }
-            StatusBadge(status = lead.status.name)
+            LeadStatusBadge(status = lead.status.name)
         }
     }
 }
@@ -360,37 +397,8 @@ fun UpcomingBookingCard(booking: Booking) {
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            StatusBadge(status = booking.status.name)
+            LeadStatusBadge(status = booking.status.name)
         }
     }
 }
 
-@Composable
-fun StatusBadge(status: String) {
-    val color = when (status) {
-        "NEW" -> Color(0xFF2196F3)
-        "CONTACTED" -> Color(0xFFFF9800)
-        "NEGOTIATING" -> Color(0xFF9C27B0)
-        "WON" -> Color(0xFF4CAF50)
-        "LOST" -> Color(0xFFF44336)
-        "BOOKED" -> Color(0xFF2196F3)
-        "SHOOT_DONE" -> Color(0xFF009688)
-        "EDITING" -> Color(0xFFFF9800)
-        "DELIVERED" -> Color(0xFF8BC34A)
-        "CLOSED" -> Color(0xFF4CAF50)
-        else -> Color(0xFF9E9E9E)
-    }
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.15f)
-    ) {
-        Text(
-            text = status,
-            fontSize = 11.sp,
-            color = color,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-        )
-    }
-}

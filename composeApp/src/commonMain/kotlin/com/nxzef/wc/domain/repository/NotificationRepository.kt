@@ -1,10 +1,11 @@
 package com.nxzef.wc.domain.repository
 
 import com.nxzef.wc.shared.model.Notification
+import com.nxzef.wc.shared.util.AppResult
 
 interface NotificationRepository {
-    suspend fun getMyNotifications(): Result<List<Notification>>
-    suspend fun getUnreadCount(): Result<Int>
-    suspend fun markAsRead(id: String): Result<Boolean>
-    suspend fun markAllAsRead(): Result<Int>
+    suspend fun getMyNotifications(): AppResult<List<Notification>>
+    suspend fun getUnreadCount(): AppResult<Int>
+    suspend fun markAsRead(id: String): AppResult<Boolean>
+    suspend fun markAllAsRead(): AppResult<Int>
 }

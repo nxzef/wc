@@ -2,15 +2,20 @@ package com.nxzef.wc.presentation.screens.editor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.domain.repository.TaskRepository
 import com.nxzef.wc.domain.usecase.bookings.GetMyEditingQueueUseCase
 import com.nxzef.wc.domain.usecase.bookings.UpdateBookingUseCase
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.UpdateBookingRequest
+import com.nxzef.wc.shared.util.onFailure
+import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,6 +33,11 @@ class EditorViewModel(
     val uiEvent = _uiEvent.receiveAsFlow()
 
     init {
+        SessionManager.currentUser
+            .onEach { user ->
+                _state.update { it.copy(userName = user?.name ?: "") }
+            }
+            .launchIn(viewModelScope)
         load()
     }
 

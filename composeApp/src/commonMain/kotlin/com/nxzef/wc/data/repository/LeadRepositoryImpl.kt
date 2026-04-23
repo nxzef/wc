@@ -29,6 +29,11 @@ class LeadRepositoryImpl(
         }
     }
 
-    override suspend fun create(request: CreateLeadRequest) =
-        runCatching { leadService.create(request) }
+    override suspend fun create(request: CreateLeadRequest): AppResult<Lead> {
+        return try {
+            AppResult.Success(leadService.create(request))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
 }

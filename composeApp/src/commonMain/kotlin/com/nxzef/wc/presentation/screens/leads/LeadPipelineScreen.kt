@@ -49,7 +49,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nxzef.wc.presentation.screens.dashboard.StatusBadge
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import com.nxzef.wc.presentation.components.LeadSourceBadge
+import com.nxzef.wc.presentation.components.LeadStatusBadge
+import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Lead
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -57,96 +62,83 @@ val PIPELINE_STAGES = listOf(
     "NEW", "CONTACTED", "NEGOTIATING", "WON", "LOST"
 )
 
-val STAGE_COLORS = mapOf(
-    "NEW" to Color(0xFF2196F3),
-    "CONTACTED" to Color(0xFFFF9800),
-    "NEGOTIATING" to Color(0xFF9C27B0),
-    "WON" to Color(0xFF4CAF50),
-    "LOST" to Color(0xFFF44336)
-)
-
 @Composable
 fun LeadPipelineScreen(
+    onBack: () -> Unit,
     onAddLead: () -> Unit,
+    onViewQuotes: (String) -> Unit,
     viewModel: LeadPipelineViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
-        containerColor = Color.Transparent
+        topBar = {
+            WCTopBar(
+                title = "Lead Pipeline",
+                subtitle = "${state.leads.size} total leads",
+                onBack = onBack,
+                actions = {
+                    Button(
+                        onClick = onAddLead,
+                        modifier = Modifier.padding(end = 16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Add Lead")
+                    }
+                }
+            )
+        }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(24.dp)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            // Screen Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Lead Pipeline",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "${state.leads.size} total leads",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Button(
-                    onClick = onAddLead
+            when {
+                state.isLoading -> CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+
+                state.error != null -> Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Lead")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Box(modifier = Modifier.weight(1f)) {
-                when {
-                    state.isLoading -> CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
+                    Text(
+                        text = state.error!!,
+                        color = MaterialTheme.colorScheme.error
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = {
+                        viewModel.onAction(LeadPipelineAction.LoadLeads)
+                    }) { Text("Retry") }
+                }
 
-                    state.error != null -> Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = state.error!!,
-                            color = MaterialTheme.colorScheme.error
+                else -> Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    PIPELINE_STAGES.forEach { stage ->
+                        KanbanColumn(
+                            modifier = Modifier.width(280.dp),
+                            stage = stage,
+                            leads = state.leads.filter {
+                                it.status.name == stage
+                            },
+                            onLeadClick = { lead ->
+                                viewModel.onAction(
+                                    LeadPipelineAction.SelectLead(lead)
+                                )
+                            }
                         )
-                        Button(onClick = {
-                            viewModel.onAction(LeadPipelineAction.LoadLeads)
-                        }) { Text("Retry") }
-                    }
-
-                    else -> Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        PIPELINE_STAGES.forEach { stage ->
-                            KanbanColumn(
-                                modifier = Modifier.weight(1f),
-                                stage = stage,
-                                leads = state.leads.filter {
-                                    it.status.name == stage
-                                },
-                                onLeadClick = { lead ->
-                                    viewModel.onAction(
-                                        LeadPipelineAction.SelectLead(lead)
-                                    )
-                                }
-                            )
-                        }
                     }
                 }
             }
@@ -164,6 +156,10 @@ fun LeadPipelineScreen(
                     LeadPipelineAction.UpdateStatus(lead.id, status, notes)
                 )
                 viewModel.onAction(LeadPipelineAction.DismissDetail)
+            },
+            onViewQuotes = {
+                onViewQuotes(lead.id)
+                viewModel.onAction(LeadPipelineAction.DismissDetail)
             }
         )
     }
@@ -176,7 +172,14 @@ fun KanbanColumn(
     leads: List<Lead>,
     onLeadClick: (Lead) -> Unit
 ) {
-    val color = STAGE_COLORS[stage] ?: Color.Gray
+    val color = when (stage) {
+        "NEW" -> WCTheme.colors.statusNew
+        "CONTACTED" -> WCTheme.colors.statusContacted
+        "NEGOTIATING" -> WCTheme.colors.statusNegotiating
+        "WON" -> WCTheme.colors.statusWon
+        "LOST" -> WCTheme.colors.statusLost
+        else -> MaterialTheme.colorScheme.outline
+    }
 
     Column(
         modifier = modifier
@@ -295,19 +298,7 @@ fun LeadCard(lead: Lead, onClick: () -> Unit) {
                 )
             }
             // Source chip
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Text(
-                    text = lead.source.name,
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.padding(
-                        horizontal = 8.dp, vertical = 2.dp
-                    )
-                )
-            }
+            LeadSourceBadge(source = lead.source)
         }
     }
 }
@@ -316,7 +307,8 @@ fun LeadCard(lead: Lead, onClick: () -> Unit) {
 fun LeadDetailDialog(
     lead: Lead,
     onDismiss: () -> Unit,
-    onUpdateStatus: (String, String?) -> Unit
+    onUpdateStatus: (String, String?) -> Unit,
+    onViewQuotes: () -> Unit
 ) {
     var showStatusMenu by remember { mutableStateOf(false) }
     var notes by remember { mutableStateOf(lead.notes ?: "") }
@@ -333,7 +325,7 @@ fun LeadDetailDialog(
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
-                StatusBadge(status = lead.status.name)
+                LeadStatusBadge(status = lead.status.name)
             }
         },
         text = {
@@ -351,7 +343,27 @@ fun LeadDetailDialog(
                 lead.location?.let {
                     DetailRow("📍 Location", it)
                 }
-                DetailRow("📣 Source", lead.source.name)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "📣 Source",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(90.dp)
+                    )
+                    LeadSourceBadge(source = lead.source)
+                }
+
+                HorizontalDivider()
+
+                Button(
+                    onClick = onViewQuotes,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("View Quotes")
+                }
 
                 HorizontalDivider()
 
@@ -373,7 +385,14 @@ fun LeadDetailDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PIPELINE_STAGES.forEach { stage ->
                         if (stage != lead.status.name) {
-                            val color = STAGE_COLORS[stage] ?: Color.Gray
+                            val color = when (stage) {
+                                "NEW" -> WCTheme.colors.statusNew
+                                "CONTACTED" -> WCTheme.colors.statusContacted
+                                "NEGOTIATING" -> WCTheme.colors.statusNegotiating
+                                "WON" -> WCTheme.colors.statusWon
+                                "LOST" -> WCTheme.colors.statusLost
+                                else -> MaterialTheme.colorScheme.outline
+                            }
                             OutlinedButton(
                                 onClick = {
                                     onUpdateStatus(stage, notes.ifBlank { null })
