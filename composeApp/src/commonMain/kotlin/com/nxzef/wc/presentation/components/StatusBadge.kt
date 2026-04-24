@@ -23,7 +23,7 @@ fun StatusBadge(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.extraSmall,
         color = color.copy(alpha = 0.15f),
         modifier = modifier
     ) {

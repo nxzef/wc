@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,11 +49,13 @@ fun NotificationPanel(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .widthIn(max = 600.dp)
                 .fillMaxHeight(0.7f),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
-            )
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Header
@@ -195,7 +198,7 @@ fun NotificationItem(
             .fillMaxWidth()
             .clickable { onClick() },
         color = bgColor,
-        shape = RoundedCornerShape(8.dp)
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier.padding(12.dp),

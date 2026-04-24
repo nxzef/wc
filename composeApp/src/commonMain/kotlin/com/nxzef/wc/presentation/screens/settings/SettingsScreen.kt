@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.screens.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,53 +69,55 @@ fun SettingsScreen(onBack: () -> Unit) {
                     shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                    ),
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(24.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Surface(
                             shape = MaterialTheme.shapes.extraLarge,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier.size(64.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = user?.name?.first()
-                                        ?.uppercase() ?: "?",
-                                    style = MaterialTheme.typography
-                                        .headlineSmall,
+                                    text = user?.name?.first()?.uppercase() ?: "?",
+                                    style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme
-                                        .onPrimary
+                                    color = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
                         }
                         Column {
                             Text(
                                 text = user?.name ?: "Unknown",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme
-                                    .onPrimaryContainer
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
                                 text = user?.email ?: "",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme
-                                    .onPrimaryContainer.copy(alpha = 0.7f)
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
-                            Text(
-                                text = user?.role?.name?.replace("_", " ")
-                                    ?: "",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Surface(
+                                modifier = Modifier.padding(top = 4.dp),
+                                shape = MaterialTheme.shapes.small,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    text = user?.role?.name?.replace("_", " ") ?: "",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -123,8 +126,9 @@ fun SettingsScreen(onBack: () -> Unit) {
                 Text(
                     text = "Application",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
 
                 SettingsItem(
@@ -145,33 +149,33 @@ fun SettingsScreen(onBack: () -> Unit) {
                     value = "The Wedding Clouds"
                 )
 
-                HorizontalDivider()
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                 Text(
-                    text = "Coming Soon",
+                    text = "Preferences",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
                 )
 
                 SettingsItem(
                     icon = Icons.Default.DarkMode,
                     title = "Dark Mode",
-                    value = "Coming soon",
+                    value = "System Default",
                     enabled = false
                 )
 
                 SettingsItem(
                     icon = Icons.Default.Notifications,
                     title = "Push Notifications",
-                    value = "Coming soon",
+                    value = "Disabled",
                     enabled = false
                 )
 
                 SettingsItem(
                     icon = Icons.Default.Language,
                     title = "Language",
-                    value = "Coming soon",
+                    value = "English",
                     enabled = false
                 )
             }
@@ -193,12 +197,10 @@ fun SettingsItem(
             containerColor = if (enabled)
                 MaterialTheme.colorScheme.surfaceContainerLow
             else
-                MaterialTheme.colorScheme.surfaceVariant
-                    .copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
-        elevation = CardDefaults.cardElevation(
-            if (enabled) 0.dp else 0.dp
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier
@@ -207,29 +209,42 @@ fun SettingsItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (enabled)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp)
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.weight(1f),
-                color = if (enabled)
-                    MaterialTheme.colorScheme.onSurface
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Surface(
+                color = if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (!enabled) {
+                    Text(
+                        text = "Coming soon",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Normal
             )
         }
     }

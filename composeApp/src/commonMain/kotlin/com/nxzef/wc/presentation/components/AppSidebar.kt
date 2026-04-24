@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
@@ -80,6 +81,12 @@ val sidebarItems = listOf(
             UserRole.OWNER,
             UserRole.LEAD_MANAGER
         )
+    ),
+    SidebarNavItem(
+        icon  = Icons.Default.CheckBox,
+        label = "Tasks",
+        route = Route.Tasks,
+        roles = listOf(UserRole.OWNER, UserRole.LEAD_MANAGER)
     ),
     SidebarNavItem(
         icon = Icons.AutoMirrored.Filled.TrendingUp,

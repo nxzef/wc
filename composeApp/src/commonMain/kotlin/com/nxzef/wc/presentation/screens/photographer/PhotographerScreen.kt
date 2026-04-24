@@ -1,5 +1,6 @@
 package com.nxzef.wc.presentation.screens.photographer
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,9 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
@@ -89,135 +90,94 @@ fun PhotographerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.TopCenter
         ) {
             when {
                 state.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) { CircularProgressIndicator() }
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
                 state.error != null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        Text(
+                            text = state.error!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Button(
+                            onClick = { viewModel.onAction(PhotographerAction.Load) },
+                            shape = MaterialTheme.shapes.medium
                         ) {
-                            Text(
-                                text = state.error!!,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Button(onClick = {
-                                viewModel.onAction(PhotographerAction.Load)
-                            }) { Text("Retry") }
+                            Text("Retry")
                         }
                     }
                 }
 
                 state.shoots.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        Surface(
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.size(80.dp)
                         ) {
-                            Icon(
-                                Icons.Default.CameraAlt,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "No shoots assigned yet",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.CameraAlt,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
+                        Text(
+                            text = "No shoots assigned yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
                 else -> {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 800.dp),
                         contentPadding = PaddingValues(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Upcoming section
-                        val upcoming = state.shoots.filter {
-                            it.status == BookingStatus.BOOKED
-                        }
-                        val done = state.shoots.filter {
-                            it.status != BookingStatus.BOOKED
-                        }
+                        val upcoming = state.shoots.filter { it.status == BookingStatus.BOOKED }
+                        val done = state.shoots.filter { it.status != BookingStatus.BOOKED }
 
                         if (upcoming.isNotEmpty()) {
                             item {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(width = 4.dp, height = 16.dp)
-                                    ) {}
-                                    Text(
-                                        text = "Upcoming Shoots",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
+                                SectionHeader("Upcoming Shoots", MaterialTheme.colorScheme.primary)
                             }
                             items(upcoming) { shoot ->
                                 ShootCard(
                                     shoot = shoot,
-                                    onClick = {
-                                        viewModel.onAction(
-                                            PhotographerAction.SelectShoot(shoot)
-                                        )
-                                    }
+                                    onClick = { viewModel.onAction(PhotographerAction.SelectShoot(shoot)) }
                                 )
                             }
                         }
 
                         if (done.isNotEmpty()) {
                             item {
-                                Spacer(Modifier.height(16.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(width = 4.dp, height = 16.dp)
-                                    ) {}
-                                    Text(
-                                        text = "Completed",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                                Spacer(Modifier.height(8.dp))
+                                SectionHeader("Completed", MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                             }
                             items(done) { shoot ->
                                 ShootCard(
                                     shoot = shoot,
-                                    onClick = {
-                                        viewModel.onAction(
-                                            PhotographerAction.SelectShoot(shoot)
-                                        )
-                                    }
+                                    onClick = { viewModel.onAction(PhotographerAction.SelectShoot(shoot)) }
                                 )
                             }
                         }
@@ -227,24 +187,34 @@ fun PhotographerScreen(
         }
     }
 
-    // Shoot detail dialog
     state.selectedShoot?.let { shoot ->
         ShootDetailDialog(
             shoot = shoot,
             tasks = state.tasks,
-            onDismiss = {
-                viewModel.onAction(PhotographerAction.DismissDetail)
-            },
-            onMarkDone = {
-                viewModel.onAction(
-                    PhotographerAction.MarkShootDone(shoot.id)
-                )
-            },
-            onTaskToggle = { taskId, done ->
-                viewModel.onAction(
-                    PhotographerAction.MarkTaskDone(taskId, done)
-                )
-            }
+            onDismiss = { viewModel.onAction(PhotographerAction.DismissDetail) },
+            onMarkDone = { viewModel.onAction(PhotographerAction.MarkShootDone(shoot.id)) },
+            onTaskToggle = { taskId, done -> viewModel.onAction(PhotographerAction.MarkTaskDone(taskId, done)) }
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String, color: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraSmall,
+            color = color,
+            modifier = Modifier.size(width = 4.dp, height = 20.dp)
+        ) {}
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -255,65 +225,57 @@ fun ShootCard(shoot: Booking, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(2.dp),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(
-                        color = if (isUpcoming)
-                            WCTheme.colors.statusBooked.copy(alpha = 0.1f)
-                        else WCTheme.colors.statusShootDone.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape = MaterialTheme.shapes.medium,
+                color = (if (isUpcoming) WCTheme.colors.statusBooked else WCTheme.colors.statusShootDone).copy(alpha = 0.1f)
             ) {
-                Icon(
-                    imageVector = Icons.Default.CameraAlt,
-                    contentDescription = null,
-                    tint = if (isUpcoming)
-                        WCTheme.colors.statusBooked
-                    else WCTheme.colors.statusShootDone,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = null,
+                        tint = if (isUpcoming) WCTheme.colors.statusBooked else WCTheme.colors.statusShootDone,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = shoot.eventType,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = shoot.location,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "•",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = shoot.eventDate,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -332,100 +294,89 @@ fun ShootDetailDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.large,
         title = {
-            Text(
-                text = shoot.eventType,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = shoot.eventType, fontWeight = FontWeight.Bold)
+                BookingStatusBadge(status = shoot.status)
+            }
         },
         text = {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                modifier = Modifier.widthIn(max = 400.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item {
-                    Text(
-                        "📍 ${shoot.location}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        "📅 ${shoot.eventDate}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    BookingStatusBadge(status = shoot.status)
-                    Spacer(Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("📍 ${shoot.location}", style = MaterialTheme.typography.bodyLarge)
+                    Text("📅 ${shoot.eventDate}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
                 }
 
                 if (tasks.isNotEmpty()) {
-                    item {
-                        HorizontalDivider()
-                        Text(
-                            text = "Tasks",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                    items(tasks) { task ->
-                        TaskCheckItem(
-                            task = task,
-                            onToggle = { done ->
-                                onTaskToggle(task.id, done)
-                            }
-                        )
+                    HorizontalDivider()
+                    Text(
+                        text = "Required Tasks",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        tasks.forEach { task ->
+                            TaskCheckItem(task = task, onToggle = { onTaskToggle(task.id, it) })
+                        }
                     }
                 }
 
                 if (shoot.status == BookingStatus.BOOKED) {
-                    item {
-                        Spacer(Modifier.height(8.dp))
-                        Button(
-                            onClick = onMarkDone,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = WCTheme.colors.statusShootDone
-                            )
-                        ) {
-                            Icon(Icons.Default.CheckCircle, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Mark Shoot Complete")
-                        }
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = onMarkDone,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(containerColor = WCTheme.colors.statusShootDone)
+                    ) {
+                        Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Mark Shoot Complete")
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
-            }
+            TextButton(onClick = onDismiss) { Text("Close") }
         }
     )
 }
 
 @Composable
 fun TaskCheckItem(task: Task, onToggle: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    Surface(
+        onClick = { onToggle(!task.isDone) },
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
     ) {
-        Checkbox(
-            checked = task.isDone,
-            onCheckedChange = { onToggle(it) }
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = task.title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (task.isDone)
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurface
-            )
-            task.dueDate?.let {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Checkbox(checked = task.isDone, onCheckedChange = onToggle)
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Due: $it",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (task.isDone) FontWeight.Normal else FontWeight.Medium,
+                    color = if (task.isDone) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
                 )
+                task.dueDate?.let {
+                    Text(
+                        text = "Due: $it",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }

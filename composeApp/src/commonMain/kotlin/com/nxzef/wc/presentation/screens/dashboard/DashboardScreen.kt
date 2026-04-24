@@ -1,52 +1,28 @@
 package com.nxzef.wc.presentation.screens.dashboard
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CurrencyRupee
-import androidx.compose.material.icons.filled.Pending
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -58,10 +34,7 @@ import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.components.LeadStatusBadge
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.theme.WCTheme
-import com.nxzef.wc.shared.model.Booking
-import com.nxzef.wc.shared.model.DashboardStats
-import com.nxzef.wc.shared.model.Lead
-import com.nxzef.wc.shared.model.LeadSource
+import com.nxzef.wc.shared.model.*
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -76,8 +49,8 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             WCTopBar(
-                title = "Dashboard",
-                subtitle = "Welcome back, ${user?.name ?: "User"}!",
+                title = "Executive Overview",
+                subtitle = "Welcome, ${user?.name ?: "User"}",
                 showNotificationIcon = true
             )
         }
@@ -97,13 +70,24 @@ fun DashboardScreen(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Icon(
+                        Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(Modifier.height(16.dp))
                     Text(
                         text = state.error!!,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyLarge
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { viewModel.onAction(DashboardAction.LoadStats) }) {
-                        Text("Retry")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { viewModel.onAction(DashboardAction.LoadStats) },
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text("Try Again")
                     }
                 }
 
@@ -113,7 +97,7 @@ fun DashboardScreen(
                 ) {
                     DashboardContent(
                         stats = state.stats!!,
-                        modifier = Modifier.widthIn(max = 800.dp)
+                        modifier = Modifier.widthIn(max = 1000.dp)
                     )
                 }
             }
@@ -128,58 +112,86 @@ fun DashboardContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        contentPadding = PaddingValues(bottom = 24.dp)
+        verticalArrangement = Arrangement.spacedBy(32.dp),
+        contentPadding = PaddingValues(24.dp)
     ) {
+        // Main KPIs
         item {
-            // Summary Stats Row
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SummaryStatCard(
                     modifier = Modifier.weight(1f),
-                    title = "Revenue",
-                    value = "₹${stats.totalRevenueThisMonth.toLong() / 1000}k",
-                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                    title = "Revenue (MTD)",
+                    value = "₹${formatCurrency(stats.totalRevenueThisMonth)}",
+                    icon = Icons.Default.AccountBalanceWallet,
                     color = MaterialTheme.colorScheme.primary,
-                    subtitle = "+12% from last month"
+                    trend = "+12.5%",
+                    isPositive = true
                 )
                 SummaryStatCard(
                     modifier = Modifier.weight(1f),
-                    title = "Conversion",
-                    value = "64%",
-                    icon = Icons.Default.People,
+                    title = "Conversion Rate",
+                    value = "68%",
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
                     color = WCTheme.colors.statusWon,
-                    subtitle = "8 won this month"
+                    trend = "+4.2%",
+                    isPositive = true
+                )
+                SummaryStatCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Avg. Order Value",
+                    value = "₹85k",
+                    icon = Icons.Default.Analytics,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    trend = "-2.1%",
+                    isPositive = false
                 )
             }
         }
 
+        // Revenue Chart & Details
         item {
-            // Revenue Chart
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                Text(
-                    text = "Revenue Overview",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Box(modifier = Modifier.padding(16.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Revenue Performance",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Daily revenue trends for the current month",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        
+                        FilledTonalButton(onClick = {}) {
+                            Text("Download Report")
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp)
+                    ) {
                         RevenueChart(
-                            data = listOf(0.2f, 0.5f, 0.4f, 0.8f, 0.6f, 0.9f, 0.7f),
+                            data = listOf(0.2f, 0.4f, 0.35f, 0.6f, 0.55f, 0.85f, 0.75f, 0.95f),
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -187,115 +199,142 @@ fun DashboardContent(
             }
         }
 
+        // Metrics Grid (Bookings, Leads, etc.)
         item {
-            // KPI Grid
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                Text(
-                    text = "Key Metrics",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                KpiMetricCard(
+                    modifier = Modifier.weight(1f),
+                    label = "Active Bookings",
+                    value = stats.totalBookingsThisMonth.toString(),
+                    icon = Icons.Default.EventAvailable,
+                    color = MaterialTheme.colorScheme.secondary
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    KpiCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Bookings",
-                        value = stats.totalBookingsThisMonth.toString(),
-                        icon = Icons.Default.CalendarMonth,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    KpiCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Open Leads",
-                        value = stats.openLeads.toString(),
-                        icon = Icons.Default.People,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                }
+                KpiMetricCard(
+                    modifier = Modifier.weight(1f),
+                    label = "Pending Invoices",
+                    value = stats.pendingDeliveries.toString(),
+                    icon = Icons.AutoMirrored.Filled.ReceiptLong,
+                    color = MaterialTheme.colorScheme.error
+                )
+                KpiMetricCard(
+                    modifier = Modifier.weight(1f),
+                    label = "Open Leads",
+                    value = stats.openLeads.toString(),
+                    icon = Icons.Default.PersonSearch,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
 
+        // Source Breakdown & Pending Payments
         item {
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                Text(
-                    text = "Pending Actions",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // Lead Source Breakdown
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
-                    ),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = Brush.linearGradient(
-                            listOf(MaterialTheme.colorScheme.error.copy(alpha = 0.4f), MaterialTheme.colorScheme.errorContainer)
-                        )
-                    )
+                    modifier = Modifier.weight(1.2f),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            text = "Lead Sources",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        stats.leadsBySource.toList().sortedByDescending { it.second }.forEach { (source, count) ->
+                            SourceRow(source = source, count = count, total = stats.openLeads)
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+                }
+
+                // Pending Payments
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column {
-                            Text(
-                                text = "Uncollected Payments",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Text(
-                                text = "₹${stats.pendingPayments.toLong()}",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.error
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(12.dp)
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Default.Pending,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(32.dp)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Uncollected Revenue",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.error
                         )
+                        Text(
+                            text = "₹${formatCurrency(stats.pendingPayments)}",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = {},
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text("Review Invoices")
+                        }
                     }
                 }
             }
         }
 
-        if (stats.recentLeads.isNotEmpty()) {
-            item {
+        // Recent Leads
+        item {
+            Column {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Recent Leads",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "Recent Acquisitions",
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(
-                        text = "View All",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    TextButton(onClick = {}) {
+                        Text("View Pipeline")
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
+                    }
                 }
-            }
-            items(stats.recentLeads.take(3)) { lead ->
-                Box(modifier = Modifier.padding(horizontal = 24.dp)) {
-                    RecentLeadCard(lead = lead)
+                Spacer(modifier = Modifier.height(16.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    stats.recentLeads.take(4).forEach { lead ->
+                        PremiumLeadCard(lead = lead)
+                    }
                 }
             }
         }
-
-        item { Spacer(modifier = Modifier.height(24.dp)) }
     }
 }
 
@@ -306,14 +345,14 @@ fun SummaryStatCard(
     value: String,
     icon: ImageVector,
     color: Color,
-    subtitle: String
+    trend: String,
+    isPositive: Boolean
 ) {
     Card(
         modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.08f)
-        )
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -322,37 +361,156 @@ fun SummaryStatCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = color.copy(alpha = 0.15f)
+                    shape = RoundedCornerShape(12.dp),
+                    color = color.copy(alpha = 0.1f)
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = color,
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .size(20.dp)
+                        modifier = Modifier.padding(10.dp).size(24.dp)
+                    )
+                }
+                
+                Surface(
+                    shape = MaterialTheme.shapes.extraSmall,
+                    color = (if (isPositive) WCTheme.colors.statusWon else MaterialTheme.colorScheme.error).copy(alpha = 0.1f)
+                ) {
+                    Text(
+                        text = trend,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isPositive) WCTheme.colors.statusWon else MaterialTheme.colorScheme.error
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = color
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
             )
+            
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
-                color = color.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        }
+    }
+}
+
+@Composable
+fun KpiMetricCard(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    icon: ImageVector,
+    color: Color
+) {
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(24.dp)
             )
+            Column {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SourceRow(source: String, count: Int, total: Int) {
+    val percentage = if (total > 0) count.toFloat() / total else 0f
+    
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LeadSourceBadge(source = try { LeadSource.valueOf(source.uppercase()) } catch(e: Exception) { LeadSource.OTHER })
+                Spacer(Modifier.width(8.dp))
+                Text(source, style = MaterialTheme.typography.bodyMedium)
+            }
+            Text("$count", fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(8.dp))
+        LinearProgressIndicator(
+            progress = { percentage },
+            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        )
+    }
+}
+
+@Composable
+fun PremiumLeadCard(lead: Lead) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = lead.fullName.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(lead.fullName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text("${lead.eventType.name} • ${lead.eventDate ?: "Date TBD"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            
+            Column(horizontalAlignment = Alignment.End) {
+                LeadStatusBadge(status = lead.status.name)
+                Spacer(Modifier.height(4.dp))
+                LeadSourceBadge(source = lead.source)
+            }
         }
     }
 }
@@ -362,6 +520,16 @@ fun RevenueChart(
     data: List<Float>,
     color: Color
 ) {
+    val infiniteTransition = rememberInfiniteTransition()
+    val progress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height
@@ -389,186 +557,56 @@ fun RevenueChart(
             }
         }
 
+        // Draw only up to progress
+        val clipWidth = width * progress
+        
+        // This is a simple way to animate "drawing" from left to right
+        // For a more complex "stroke" animation we'd need PathMeasure
+        
+        drawContext.canvas.save()
+        drawContext.canvas.clipRect(0f, 0f, clipWidth, height)
+
         drawPath(
             path = fillPath,
             brush = Brush.verticalGradient(
-                colors = listOf(color.copy(alpha = 0.3f), Color.Transparent)
+                colors = listOf(color.copy(alpha = 0.2f), Color.Transparent)
             )
         )
 
         drawPath(
             path = path,
             color = color,
-            style = Stroke(width = 3.dp.toPx())
+            style = Stroke(
+                width = 3.5.dp.toPx(),
+                cap = StrokeCap.Round
+            )
         )
-    }
-}
-
-@Composable
-fun KpiCard(
-    modifier: Modifier = Modifier,
-    title: String,
-    value: String,
-    icon: ImageVector,
-    color: Color
-) {
-    Card(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        
+        // Dots
+        data.forEachIndexed { index, value ->
+            val x = index * spacing
+            if (x <= clipWidth) {
+                drawCircle(
+                    color = color,
+                    radius = 4.dp.toPx(),
+                    center = Offset(x, height - (value * height))
                 )
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
+                drawCircle(
+                    color = Color.White,
+                    radius = 2.dp.toPx(),
+                    center = Offset(x, height - (value * height))
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = value,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
         }
+        
+        drawContext.canvas.restore()
     }
 }
 
-@Composable
-fun SourceChip(source: String, count: Int) {
-    val leadSource = try {
-        LeadSource.valueOf(source.uppercase())
-    } catch (e: Exception) {
-        null
-    }
-
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (leadSource != null) {
-                LeadSourceBadge(source = leadSource)
-            } else {
-                Text(
-                    text = source,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text(
-                text = count.toString(),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
+fun formatCurrency(amount: Double): String {
+    return if (amount >= 1000) {
+        "${(amount / 1000).toInt()}k"
+    } else {
+        amount.toInt().toString()
     }
 }
-
-@Composable
-fun RecentLeadCard(lead: Lead) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = lead.fullName,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = lead.eventType.name,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    LeadSourceBadge(source = lead.source)
-                }
-                lead.eventDate?.let {
-                    Text(
-                        text = it,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            LeadStatusBadge(status = lead.status.name)
-        }
-    }
-}
-
-@Composable
-fun UpcomingBookingCard(booking: Booking) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = booking.eventType,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = booking.location,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = booking.eventDate,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            LeadStatusBadge(status = booking.status.name)
-        }
-    }
-}
-

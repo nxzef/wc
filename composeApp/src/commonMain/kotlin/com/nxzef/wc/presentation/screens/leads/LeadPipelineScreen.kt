@@ -1,20 +1,14 @@
 package com.nxzef.wc.presentation.screens.leads
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.rotate
-import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,17 +20,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -45,7 +37,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -54,29 +45,23 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.LeadSourceBadge
@@ -110,7 +95,7 @@ fun LeadPipelineScreen(
                 actions = {
                     Button(
                         onClick = onAddLead,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.padding(end = 16.dp)
                     ) {
                         Icon(
@@ -118,7 +103,7 @@ fun LeadPipelineScreen(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text("New Lead")
                     }
                 }
@@ -145,7 +130,7 @@ fun LeadPipelineScreen(
                         text = state.error!!,
                         color = MaterialTheme.colorScheme.error
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = {
                         viewModel.onAction(LeadPipelineAction.LoadLeads)
                     }) { Text("Retry") }
@@ -159,19 +144,20 @@ fun LeadPipelineScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .horizontalScroll(rememberScrollState())
-                            .graphicsLayer { 
-                                clip = false 
-                                translationX = 0f // Force layer
+                            .graphicsLayer {
+                                clip = false
+                                translationX = 0f
                             }
-                            .padding(horizontal = 24.dp, vertical = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            .padding(horizontal = 24.dp, vertical = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
                         PIPELINE_STAGES.forEach { stage ->
-                            val isDraggingFromThisColumn = state.leads.any { it.id == draggingLeadId && it.status.name == stage }
-                            
+                            val isDraggingFromThisColumn =
+                                state.leads.any { it.id == draggingLeadId && it.status.name == stage }
+
                             KanbanColumn(
                                 modifier = Modifier
-                                    .width(300.dp)
+                                    .width(320.dp)
                                     .zIndex(if (isDraggingFromThisColumn) 100f else 0f)
                                     .onGloballyPositioned { coords ->
                                         columnBounds = columnBounds + (stage to coords)
@@ -186,12 +172,13 @@ fun LeadPipelineScreen(
                                     )
                                 },
                                 isHighlighted = hoveredStage == stage,
-                                draggingLeadId = draggingLeadId,
                                 onDragStart = { draggingLeadId = it },
                                 onDrag = { _, currentPosition ->
                                     var found = false
                                     columnBounds.forEach { (s, coords) ->
-                                        if (coords.isAttached && coords.boundsInWindow().contains(currentPosition)) {
+                                        if (coords.isAttached && coords.boundsInWindow()
+                                                .contains(currentPosition)
+                                        ) {
                                             hoveredStage = s
                                             found = true
                                         }
@@ -201,13 +188,15 @@ fun LeadPipelineScreen(
                                 onDragEnd = { leadId, finalPosition ->
                                     draggingLeadId = null
                                     hoveredStage = null
-                                    // Find which column the lead was dropped in
                                     columnBounds.forEach { (columnStage, coords) ->
                                         if (coords.isAttached) {
                                             val rect = coords.boundsInWindow()
                                             if (rect.contains(finalPosition)) {
                                                 viewModel.onAction(
-                                                    LeadPipelineAction.UpdateStatus(leadId, columnStage)
+                                                    LeadPipelineAction.UpdateStatus(
+                                                        leadId,
+                                                        columnStage
+                                                    )
                                                 )
                                             }
                                         }
@@ -248,7 +237,6 @@ fun KanbanColumn(
     leads: List<Lead>,
     onLeadClick: (Lead) -> Unit,
     isHighlighted: Boolean = false,
-    draggingLeadId: String?,
     onDragStart: (String) -> Unit,
     onDrag: (String, Offset) -> Unit,
     onDragEnd: (String, Offset) -> Unit
@@ -267,50 +255,47 @@ fun KanbanColumn(
             .fillMaxHeight()
             .graphicsLayer { clip = false }
             .background(
-                if (isHighlighted) color.copy(alpha = 0.15f) 
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                RoundedCornerShape(16.dp)
+                if (isHighlighted) color.copy(alpha = 0.08f)
+                else MaterialTheme.colorScheme.surfaceContainerLow,
+                MaterialTheme.shapes.medium
             )
             .then(
                 if (isHighlighted) Modifier.border(
-                    2.dp, color, RoundedCornerShape(16.dp)
+                    2.dp, color, MaterialTheme.shapes.medium
                 ) else Modifier
             )
-            .padding(12.dp)
+            .padding(16.dp)
     ) {
-        // Column header
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(bottom = 16.dp, start = 4.dp, end = 4.dp)
+            modifier = Modifier.padding(bottom = 20.dp, start = 4.dp, end = 4.dp)
         ) {
             Surface(
-                shape = RoundedCornerShape(4.dp),
+                shape = MaterialTheme.shapes.extraSmall,
                 color = color,
-                modifier = Modifier.size(10.dp)
+                modifier = Modifier.size(12.dp)
             ) {}
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = stage,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = if (isHighlighted) FontWeight.ExtraBold else FontWeight.Bold,
-                color = if (isHighlighted) color else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.weight(1f))
             Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 1.dp
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
             ) {
                 Text(
                     text = leads.size.toString(),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
         }
 
-        // Lead cards
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
@@ -343,7 +328,7 @@ fun DraggableLeadCard(
     var globalPosition by remember { mutableStateOf(Offset.Zero) }
     var cardSize by remember { mutableStateOf(IntSize.Zero) }
 
-    val elevation by animateDpAsState(if (isDragging) 12.dp else 2.dp)
+    val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp)
 
     Box(
         modifier = Modifier
@@ -358,6 +343,8 @@ fun DraggableLeadCard(
             .graphicsLayer {
                 if (isDragging) {
                     clip = false
+                    scaleX = 1.02f
+                    scaleY = 1.02f
                 }
             }
             .pointerInput(Unit) {
@@ -367,7 +354,10 @@ fun DraggableLeadCard(
                         onDragStart()
                     },
                     onDragEnd = {
-                        val centerPos = globalPosition + offset + Offset(cardSize.width / 2f, cardSize.height / 2f)
+                        val centerPos = globalPosition + offset + Offset(
+                            cardSize.width / 2f,
+                            cardSize.height / 2f
+                        )
                         isDragging = false
                         offset = Offset.Zero
                         onDragEnd(centerPos)
@@ -379,7 +369,10 @@ fun DraggableLeadCard(
                     onDrag = { change, dragAmount ->
                         change.consume()
                         offset += dragAmount
-                        val centerPos = globalPosition + offset + Offset(cardSize.width / 2f, cardSize.height / 2f)
+                        val centerPos = globalPosition + offset + Offset(
+                            cardSize.width / 2f,
+                            cardSize.height / 2f
+                        )
                         onDrag(centerPos)
                     }
                 )
@@ -397,22 +390,24 @@ fun DraggableLeadCard(
 fun LeadCard(
     lead: Lead,
     onClick: () -> Unit,
-    elevation: androidx.compose.ui.unit.Dp = 2.dp
+    elevation: androidx.compose.ui.unit.Dp = 0.dp
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(elevation),
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        border = if (elevation == 0.dp) BorderStroke(
+            0.5.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ) else null
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -423,31 +418,32 @@ fun LeadCard(
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Text(
                 text = lead.fullName,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 LeadInfoRow(Icons.Default.CalendarMonth, lead.eventDate ?: "Date not set")
                 LeadInfoRow(Icons.Default.Phone, lead.phone)
             }
 
             if (lead.eventType.name != "OTHER") {
                 Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(6.dp)
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Text(
                         text = lead.eventType.name,
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
@@ -458,16 +454,16 @@ fun LeadCard(
 }
 
 @Composable
-fun LeadInfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+fun LeadInfoRow(icon: ImageVector, text: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(14.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
         )
         Text(
             text = text,
@@ -484,82 +480,86 @@ fun LeadDetailDialog(
     onUpdateStatus: (String, String?) -> Unit,
     onViewQuotes: () -> Unit
 ) {
-    var showStatusMenu by remember { mutableStateOf(false) }
     var notes by remember { mutableStateOf(lead.notes ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.large,
         title = {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = lead.fullName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
                 )
                 LeadStatusBadge(status = lead.status.name)
             }
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.widthIn(max = 400.dp)
             ) {
-                DetailRow("📱 Phone", lead.phone)
-                lead.email?.let {
-                    DetailRow("📧 Email", it)
-                }
-                DetailRow("🎉 Event", lead.eventType.name)
-                lead.eventDate?.let {
-                    DetailRow("📅 Date", it)
-                }
-                lead.location?.let {
-                    DetailRow("📍 Location", it)
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "📣 Source",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(90.dp)
-                    )
-                    LeadSourceBadge(source = lead.source)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DetailRow("📱 Phone", lead.phone)
+                    lead.email?.let { DetailRow("📧 Email", it) }
+                    DetailRow("🎉 Event", lead.eventType.name)
+                    lead.eventDate?.let { DetailRow("📅 Date", it) }
+                    lead.location?.let { DetailRow("📍 Location", it) }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
+                        Text(
+                            text = "📣 Source",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(90.dp)
+                        )
+                        LeadSourceBadge(source = lead.source)
+                    }
                 }
 
                 HorizontalDivider()
 
                 Button(
                     onClick = onViewQuotes,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Text("View Quotes")
+                    Text("View Quotes & Financials")
                 }
 
                 HorizontalDivider()
 
-                // Notes
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notes") },
+                    label = { Text("Lead Notes") },
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 2
+                    shape = MaterialTheme.shapes.medium,
+                    minLines = 3
                 )
 
-                // Status update
                 Text(
-                    text = "Update Status",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp
+                    text = "Quick Status Update",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.horizontalScroll(rememberScrollState())
+                ) {
                     PIPELINE_STAGES.forEach { stage ->
                         if (stage != lead.status.name) {
-                            val color = when (stage) {
+                            val stageColor = when (stage) {
                                 "NEW" -> WCTheme.colors.statusNew
                                 "CONTACTED" -> WCTheme.colors.statusContacted
                                 "NEGOTIATING" -> WCTheme.colors.statusNegotiating
@@ -568,18 +568,13 @@ fun LeadDetailDialog(
                                 else -> MaterialTheme.colorScheme.outline
                             }
                             OutlinedButton(
-                                onClick = {
-                                    onUpdateStatus(stage, notes.ifBlank { null })
-                                },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = color
-                                ),
-                                modifier = Modifier.height(32.dp),
-                                contentPadding = PaddingValues(
-                                    horizontal = 8.dp
-                                )
+                                onClick = { onUpdateStatus(stage, notes.ifBlank { null }) },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = stageColor),
+                                shape = MaterialTheme.shapes.small,
+                                modifier = Modifier.height(36.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp)
                             ) {
-                                Text(text = stage, fontSize = 11.sp)
+                                Text(text = stage, style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     }
@@ -597,19 +592,19 @@ fun LeadDetailDialog(
 @Composable
 fun DetailRow(label: String, value: String) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(90.dp)
         )
         Text(
             text = value,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }

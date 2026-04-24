@@ -11,6 +11,7 @@ import com.nxzef.wc.presentation.screens.marketing.MarketingViewModel
 import com.nxzef.wc.presentation.screens.notifications.NotificationViewModel
 import com.nxzef.wc.presentation.screens.photographer.PhotographerViewModel
 import com.nxzef.wc.presentation.screens.quotes.QuoteViewModel
+import com.nxzef.wc.presentation.screens.tasks.TasksViewModel
 import com.nxzef.wc.presentation.screens.team.TeamViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -28,4 +29,5 @@ val viewModelModule = module {
     viewModelOf(::MarketingViewModel)
     viewModelOf(::NotificationViewModel)
     viewModelOf(::QuoteViewModel)
+    viewModelOf(::TasksViewModel)
 }

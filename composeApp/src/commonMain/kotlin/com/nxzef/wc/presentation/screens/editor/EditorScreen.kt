@@ -13,13 +13,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -87,174 +86,100 @@ fun EditorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.TopCenter
         ) {
             when {
                 state.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) { CircularProgressIndicator() }
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
                 state.error != null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        Text(
+                            state.error!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Button(
+                            onClick = { viewModel.onAction(EditorAction.Load) },
+                            shape = MaterialTheme.shapes.medium
                         ) {
-                            Text(
-                                state.error!!,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Button(onClick = {
-                                viewModel.onAction(EditorAction.Load)
-                            }) { Text("Retry") }
+                            Text("Retry")
                         }
                     }
                 }
 
                 state.queue.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        Surface(
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.size(80.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme
-                                    .onSurfaceVariant
-                            )
-                            Text(
-                                text = "No editing jobs assigned",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
+                        Text(
+                            text = "No editing jobs assigned",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
                 else -> {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 800.dp),
                         contentPadding = PaddingValues(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Priority — SHOOT_DONE first
-                        val priority = state.queue.filter {
-                            it.status == BookingStatus.SHOOT_DONE
-                        }
-                        val inProgress = state.queue.filter {
-                            it.status == BookingStatus.EDITING
-                        }
-                        val rest = state.queue.filter {
-                            it.status != BookingStatus.SHOOT_DONE &&
-                                    it.status != BookingStatus.EDITING
-                        }
+                        val priority = state.queue.filter { it.status == BookingStatus.SHOOT_DONE }
+                        val inProgress = state.queue.filter { it.status == BookingStatus.EDITING }
+                        val rest = state.queue.filter { it.status != BookingStatus.SHOOT_DONE && it.status != BookingStatus.EDITING }
 
                         if (priority.isNotEmpty()) {
                             item {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(width = 4.dp, height = 16.dp)
-                                    ) {}
-                                    Text(
-                                        text = "Ready for Editing",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
+                                SectionHeader("Ready for Editing", MaterialTheme.colorScheme.error)
                             }
                             items(priority) { job ->
-                                ShootCard(
-                                    shoot = job,
-                                    onClick = {
-                                        viewModel.onAction(
-                                            EditorAction.SelectJob(job)
-                                        )
-                                    }
-                                )
+                                ShootCard(job, onClick = { viewModel.onAction(EditorAction.SelectJob(job)) })
                             }
                         }
 
                         if (inProgress.isNotEmpty()) {
                             item {
-                                Spacer(Modifier.height(16.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = WCTheme.colors.statusEditing,
-                                        modifier = Modifier.size(width = 4.dp, height = 16.dp)
-                                    ) {}
-                                    Text(
-                                        text = "In Progress",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = WCTheme.colors.statusEditing
-                                    )
-                                }
+                                Spacer(Modifier.height(8.dp))
+                                SectionHeader("In Progress", WCTheme.colors.statusEditing)
                             }
                             items(inProgress) { job ->
-                                ShootCard(
-                                    shoot = job,
-                                    onClick = {
-                                        viewModel.onAction(
-                                            EditorAction.SelectJob(job)
-                                        )
-                                    }
-                                )
+                                ShootCard(job, onClick = { viewModel.onAction(EditorAction.SelectJob(job)) })
                             }
                         }
 
                         if (rest.isNotEmpty()) {
                             item {
-                                Spacer(Modifier.height(16.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(width = 4.dp, height = 16.dp)
-                                    ) {}
-                                    Text(
-                                        text = "Others",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                                Spacer(Modifier.height(8.dp))
+                                SectionHeader("Others", MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                             }
                             items(rest) { job ->
-                                ShootCard(
-                                    shoot = job,
-                                    onClick = {
-                                        viewModel.onAction(
-                                            EditorAction.SelectJob(job)
-                                        )
-                                    }
-                                )
+                                ShootCard(job, onClick = { viewModel.onAction(EditorAction.SelectJob(job)) })
                             }
                         }
                     }
@@ -265,81 +190,84 @@ fun EditorScreen(
 
     state.selectedJob?.let { job ->
         AlertDialog(
-            onDismissRequest = {
-                viewModel.onAction(EditorAction.DismissDetail)
-            },
+            onDismissRequest = { viewModel.onAction(EditorAction.DismissDetail) },
+            shape = MaterialTheme.shapes.large,
             title = {
-                Text(
-                    text = job.eventType,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = job.eventType, fontWeight = FontWeight.Bold)
+                    BookingStatusBadge(status = job.status)
+                }
             },
             text = {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Column(
+                    modifier = Modifier.widthIn(max = 400.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    item {
-                        Text("📍 ${job.location}")
-                        Text("📅 ${job.eventDate}")
-                        BookingStatusBadge(status = job.status)
-                        Spacer(Modifier.height(8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("📍 ${job.location}", style = MaterialTheme.typography.bodyLarge)
+                        Text("📅 ${job.eventDate}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
                     }
 
                     if (state.tasks.isNotEmpty()) {
-                        item {
-                            HorizontalDivider()
-                            Text(
-                                text = "Tasks",
-                                style = MaterialTheme.typography
-                                    .labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier
-                                    .padding(vertical = 4.dp)
-                            )
-                        }
-                        items(state.tasks) { task ->
-                            TaskCheckItem(
-                                task = task,
-                                onToggle = { done ->
-                                    viewModel.onAction(
-                                        EditorAction.MarkTaskDone(
-                                            task.id, done
-                                        )
-                                    )
-                                }
-                            )
+                        HorizontalDivider()
+                        Text(
+                            text = "Editing Tasks",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            state.tasks.forEach { task ->
+                                TaskCheckItem(
+                                    task = task,
+                                    onToggle = { viewModel.onAction(EditorAction.MarkTaskDone(task.id, it)) }
+                                )
+                            }
                         }
                     }
 
-                    if (job.status == BookingStatus.SHOOT_DONE ||
-                        job.status == BookingStatus.EDITING
-                    ) {
-                        item {
-                            Spacer(Modifier.height(8.dp))
-                            Button(
-                                onClick = {
-                                    viewModel.onAction(
-                                        EditorAction.MarkEditingDone(job.id)
-                                    )
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = WCTheme.colors.statusDelivered
-                                )
-                            ) {
-                                Icon(Icons.Default.CheckCircle, null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Mark as Delivered")
-                            }
+                    if (job.status == BookingStatus.SHOOT_DONE || job.status == BookingStatus.EDITING) {
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.onAction(EditorAction.MarkEditingDone(job.id)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = ButtonDefaults.buttonColors(containerColor = WCTheme.colors.statusDelivered)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Mark as Delivered")
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.onAction(EditorAction.DismissDetail)
-                }) { Text("Close") }
+                TextButton(onClick = { viewModel.onAction(EditorAction.DismissDetail) }) { Text("Close") }
             }
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String, color: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraSmall,
+            color = color,
+            modifier = Modifier.size(width = 4.dp, height = 20.dp)
+        ) {}
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

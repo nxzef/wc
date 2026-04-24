@@ -25,7 +25,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.nxzef.wc.data.local.TokenStorage
 import com.nxzef.wc.data.session.SessionManager
+import kotlinx.coroutines.launch
 import com.nxzef.wc.presentation.components.WCPermanentSidebar
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
 import com.nxzef.wc.presentation.screens.bookings.BookingScreen
@@ -38,10 +40,12 @@ import com.nxzef.wc.presentation.screens.marketing.MarketingScreen
 import com.nxzef.wc.presentation.screens.photographer.PhotographerScreen
 import com.nxzef.wc.presentation.screens.quotes.QuoteScreen
 import com.nxzef.wc.presentation.screens.settings.SettingsScreen
+import com.nxzef.wc.presentation.screens.tasks.TasksScreen
 import com.nxzef.wc.presentation.screens.team.TeamScreen
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.UserRole
 import org.koin.compose.koinInject
+import kotlinx.coroutines.launch
 
 @Composable
 fun WCNavigation() {
@@ -49,14 +53,33 @@ fun WCNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = getCurrentRoute(navBackStackEntry)
     val sessionManager: SessionManager = koinInject()
-//    val user by sessionManager.currentUser.collectAsState()
+    val tokenStorage: TokenStorage = koinInject()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
+    val initialRoute = remember {
+        val user = SessionManager.getUser()
+        if (user != null) {
+            when (user.role) {
+                UserRole.OWNER -> Route.OwnerDashboard
+                UserRole.LEAD_MANAGER -> Route.LeadPipeline
+                UserRole.MARKETING -> Route.Marketing
+                UserRole.PHOTOGRAPHER -> Route.MyShoots
+                UserRole.EDITOR -> Route.EditingQueue
+            }
+        } else {
+            Route.Login
+        }
+    }
 
     var isSidebarCollapsed by remember { mutableStateOf(false) }
 
     WCTheme {
         Surface {
             if (currentRoute == Route.Login) {
-                AppNavHost(navController = navController)
+                AppNavHost(
+                    navController = navController,
+                    startDestination = initialRoute
+                )
             } else {
                 WCPermanentSidebar(
                     currentRoute = currentRoute,
@@ -70,14 +93,18 @@ fun WCNavigation() {
                         }
                     },
                     onLogout = {
-                        sessionManager.clear()
-                        navController.navigate(Route.Login) {
-                            popUpTo(0) { inclusive = true }
+                        scope.launch {
+                            tokenStorage.clearSession()
+                            sessionManager.clear()
+                            navController.navigate(Route.Login) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
                     }
                 ) {
                     AppNavHost(
                         navController = navController,
+                        startDestination = initialRoute,
                         modifier = Modifier
                             .fillMaxSize()
                             .clipToBounds()
@@ -91,11 +118,12 @@ fun WCNavigation() {
 @Composable
 fun AppNavHost(
     navController: NavHostController,
+    startDestination: Route = Route.Login,
     modifier: Modifier = Modifier
 ) {
     NavHost(
         navController = navController,
-        startDestination = Route.Login,
+        startDestination = startDestination,
         modifier = modifier,
         enterTransition = {
             fadeIn(animationSpec = tween(300, easing = EaseOutQuart)) +
@@ -226,6 +254,10 @@ fun AppNavHost(
                 onBack = { navController.popBackStack() }
             )
         }
+
+        composable<Route.Tasks> {
+            TasksScreen(onBack = { navController.popBackStack() })
+        }
     }
 }
 
@@ -243,6 +275,7 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
         destination.hasRoute<Route.Invoices>() -> Route.Invoices
         destination.hasRoute<Route.Bookings>() -> Route.Bookings
         destination.hasRoute<Route.Settings>() -> Route.Settings
+        destination.hasRoute<Route.Tasks>() -> Route.Tasks
         destination.hasRoute<Route.Quotes>() -> {
             val leadId = backStackEntry.toRoute<Route.Quotes>().leadId
             Route.Quotes(leadId)
