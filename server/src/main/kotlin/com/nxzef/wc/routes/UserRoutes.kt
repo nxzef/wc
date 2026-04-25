@@ -29,10 +29,10 @@ fun Route.userRoutes(userRepository: UserRepository) {
             val role = principal?.payload
                 ?.getClaim("role")?.asString()
 
-            if (role != UserRole.OWNER.name) {
+            if (role != UserRole.OWNER.name && role != UserRole.LEAD_MANAGER.name) {
                 call.respond(
                     HttpStatusCode.Forbidden,
-                    "Only owner can view team"
+                    "Only owner or lead manager can view team"
                 )
                 return@get
             }

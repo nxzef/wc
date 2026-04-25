@@ -66,7 +66,7 @@ class InvoiceRepository {
 
     fun create(request: CreateInvoiceRequest): Invoice {
         return transaction {
-            val id = InvoicesTable.insert {
+            val insertedId = InvoicesTable.insert {
                 it[bookingId] = java.util.UUID.fromString(
                     request.bookingId
                 )
@@ -78,7 +78,11 @@ class InvoiceRepository {
                 it[createdAt] = Instant.now()
             } get InvoicesTable.id
 
-            getByBookingId(request.bookingId)!!
+            InvoicesTable
+                .selectAll()
+                .where { InvoicesTable.id eq insertedId }
+                .single()
+                .let { rowToInvoice(it) }
         }
     }
 
