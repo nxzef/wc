@@ -85,129 +85,140 @@ fun LeadPipelineScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var draggingLeadId by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(
-        topBar = {
-            WCTopBar(
-                title = "Lead Pipeline",
-                subtitle = "${state.leads.size} total leads",
-                onBack = onBack,
-                actions = {
-                    Button(
-                        onClick = onAddLead,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.padding(end = 16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("New Lead")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
-                .graphicsLayer { clip = false }
-        ) {
-            when {
-                state.isLoading -> CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        val isCompact = screenWidth < 600.dp
 
-                state.error != null -> Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = state.error!!,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = {
-                        viewModel.onAction(LeadPipelineAction.LoadLeads)
-                    }) { Text("Retry") }
-                }
-
-                else -> {
-                    var columnBounds by remember { mutableStateOf(mapOf<LeadStatus, androidx.compose.ui.layout.LayoutCoordinates>()) }
-                    var hoveredStage by remember { mutableStateOf<LeadStatus?>(null) }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .horizontalScroll(rememberScrollState())
-                            .graphicsLayer {
-                                clip = false
-                                translationX = 0f
+        Scaffold(
+            topBar = {
+                WCTopBar(
+                    title = if (isCompact) "Pipeline" else "Lead Pipeline",
+                    subtitle = "${state.leads.size} leads",
+                    onBack = onBack,
+                    actions = {
+                        Button(
+                            onClick = onAddLead,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.padding(end = if (isCompact) 8.dp else 16.dp),
+                            contentPadding = if (isCompact) PaddingValues(horizontal = 12.dp) else ButtonDefaults.ContentPadding
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            if (!isCompact) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("New Lead")
                             }
-                            .padding(horizontal = 24.dp, vertical = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(24.dp)
-                    ) {
-                        PIPELINE_STAGES.forEach { stage ->
-                            val isDraggingFromThisColumn =
-                                state.leads.any { it.id == draggingLeadId && it.status == stage }
+                        }
+                    }
+                )
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                when {
+                    state.isLoading -> CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
 
-                            KanbanColumn(
-                                modifier = Modifier
-                                    .width(320.dp)
-                                    .zIndex(if (isDraggingFromThisColumn) 100f else 0f)
-                                    .onGloballyPositioned { coords ->
-                                        columnBounds = columnBounds + (stage to coords)
+                    state.error != null -> Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = state.error!!,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = {
+                            viewModel.onAction(LeadPipelineAction.LoadLeads)
+                        }) { Text("Retry") }
+                    }
+
+                    else -> {
+                        var columnBounds by remember {
+                            mutableStateOf(
+                                mapOf<LeadStatus, androidx.compose.ui.layout.LayoutCoordinates>()
+                            )
+                        }
+                        var hoveredStage by remember { mutableStateOf<LeadStatus?>(null) }
+
+                        val columnWidth = if (isCompact) screenWidth * 0.82f else 300.dp
+                        val horizontalPadding = if (isCompact) 16.dp else 24.dp
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = horizontalPadding, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(if (isCompact) 12.dp else 20.dp)
+                        ) {
+                            PIPELINE_STAGES.forEach { stage ->
+                                val isDraggingFromThisColumn =
+                                    state.leads.any { it.id == draggingLeadId && it.status == stage }
+
+                                KanbanColumn(
+                                    modifier = Modifier
+                                        .width(columnWidth)
+                                        .zIndex(if (isDraggingFromThisColumn) 100f else 0f)
+                                        .onGloballyPositioned { coords ->
+                                            columnBounds = columnBounds + (stage to coords)
+                                        },
+                                    stage = stage,
+                                    leads = state.leads.filter {
+                                        it.status == stage
                                     },
-                                stage = stage,
-                                leads = state.leads.filter {
-                                    it.status == stage
-                                },
-                                onLeadClick = { lead ->
-                                    viewModel.onAction(
-                                        LeadPipelineAction.SelectLead(lead)
-                                    )
-                                },
-                                isHighlighted = hoveredStage == stage,
-                                onDragStart = { draggingLeadId = it },
-                                onDrag = { _, currentPosition ->
-                                    var found = false
-                                    columnBounds.forEach { (s, coords) ->
-                                        if (coords.isAttached && coords.boundsInWindow()
-                                                .contains(currentPosition)
-                                        ) {
-                                            hoveredStage = s
-                                            found = true
+                                    onLeadClick = { lead ->
+                                        viewModel.onAction(
+                                            LeadPipelineAction.SelectLead(lead)
+                                        )
+                                    },
+                                    isHighlighted = hoveredStage == stage,
+                                    onDragStart = { draggingLeadId = it },
+                                    onDrag = { _, currentPosition ->
+                                        var found = false
+                                        columnBounds.forEach { (s, coords) ->
+                                            if (coords.isAttached && coords.boundsInWindow()
+                                                    .contains(currentPosition)
+                                            ) {
+                                                hoveredStage = s
+                                                found = true
+                                            }
                                         }
-                                    }
-                                    if (!found) hoveredStage = null
-                                },
-                                onDragEnd = { leadId, finalPosition ->
-                                    draggingLeadId = null
-                                    hoveredStage = null
-                                    columnBounds.forEach { (columnStage, coords) ->
-                                        if (coords.isAttached) {
-                                            val rect = coords.boundsInWindow()
-                                            if (rect.contains(finalPosition)) {
-                                                viewModel.onAction(
-                                                    LeadPipelineAction.UpdateStatus(
-                                                        leadId,
-                                                        columnStage
+                                        if (!found) hoveredStage = null
+                                    },
+                                    onDragEnd = { leadId, finalPosition ->
+                                        draggingLeadId = null
+                                        hoveredStage = null
+                                        columnBounds.forEach { (columnStage, coords) ->
+                                            if (coords.isAttached) {
+                                                val rect = coords.boundsInWindow()
+                                                if (rect.contains(finalPosition)) {
+                                                    viewModel.onAction(
+                                                        LeadPipelineAction.UpdateStatus(
+                                                            leadId,
+                                                            columnStage
+                                                        )
                                                     )
-                                                )
+                                                }
                                             }
                                         }
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
+
 
     state.selectedLead?.let { lead ->
         LeadDetailDialog(
