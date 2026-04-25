@@ -34,12 +34,13 @@ fun WCTopBar(
     onBack: (() -> Unit)? = null,
     navigationIcon: (@Composable () -> Unit)? = null,
     notificationViewModel: NotificationViewModel = koinViewModel(),
+    modifier: Modifier = Modifier,
     actions: @Composable () -> Unit = {}
 ) {
     val notifState by notificationViewModel.state.collectAsStateWithLifecycle()
 
     TopAppBar(
-        modifier = Modifier.zIndex(0f),
+        modifier = modifier.zIndex(0f),
         title = {
             if (subtitle != null) {
                 Column {

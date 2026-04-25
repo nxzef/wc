@@ -149,21 +149,26 @@ fun LeadPipelineScreen(
                         }
                         var hoveredStage by remember { mutableStateOf<LeadStatus?>(null) }
 
-                        val columnWidth = if (isCompact) screenWidth * 0.82f else 300.dp
                         val horizontalPadding = if (isCompact) 16.dp else 24.dp
+                        val columnWidth = if (isCompact) screenWidth * 0.85f else 320.dp
 
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .horizontalScroll(rememberScrollState())
-                                .padding(horizontal = horizontalPadding, vertical = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(if (isCompact) 12.dp else 20.dp)
+                                .padding(vertical = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(if (isCompact) 16.dp else 24.dp)
                         ) {
+                            Spacer(modifier = Modifier.width(horizontalPadding - (if (isCompact) 16.dp else 24.dp))) // Adjust for spacing
+                            
+                            // Add an initial spacer to respect padding with horizontal scroll
+                            Spacer(modifier = Modifier.width(horizontalPadding/2))
+
                             PIPELINE_STAGES.forEach { stage ->
                                 val isDraggingFromThisColumn =
                                     state.leads.any { it.id == draggingLeadId && it.status == stage }
 
-                                KanbanColumn(
+                                KanBanColumn(
                                     modifier = Modifier
                                         .width(columnWidth)
                                         .zIndex(if (isDraggingFromThisColumn) 100f else 0f)
@@ -212,6 +217,8 @@ fun LeadPipelineScreen(
                                     }
                                 )
                             }
+                            // End spacer for scroll
+                            Spacer(modifier = Modifier.width(horizontalPadding/2))
                         }
                     }
                 }
@@ -241,7 +248,7 @@ fun LeadPipelineScreen(
 }
 
 @Composable
-fun KanbanColumn(
+fun KanBanColumn(
     modifier: Modifier = Modifier,
     stage: LeadStatus,
     leads: List<Lead>,

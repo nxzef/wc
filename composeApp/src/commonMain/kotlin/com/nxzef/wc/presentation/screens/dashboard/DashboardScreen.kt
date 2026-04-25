@@ -59,7 +59,8 @@ fun DashboardScreen(
             WCTopBar(
                 title = "Executive Overview",
                 subtitle = "Welcome, ${user?.name ?: "User"}",
-                showNotificationIcon = true
+                showNotificationIcon = true,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     ) { padding ->
@@ -67,7 +68,8 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.TopCenter
         ) {
             when {
                 state.isLoading -> CircularProgressIndicator(
@@ -75,7 +77,7 @@ fun DashboardScreen(
                 )
 
                 state.error != null -> Column(
-                    modifier = Modifier.align(Alignment.Center),
+                    modifier = Modifier.align(Alignment.Center).widthIn(max = 600.dp).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
@@ -88,7 +90,8 @@ fun DashboardScreen(
                     Text(
                         text = state.error!!,
                         color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
@@ -99,10 +102,7 @@ fun DashboardScreen(
                     }
                 }
 
-                state.stats != null -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.TopCenter
-                ) {
+                state.stats != null -> {
                     DashboardContent(
                         stats = state.stats!!,
                         onNavigateToPipeline = onNavigateToPipeline,
@@ -189,37 +189,75 @@ fun DashboardContent(
 
         // Main KPIs
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                SummaryStatCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Revenue (MTD)",
-                    value = "₹${formatCurrency(stats.totalRevenueThisMonth)}",
-                    icon = Icons.Default.AccountBalanceWallet,
-                    color = MaterialTheme.colorScheme.primary,
-                    trend = "+12.5%",
-                    isPositive = true
-                )
-                SummaryStatCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Conversion Rate",
-                    value = "68%",
-                    icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    color = WCTheme.colors.statusWon,
-                    trend = "+4.2%",
-                    isPositive = true
-                )
-                SummaryStatCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Avg. Order Value",
-                    value = "₹85k",
-                    icon = Icons.Default.Analytics,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    trend = "-2.1%",
-                    isPositive = false
-                )
+            androidx.compose.foundation.layout.BoxWithConstraints {
+                val flowModifier = Modifier.fillMaxWidth()
+                if (maxWidth > 600.dp) {
+                    Row(
+                        modifier = flowModifier,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        SummaryStatCard(
+                            modifier = Modifier.weight(1f),
+                            title = "Revenue (MTD)",
+                            value = "₹${formatCurrency(stats.totalRevenueThisMonth)}",
+                            icon = Icons.Default.AccountBalanceWallet,
+                            color = MaterialTheme.colorScheme.primary,
+                            trend = "+12.5%",
+                            isPositive = true
+                        )
+                        SummaryStatCard(
+                            modifier = Modifier.weight(1f),
+                            title = "Conversion Rate",
+                            value = "68%",
+                            icon = Icons.AutoMirrored.Filled.TrendingUp,
+                            color = WCTheme.colors.statusWon,
+                            trend = "+4.2%",
+                            isPositive = true
+                        )
+                        SummaryStatCard(
+                            modifier = Modifier.weight(1f),
+                            title = "Avg. Order Value",
+                            value = "₹85k",
+                            icon = Icons.Default.Analytics,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            trend = "-2.1%",
+                            isPositive = false
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = flowModifier,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        SummaryStatCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            title = "Revenue (MTD)",
+                            value = "₹${formatCurrency(stats.totalRevenueThisMonth)}",
+                            icon = Icons.Default.AccountBalanceWallet,
+                            color = MaterialTheme.colorScheme.primary,
+                            trend = "+12.5%",
+                            isPositive = true
+                        )
+                        SummaryStatCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            title = "Conversion Rate",
+                            value = "68%",
+                            icon = Icons.AutoMirrored.Filled.TrendingUp,
+                            color = WCTheme.colors.statusWon,
+                            trend = "+4.2%",
+                            isPositive = true
+                        )
+                        SummaryStatCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            title = "Avg. Order Value",
+                            value = "₹85k",
+                            icon = Icons.Default.Analytics,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            trend = "-2.1%",
+                            isPositive = false
+                        )
+                    }
+                }
             }
         }
 
