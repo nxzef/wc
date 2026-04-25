@@ -6,6 +6,7 @@ import com.nxzef.wc.shared.dto.toDomain
 import com.nxzef.wc.shared.model.User
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -41,5 +42,11 @@ class UserService(private val client: HttpClient) {
             )
         }.body()
         return dto.toDomain()
+    }
+
+    suspend fun removeMember(id: String) {
+        client.delete("${ApiClient.BASE_URL}/users/$id") {
+            header("Authorization", "Bearer ${SessionManager.getToken()}")
+        }
     }
 }

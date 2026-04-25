@@ -19,6 +19,7 @@ import com.nxzef.wc.domain.usecase.quotes.GetQuotesByLeadIdUseCase
 import com.nxzef.wc.domain.usecase.quotes.UpdateQuoteStatusUseCase
 import com.nxzef.wc.domain.usecase.tasks.GetMyPendingTasksUseCase
 import com.nxzef.wc.domain.usecase.team.CreateTeamMemberUseCase
+import com.nxzef.wc.domain.usecase.team.DeleteTeamMemberUseCase
 import com.nxzef.wc.domain.usecase.team.GetTeamUseCase
 import org.koin.dsl.module
 
@@ -43,4 +44,5 @@ val useCaseModule = module {
     factory { CreateQuoteUseCase(get()) }
     factory { UpdateQuoteStatusUseCase(get()) }
     factory { GetMyPendingTasksUseCase(get()) }
+    factory { DeleteTeamMemberUseCase(get()) }
 }

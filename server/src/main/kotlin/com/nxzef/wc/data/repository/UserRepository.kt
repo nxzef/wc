@@ -3,6 +3,8 @@ package com.nxzef.wc.data.repository
 import com.nxzef.wc.data.db.tables.UsersTable
 import com.nxzef.wc.shared.model.User
 import com.nxzef.wc.shared.model.UserRole
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -50,6 +52,27 @@ class UserRepository {
                 role = UserRole.valueOf(role),
                 isActive = true
             )
+        }
+    }
+
+    fun deleteUser(id: String): Boolean {
+        return transaction {
+            val uuid = try {
+                java.util.UUID.fromString(id)
+            } catch (e: Exception) {
+                return@transaction false
+            }
+            // Check if user exists
+            val exists = UsersTable
+                .selectAll()
+                .where { UsersTable.id eq uuid }
+                .count() > 0
+
+            if (!exists) return@transaction false
+
+            // Correct way to delete in Exposed
+            UsersTable.deleteWhere { UsersTable.id eq uuid }
+            true
         }
     }
 

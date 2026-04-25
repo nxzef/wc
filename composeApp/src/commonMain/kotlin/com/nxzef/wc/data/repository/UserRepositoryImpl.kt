@@ -29,4 +29,13 @@ class UserRepositoryImpl(
             AppResult.Failure(e)
         }
     }
+
+    override suspend fun removeMember(id: String): AppResult<Unit> {
+        return try {
+            service.removeMember(id)
+            AppResult.Success(Unit)
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
 }

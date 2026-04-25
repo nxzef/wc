@@ -100,6 +100,16 @@ fun Route.bookingRoutes(
                     HttpStatusCode.NotFound,
                     "Booking not found"
                 )
+
+            // Reassign tasks if photographer or editor was updated
+            if (request.photographerId != null || request.editorId != null) {
+                taskRepository.reassignBookingTasks(
+                    bookingId = id,
+                    photographerId = request.photographerId,
+                    editorId = request.editorId
+                )
+            }
+
             call.respond(booking.toDto())
         }
     }

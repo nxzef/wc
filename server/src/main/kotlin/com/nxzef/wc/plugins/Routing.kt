@@ -62,7 +62,7 @@ fun Application.configureRouting() {
             // Lead
             leadRoutes(leadRepository, taskRepository)
             // Quote
-            quoteRoutes(quoteRepository)
+            quoteRoutes(quoteRepository, leadRepository, bookingRepository, taskRepository)
             // Booking
             bookingRoutes(bookingRepository, taskRepository)
             // Invoice

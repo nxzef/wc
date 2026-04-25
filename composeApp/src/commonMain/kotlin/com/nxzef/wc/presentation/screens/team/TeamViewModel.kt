@@ -3,6 +3,7 @@ package com.nxzef.wc.presentation.screens.team
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.team.CreateTeamMemberUseCase
+import com.nxzef.wc.domain.usecase.team.DeleteTeamMemberUseCase
 import com.nxzef.wc.domain.usecase.team.GetTeamUseCase
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
 
 class TeamViewModel(
     private val getTeamUseCase: GetTeamUseCase,
-    private val createTeamMemberUseCase: CreateTeamMemberUseCase
+    private val createTeamMemberUseCase: CreateTeamMemberUseCase,
+    private val deleteTeamMemberUseCase: DeleteTeamMemberUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TeamState())
@@ -51,6 +53,39 @@ class TeamViewModel(
                 _state.update { it.copy(newRole = action.value) }
 
             TeamAction.OnCreateMember -> createMember()
+
+            is TeamAction.ShowDeleteDialog ->
+                _state.update { it.copy(showDeleteDialog = action.user) }
+
+            TeamAction.HideDeleteDialog ->
+                _state.update { it.copy(showDeleteDialog = null) }
+
+            is TeamAction.OnDeleteMember -> deleteMember(action.id)
+        }
+    }
+
+    private fun deleteMember(id: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isDeleting = true) }
+            deleteTeamMemberUseCase(id)
+                .onSuccess {
+                    _state.update {
+                        it.copy(
+                            isDeleting = false,
+                            showDeleteDialog = null
+                        )
+                    }
+                    _uiEvent.send(TeamUiEvent.ShowSnackbar("Member removed"))
+                    loadTeam()
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(isDeleting = false) }
+                    _uiEvent.send(
+                        TeamUiEvent.ShowSnackbar(
+                            e.message ?: "Failed to remove member"
+                        )
+                    )
+                }
         }
     }
 

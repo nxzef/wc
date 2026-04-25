@@ -20,12 +20,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -172,7 +176,14 @@ fun TeamScreen(
                                     )
                                 }
                                 items(members) { member ->
-                                    TeamMemberCard(member = member)
+                                    TeamMemberCard(
+                                        member = member,
+                                        onDelete = {
+                                            viewModel.onAction(
+                                                TeamAction.ShowDeleteDialog(member)
+                                            )
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -189,10 +200,53 @@ fun TeamScreen(
             onAction = viewModel::onAction
         )
     }
+
+    // Delete confirmation dialog
+    state.showDeleteDialog?.let { user ->
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.onAction(TeamAction.HideDeleteDialog)
+            },
+            title = { Text("Remove Member") },
+            text = {
+                Text("Are you sure you want to remove ${user.name}? This action cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.onAction(TeamAction.OnDeleteMember(user.id))
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    enabled = !state.isDeleting
+                ) {
+                    if (state.isDeleting) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                    } else {
+                        Text("Remove")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.onAction(TeamAction.HideDeleteDialog)
+                    },
+                    enabled = !state.isDeleting
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
-fun TeamMemberCard(member: User) {
+fun TeamMemberCard(
+    member: User,
+    onDelete: () -> Unit
+) {
     val roleColor = when (member.role) {
         UserRole.OWNER ->
             MaterialTheme.colorScheme.primary
@@ -282,6 +336,19 @@ fun TeamMemberCard(member: User) {
                     MaterialTheme.colorScheme.errorContainer,
                 modifier = Modifier.size(10.dp)
             ) {}
+
+            IconButton(
+                onClick = onDelete,
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Remove Member",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

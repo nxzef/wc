@@ -201,4 +201,27 @@ class TaskRepository {
             }
         }
     }
+
+    fun reassignBookingTasks(bookingId: String, photographerId: String?, editorId: String?) {
+        transaction {
+            if (photographerId != null) {
+                val photographerTasks = listOf("Shoot day completed", "Confirm venue details")
+                TasksTable.update({
+                    (TasksTable.bookingId eq java.util.UUID.fromString(bookingId)) and
+                            (TasksTable.title inList photographerTasks)
+                }) {
+                    it[assignedTo] = java.util.UUID.fromString(photographerId)
+                }
+            }
+            if (editorId != null) {
+                val editorTasks = listOf("Edit photos", "Deliver gallery")
+                TasksTable.update({
+                    (TasksTable.bookingId eq java.util.UUID.fromString(bookingId)) and
+                            (TasksTable.title inList editorTasks)
+                }) {
+                    it[assignedTo] = java.util.UUID.fromString(editorId)
+                }
+            }
+        }
+    }
 }
