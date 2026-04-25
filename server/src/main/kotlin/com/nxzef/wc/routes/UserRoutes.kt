@@ -3,12 +3,15 @@ package com.nxzef.wc.routes
 import com.nxzef.wc.data.repository.UserRepository
 import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.UserRole
-import io.ktor.http.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import kotlinx.serialization.Serializable
 import org.mindrot.jbcrypt.BCrypt
 
@@ -29,10 +32,13 @@ fun Route.userRoutes(userRepository: UserRepository) {
             val role = principal?.payload
                 ?.getClaim("role")?.asString()
 
-            if (role != UserRole.OWNER.name && role != UserRole.LEAD_MANAGER.name) {
+            // Allow OWNER, LEAD_MANAGER, and MARKETING to see the team list (e.g. for assigning leads)
+            if (role != UserRole.OWNER.name && 
+                role != UserRole.LEAD_MANAGER.name &&
+                role != UserRole.MARKETING.name) {
                 call.respond(
                     HttpStatusCode.Forbidden,
-                    "Only owner or lead manager can view team"
+                    "Insufficient permissions to view team"
                 )
                 return@get
             }

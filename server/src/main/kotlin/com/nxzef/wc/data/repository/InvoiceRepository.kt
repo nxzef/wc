@@ -16,10 +16,10 @@ import java.time.LocalDate
 class InvoiceRepository {
 
     private fun rowToInvoice(row: ResultRow): Invoice {
-        val total = row[InvoicesTable.totalAmount].toDouble()
-        val deposit = row[InvoicesTable.depositAmount].toDouble()
-        val depositPaid = row[InvoicesTable.depositPaid]
-        val finalPaid = row[InvoicesTable.finalPaid]
+        val total = row.getOrNull(InvoicesTable.totalAmount)?.toDouble() ?: 0.0
+        val deposit = row.getOrNull(InvoicesTable.depositAmount)?.toDouble() ?: 0.0
+        val depositPaid = row.getOrNull(InvoicesTable.depositPaid) ?: false
+        val finalPaid = row.getOrNull(InvoicesTable.finalPaid) ?: false
 
         val remaining = when {
             finalPaid -> 0.0
@@ -33,12 +33,12 @@ class InvoiceRepository {
             totalAmount = total,
             depositAmount = deposit,
             depositPaid = depositPaid,
-            depositPaidDate = row[InvoicesTable.depositPaidDate]?.toString(),
+            depositPaidDate = row.getOrNull(InvoicesTable.depositPaidDate)?.toString(),
             finalPaid = finalPaid,
-            finalPaidDate = row[InvoicesTable.finalPaidDate]?.toString(),
+            finalPaidDate = row.getOrNull(InvoicesTable.finalPaidDate)?.toString(),
             remainingAmount = remaining,
-            notes = row[InvoicesTable.notes],
-            createdAt = row[InvoicesTable.createdAt].toString()
+            notes = row.getOrNull(InvoicesTable.notes),
+            createdAt = row.getOrNull(InvoicesTable.createdAt)?.toString() ?: ""
         )
     }
 
@@ -66,7 +66,9 @@ class InvoiceRepository {
 
     fun create(request: CreateInvoiceRequest): Invoice {
         return transaction {
-            val insertedId = InvoicesTable.insert {
+            val newId = java.util.UUID.randomUUID()
+            InvoicesTable.insert {
+                it[id] = newId
                 it[bookingId] = java.util.UUID.fromString(
                     request.bookingId
                 )
@@ -76,11 +78,11 @@ class InvoiceRepository {
                 it[finalPaid] = false
                 it[notes] = request.notes
                 it[createdAt] = Instant.now()
-            } get InvoicesTable.id
+            }
 
             InvoicesTable
                 .selectAll()
-                .where { InvoicesTable.id eq insertedId }
+                .where { InvoicesTable.id eq newId }
                 .single()
                 .let { rowToInvoice(it) }
         }

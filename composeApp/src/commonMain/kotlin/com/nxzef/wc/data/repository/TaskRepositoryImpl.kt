@@ -34,6 +34,14 @@ class TaskRepositoryImpl(
         }
     }
 
+    override suspend fun getByAssignedUser(userId: String): AppResult<List<Task>> {
+        return try {
+            AppResult.Success(service.getByAssignedUser(userId))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
+
     override suspend fun create(request: CreateTaskRequest): AppResult<Task> {
         return try {
             AppResult.Success(service.create(request))

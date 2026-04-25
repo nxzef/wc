@@ -162,7 +162,7 @@ fun TasksScreen(
                                     shape = MaterialTheme.shapes.extraSmall
                                 ) {
                                     Text(
-                                        text = "${state.pendingTasks.size}",
+                                        text = "${state.pendingTasks.size} tasks",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),

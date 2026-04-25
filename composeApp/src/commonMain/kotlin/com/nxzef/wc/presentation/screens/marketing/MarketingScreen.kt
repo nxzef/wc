@@ -60,6 +60,7 @@ fun MarketingScreen(
     viewModel: MarketingViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val filteredLeads by viewModel.filteredLeads.collectAsStateWithLifecycle()
     val snackbarState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -236,7 +237,7 @@ fun MarketingScreen(
                             }
 
                             // Leads list
-                            if (viewModel.filteredLeads.isEmpty()) {
+                            if (filteredLeads.isEmpty()) {
                                 item {
                                     Box(
                                         modifier = Modifier
@@ -252,7 +253,7 @@ fun MarketingScreen(
                                     }
                                 }
                             } else {
-                                items(viewModel.filteredLeads) { lead ->
+                                items(filteredLeads) { lead ->
                                     MarketingLeadCard(lead = lead)
                                 }
                             }

@@ -104,8 +104,11 @@ class InvoiceViewModel(
 
     private fun createInvoice() {
         val s = _state.value
-        val total = s.totalAmount.toDoubleOrNull()
-        val deposit = s.depositAmount.toDoubleOrNull()
+        val cleanTotal = s.totalAmount.replace(",", "")
+        val cleanDeposit = s.depositAmount.replace(",", "")
+        
+        val total = cleanTotal.toDoubleOrNull()
+        val deposit = cleanDeposit.toDoubleOrNull()
 
         if (s.selectedBookingId.isBlank() ||
             total == null || deposit == null

@@ -47,6 +47,15 @@ fun Route.taskRoutes(taskRepository: TaskRepository) {
             call.respond(taskRepository.getPendingByUser(userId).map { it.toDto() })
         }
 
+        // GET tasks assigned to user
+        get("/assigned/{userId}") {
+            val userId = call.parameters["userId"]
+                ?: return@get call.respond(
+                    HttpStatusCode.BadRequest, "Missing userId"
+                )
+            call.respond(taskRepository.getByAssignedUser(userId).map { it.toDto() })
+        }
+
         // POST create task
         post {
             val principal = call.principal<JWTPrincipal>()

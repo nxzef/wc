@@ -83,7 +83,7 @@ class QuoteRepository {
         createdByUserId: String
     ): Quote {
         return transaction {
-            val quoteId = QuotesTable.insert {
+            val insertedId = QuotesTable.insert {
                 it[leadId] = java.util.UUID.fromString(request.leadId)
                 it[createdBy] = java.util.UUID.fromString(createdByUserId)
                 it[validUntil] = request.validUntil?.let { d ->
@@ -92,18 +92,18 @@ class QuoteRepository {
                 it[notes] = request.notes
                 it[status] = QuoteStatus.DRAFT.name
                 it[createdAt] = Instant.now()
-            } get QuotesTable.id
+            }[QuotesTable.id]
 
             request.items.forEach { item ->
                 QuoteItemsTable.insert {
-                    it[QuoteItemsTable.quoteId] = quoteId
+                    it[QuoteItemsTable.quoteId] = insertedId
                     it[QuoteItemsTable.description] = item.description
                     it[QuoteItemsTable.price] = item.price.toBigDecimal()
                     it[QuoteItemsTable.createdAt] = Instant.now()
                 }
             }
 
-            getById(quoteId.toString())!!
+            getById(insertedId.toString())!!
         }
     }
 

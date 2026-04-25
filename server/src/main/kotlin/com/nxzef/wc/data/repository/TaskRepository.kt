@@ -151,13 +151,14 @@ class TaskRepository {
             "Follow up"
         )
         transaction {
-            defaultTasks.forEach { taskTitle ->
+            defaultTasks.forEachIndexed { index, taskTitle ->
                 TasksTable.insert {
                     it[TasksTable.leadId] =
                         java.util.UUID.fromString(leadId)
                     it[title] = taskTitle
                     it[TasksTable.assignedTo] =
                         java.util.UUID.fromString(assignedTo)
+                    it[dueDate] = LocalDate.now().plusDays((index + 1).toLong())
                     it[isDone] = false
                     it[TasksTable.createdBy] =
                         java.util.UUID.fromString(createdBy)
@@ -184,13 +185,14 @@ class TaskRepository {
             "Collect final payment"
         )
         transaction {
-            defaultTasks.forEach { taskTitle ->
+            defaultTasks.forEachIndexed { index, taskTitle ->
                 TasksTable.insert {
                     it[TasksTable.bookingId] =
                         java.util.UUID.fromString(bookingId)
                     it[title] = taskTitle
                     it[TasksTable.assignedTo] =
                         java.util.UUID.fromString(assignedTo)
+                    it[dueDate] = LocalDate.now().plusDays((index + 1).toLong())
                     it[isDone] = false
                     it[TasksTable.createdBy] =
                         java.util.UUID.fromString(createdBy)

@@ -2,18 +2,19 @@ package com.nxzef.wc.presentation.components
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
@@ -253,13 +254,19 @@ fun WCPermanentSidebar(
                     // Nav items
                     visibleItems.forEach { item ->
                         val selected = currentRoute::class == item.route::class
+                        
                         NavigationDrawerItem(
                             icon = {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.label,
-                                    modifier = if (isCollapsed) Modifier.size(24.dp) else Modifier
-                                )
+                                Box(
+                                    modifier = if (isCollapsed) Modifier.fillMaxWidth() else Modifier,
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = item.icon,
+                                        contentDescription = item.label,
+                                        modifier = if (isCollapsed) Modifier.size(24.dp) else Modifier
+                                    )
+                                }
                             },
                             label = {
                                 if (!isCollapsed) {
@@ -275,14 +282,16 @@ fun WCPermanentSidebar(
                             onClick = { onNavigate(item.route) },
                             modifier = if (isCollapsed) {
                                 Modifier
-                                    .width(drawerWidth)
+                                    .fillMaxWidth()
                                     .padding(vertical = 2.dp)
                             } else {
                                 Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                             },
                             colors = NavigationDrawerItemDefaults.colors(
-                                unselectedContainerColor = Color.Transparent
-                            )
+                                unselectedContainerColor = Color.Transparent,
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isCollapsed) 0.3f else 1f),
+                            ),
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
 
@@ -292,12 +301,17 @@ fun WCPermanentSidebar(
                     // Logout
                     NavigationDrawerItem(
                         icon = {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Logout,
-                                contentDescription = "Logout",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = if (isCollapsed) Modifier.size(24.dp) else Modifier
-                            )
+                            Box(
+                                modifier = if (isCollapsed) Modifier.fillMaxWidth() else Modifier,
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = "Logout",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = if (isCollapsed) Modifier.size(24.dp) else Modifier
+                                )
+                            }
                         },
                         label = {
                             if (!isCollapsed) {
@@ -312,14 +326,15 @@ fun WCPermanentSidebar(
                         onClick = onLogout,
                         modifier = if (isCollapsed) {
                             Modifier
-                                .width(drawerWidth)
+                                .fillMaxWidth()
                                 .padding(vertical = 8.dp)
                         } else {
                             Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                         },
                         colors = NavigationDrawerItemDefaults.colors(
                             unselectedContainerColor = Color.Transparent
-                        )
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))

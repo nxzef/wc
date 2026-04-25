@@ -45,6 +45,15 @@ class TaskService(private val client: HttpClient) {
         return dtos.map { it.toDomain() }
     }
 
+    suspend fun getByAssignedUser(userId: String): List<Task> {
+        val dtos: List<TaskDto> = client.get(
+            "${ApiClient.BASE_URL}/tasks/assigned/$userId"
+        ) {
+            header("Authorization", "Bearer ${SessionManager.getToken()}")
+        }.body()
+        return dtos.map { it.toDomain() }
+    }
+
     suspend fun create(request: CreateTaskRequest): Task {
         val dto: TaskDto = client.post("${ApiClient.BASE_URL}/tasks") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")

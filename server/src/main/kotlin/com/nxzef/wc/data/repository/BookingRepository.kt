@@ -90,11 +90,13 @@ class BookingRepository {
                 it[LeadsTable.status] = LeadStatus.WON.name
             }
 
-            val id = BookingsTable.insert { statement ->
+            val newId = java.util.UUID.randomUUID()
+            BookingsTable.insert { statement ->
+                statement[id] = newId
                 statement[leadId]   = java.util.UUID.fromString(request.leadId)
-                // Only set quoteId if not blank
+                // Only set quoteId if not null or blank
                 statement[quoteId] = request.quoteId
-                    ?.takeIf { it.isNotBlank() }
+                    ?.takeIf { it.isNotBlank() && it != "null" }
                     ?.let { java.util.UUID.fromString(it) }
                 statement[eventDate] = LocalDate.parse(request.eventDate)
                 statement[eventType] = request.eventType
@@ -102,9 +104,9 @@ class BookingRepository {
                 statement[status]    = BookingStatus.BOOKED.name
                 statement[notes]     = request.notes
                 statement[createdAt] = Instant.now()
-            } get BookingsTable.id
+            }
 
-            getById(id.toString())!!
+            getById(newId.toString())!!
         }
     }
 
