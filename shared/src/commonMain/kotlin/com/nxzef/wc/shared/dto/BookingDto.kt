@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 data class BookingDto(
     val id: String,
     val leadId: String,
-    val quoteId: String,
+    val quoteId: String? = null,
     val photographerId: String? = null,
     val editorId: String? = null,
     val eventDate: String,
@@ -29,7 +29,7 @@ fun BookingDto.toDomain(): Booking {
         eventDate = eventDate,
         eventType = eventType,
         location = location,
-        status = try { BookingStatus.valueOf(status) } catch (e: Exception) { BookingStatus.BOOKED },
+        status = try { BookingStatus.valueOf(status) } catch (_: Exception) { BookingStatus.BOOKED },
         notes = notes,
         createdAt = createdAt
     )

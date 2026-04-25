@@ -11,7 +11,7 @@ enum class BookingStatus {
 data class Booking(
     val id: String,
     val leadId: String,
-    val quoteId: String,
+    val quoteId: String? = null,
     val photographerId: String? = null,
     val editorId: String? = null,
     val eventDate: String,
