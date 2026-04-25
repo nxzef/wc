@@ -45,7 +45,7 @@ class UserRepository {
                 it[UsersTable.createdAt] = Instant.now()
             } get UsersTable.id
 
-            com.nxzef.wc.shared.model.User(
+            User(
                 id = id.toString(),
                 name = name,
                 email = email,
@@ -59,7 +59,7 @@ class UserRepository {
         return transaction {
             val uuid = try {
                 java.util.UUID.fromString(id)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 return@transaction false
             }
             // Check if user exists
