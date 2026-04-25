@@ -392,7 +392,7 @@ fun MarketingLeadCard(lead: Lead) {
                 }
             }
 
-            LeadStatusBadge(status = lead.status.name)
+            LeadStatusBadge(status = lead.status)
         }
     }
 }

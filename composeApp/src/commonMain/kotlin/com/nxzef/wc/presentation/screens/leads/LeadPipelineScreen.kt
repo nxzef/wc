@@ -69,12 +69,11 @@ import com.nxzef.wc.presentation.components.LeadStatusBadge
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.model.LeadStatus
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
 
-val PIPELINE_STAGES = listOf(
-    "NEW", "CONTACTED", "NEGOTIATING", "WON", "LOST"
-)
+val PIPELINE_STAGES = LeadStatus.entries
 
 @Composable
 fun LeadPipelineScreen(
@@ -137,8 +136,8 @@ fun LeadPipelineScreen(
                 }
 
                 else -> {
-                    var columnBounds by remember { mutableStateOf(mapOf<String, androidx.compose.ui.layout.LayoutCoordinates>()) }
-                    var hoveredStage by remember { mutableStateOf<String?>(null) }
+                    var columnBounds by remember { mutableStateOf(mapOf<LeadStatus, androidx.compose.ui.layout.LayoutCoordinates>()) }
+                    var hoveredStage by remember { mutableStateOf<LeadStatus?>(null) }
 
                     Row(
                         modifier = Modifier
@@ -153,7 +152,7 @@ fun LeadPipelineScreen(
                     ) {
                         PIPELINE_STAGES.forEach { stage ->
                             val isDraggingFromThisColumn =
-                                state.leads.any { it.id == draggingLeadId && it.status.name == stage }
+                                state.leads.any { it.id == draggingLeadId && it.status == stage }
 
                             KanbanColumn(
                                 modifier = Modifier
@@ -164,7 +163,7 @@ fun LeadPipelineScreen(
                                     },
                                 stage = stage,
                                 leads = state.leads.filter {
-                                    it.status.name == stage
+                                    it.status == stage
                                 },
                                 onLeadClick = { lead ->
                                     viewModel.onAction(
@@ -233,7 +232,7 @@ fun LeadPipelineScreen(
 @Composable
 fun KanbanColumn(
     modifier: Modifier = Modifier,
-    stage: String,
+    stage: LeadStatus,
     leads: List<Lead>,
     onLeadClick: (Lead) -> Unit,
     isHighlighted: Boolean = false,
@@ -242,12 +241,11 @@ fun KanbanColumn(
     onDragEnd: (String, Offset) -> Unit
 ) {
     val color = when (stage) {
-        "NEW" -> WCTheme.colors.statusNew
-        "CONTACTED" -> WCTheme.colors.statusContacted
-        "NEGOTIATING" -> WCTheme.colors.statusNegotiating
-        "WON" -> WCTheme.colors.statusWon
-        "LOST" -> WCTheme.colors.statusLost
-        else -> MaterialTheme.colorScheme.outline
+        LeadStatus.NEW -> WCTheme.colors.statusNew
+        LeadStatus.CONTACTED -> WCTheme.colors.statusContacted
+        LeadStatus.NEGOTIATING -> WCTheme.colors.statusNegotiating
+        LeadStatus.WON -> WCTheme.colors.statusWon
+        LeadStatus.LOST -> WCTheme.colors.statusLost
     }
 
     Column(
@@ -277,7 +275,7 @@ fun KanbanColumn(
             ) {}
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = stage,
+                text = stage.name,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -477,7 +475,7 @@ fun LeadInfoRow(icon: ImageVector, text: String) {
 fun LeadDetailDialog(
     lead: Lead,
     onDismiss: () -> Unit,
-    onUpdateStatus: (String, String?) -> Unit,
+    onUpdateStatus: (LeadStatus, String?) -> Unit,
     onViewQuotes: () -> Unit
 ) {
     var notes by remember { mutableStateOf(lead.notes ?: "") }
@@ -496,7 +494,7 @@ fun LeadDetailDialog(
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
-                LeadStatusBadge(status = lead.status.name)
+                LeadStatusBadge(status = lead.status)
             }
         },
         text = {
@@ -558,14 +556,13 @@ fun LeadDetailDialog(
                     modifier = Modifier.horizontalScroll(rememberScrollState())
                 ) {
                     PIPELINE_STAGES.forEach { stage ->
-                        if (stage != lead.status.name) {
+                        if (stage != lead.status) {
                             val stageColor = when (stage) {
-                                "NEW" -> WCTheme.colors.statusNew
-                                "CONTACTED" -> WCTheme.colors.statusContacted
-                                "NEGOTIATING" -> WCTheme.colors.statusNegotiating
-                                "WON" -> WCTheme.colors.statusWon
-                                "LOST" -> WCTheme.colors.statusLost
-                                else -> MaterialTheme.colorScheme.outline
+                                LeadStatus.NEW -> WCTheme.colors.statusNew
+                                LeadStatus.CONTACTED -> WCTheme.colors.statusContacted
+                                LeadStatus.NEGOTIATING -> WCTheme.colors.statusNegotiating
+                                LeadStatus.WON -> WCTheme.colors.statusWon
+                                LeadStatus.LOST -> WCTheme.colors.statusLost
                             }
                             OutlinedButton(
                                 onClick = { onUpdateStatus(stage, notes.ifBlank { null }) },
@@ -574,7 +571,7 @@ fun LeadDetailDialog(
                                 modifier = Modifier.height(36.dp),
                                 contentPadding = PaddingValues(horizontal = 12.dp)
                             ) {
-                                Text(text = stage, style = MaterialTheme.typography.labelMedium)
+                                Text(text = stage.name, style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     }

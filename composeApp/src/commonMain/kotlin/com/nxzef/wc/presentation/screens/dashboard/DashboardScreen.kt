@@ -4,8 +4,11 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,6 +43,11 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun DashboardScreen(
+    onNavigateToPipeline: () -> Unit = {},
+    onNavigateToInvoices: () -> Unit = {},
+    onNavigateToTasks: () -> Unit = {},
+    onNavigateToAddLead: () -> Unit = {},
+    onNavigateToBookings: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel(),
     sessionManager: SessionManager = koinInject()
 ) {
@@ -97,6 +105,11 @@ fun DashboardScreen(
                 ) {
                     DashboardContent(
                         stats = state.stats!!,
+                        onNavigateToPipeline = onNavigateToPipeline,
+                        onNavigateToInvoices = onNavigateToInvoices,
+                        onNavigateToTasks = onNavigateToTasks,
+                        onNavigateToAddLead = onNavigateToAddLead,
+                        onNavigateToBookings = onNavigateToBookings,
                         modifier = Modifier.widthIn(max = 1000.dp)
                     )
                 }
@@ -108,6 +121,11 @@ fun DashboardScreen(
 @Composable
 fun DashboardContent(
     stats: DashboardStats,
+    onNavigateToPipeline: () -> Unit,
+    onNavigateToInvoices: () -> Unit,
+    onNavigateToTasks: () -> Unit,
+    onNavigateToAddLead: () -> Unit,
+    onNavigateToBookings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -115,6 +133,60 @@ fun DashboardContent(
         verticalArrangement = Arrangement.spacedBy(32.dp),
         contentPadding = PaddingValues(24.dp)
     ) {
+        // Quick Actions Row
+        item {
+            Column {
+                Text(
+                    text = "Quick Actions",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        QuickActionChip(
+                            label = "Add Lead",
+                            icon = Icons.Default.PersonAdd,
+                            onClick = onNavigateToAddLead,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    item {
+                        QuickActionChip(
+                            label = "Lead Pipeline",
+                            icon = Icons.Default.ViewColumn,
+                            onClick = onNavigateToPipeline
+                        )
+                    }
+                    item {
+                        QuickActionChip(
+                            label = "Upcoming Shoots",
+                            icon = Icons.Default.CalendarToday,
+                            onClick = onNavigateToBookings
+                        )
+                    }
+                    item {
+                        QuickActionChip(
+                            label = "Invoices",
+                            icon = Icons.AutoMirrored.Filled.ReceiptLong,
+                            onClick = onNavigateToInvoices
+                        )
+                    }
+                    item {
+                        QuickActionChip(
+                            label = "Tasks",
+                            icon = Icons.Default.AssignmentTurnedIn,
+                            onClick = onNavigateToTasks
+                        )
+                    }
+                }
+            }
+        }
+
         // Main KPIs
         item {
             Row(
@@ -178,7 +250,7 @@ fun DashboardContent(
                             )
                         }
                         
-                        FilledTonalButton(onClick = {}) {
+                        FilledTonalButton(onClick = { /* Implement Export */ }) {
                             Text("Download Report")
                         }
                     }
@@ -298,7 +370,7 @@ fun DashboardContent(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
-                            onClick = {},
+                            onClick = onNavigateToInvoices,
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                             shape = MaterialTheme.shapes.medium
                         ) {
@@ -309,31 +381,141 @@ fun DashboardContent(
             }
         }
 
-        // Recent Leads
+        // Recent Leads & Upcoming Bookings
         item {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Recent Acquisitions",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    TextButton(onClick = {}) {
-                        Text("View Pipeline")
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // Recent Leads
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Recent Leads",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        TextButton(onClick = onNavigateToPipeline) {
+                            Text("View All")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        stats.recentLeads.take(3).forEach { lead ->
+                            PremiumLeadCard(lead = lead)
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    stats.recentLeads.take(4).forEach { lead ->
-                        PremiumLeadCard(lead = lead)
+
+                // Upcoming Bookings
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Upcoming Schedule",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        TextButton(onClick = onNavigateToBookings) {
+                            Text("Calendar")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        stats.upcomingBookings.take(3).forEach { booking ->
+                            val lead = stats.recentLeads.find { it.id == booking.leadId }
+                            BookingSummaryCard(booking = booking, clientName = lead?.fullName ?: "Client")
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun BookingSummaryCard(booking: Booking, clientName: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val dateParts = booking.eventDate.split("-")
+                    if (dateParts.size >= 3) {
+                        Text(
+                            text = dateParts[2],
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            text = dateParts[1],
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column {
+                Text(
+                    text = clientName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = booking.eventType,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun QuickActionChip(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
+        color = containerColor,
+        modifier = Modifier.height(48.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(icon, null, modifier = Modifier.size(18.dp), tint = contentColor)
+            Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = contentColor)
         }
     }
 }
@@ -507,7 +689,7 @@ fun PremiumLeadCard(lead: Lead) {
             }
             
             Column(horizontalAlignment = Alignment.End) {
-                LeadStatusBadge(status = lead.status.name)
+                LeadStatusBadge(status = lead.status)
                 Spacer(Modifier.height(4.dp))
                 LeadSourceBadge(source = lead.source)
             }
@@ -520,15 +702,19 @@ fun RevenueChart(
     data: List<Float>,
     color: Color
 ) {
-    val infiniteTransition = rememberInfiniteTransition()
-    val progress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart
-        )
-    )
+    // Use rememberSaveable to ensure animation only runs once per screen session
+    var animationPlayed by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val progress = remember { Animatable(if (animationPlayed) 1f else 0f) }
+    
+    LaunchedEffect(Unit) {
+        if (!animationPlayed) {
+            progress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 1500, easing = FastOutSlowInEasing)
+            )
+            animationPlayed = true
+        }
+    }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
@@ -557,11 +743,7 @@ fun RevenueChart(
             }
         }
 
-        // Draw only up to progress
-        val clipWidth = width * progress
-        
-        // This is a simple way to animate "drawing" from left to right
-        // For a more complex "stroke" animation we'd need PathMeasure
+        val clipWidth = width * progress.value
         
         drawContext.canvas.save()
         drawContext.canvas.clipRect(0f, 0f, clipWidth, height)
@@ -582,7 +764,6 @@ fun RevenueChart(
             )
         )
         
-        // Dots
         data.forEachIndexed { index, value ->
             val x = index * spacing
             if (x <= clipWidth) {

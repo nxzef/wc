@@ -1,6 +1,7 @@
 package com.nxzef.wc.presentation.screens.leads
 
 import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.model.LeadStatus
 
 data class LeadPipelineState(
     val isLoading: Boolean = false,
@@ -14,7 +15,7 @@ sealed interface LeadPipelineAction {
     data class SelectLead(val lead: Lead) : LeadPipelineAction
     data class UpdateStatus(
         val leadId: String,
-        val status: String,
+        val status: LeadStatus,
         val notes: String? = null
     ) : LeadPipelineAction
 

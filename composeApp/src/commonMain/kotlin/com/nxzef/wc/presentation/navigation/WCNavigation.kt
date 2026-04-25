@@ -188,7 +188,33 @@ fun AppNavHost(
         }
 
         composable<Route.OwnerDashboard> {
-            DashboardScreen()
+            DashboardScreen(
+                onNavigateToPipeline = {
+                    navController.navigate(Route.LeadPipeline) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToInvoices = {
+                    navController.navigate(Route.Invoices) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToTasks = {
+                    navController.navigate(Route.Tasks) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToAddLead = {
+                    navController.navigate(Route.AddLead) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToBookings = {
+                    navController.navigate(Route.Bookings) {
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
 
         composable<Route.LeadPipeline> {

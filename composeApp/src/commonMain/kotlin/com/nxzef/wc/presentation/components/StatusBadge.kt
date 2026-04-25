@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.sp
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.LeadSource
+import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.QuoteStatus
 
 @Composable
@@ -61,21 +62,15 @@ fun BookingStatusBadge(status: BookingStatus, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun LeadStatusBadge(status: String, modifier: Modifier = Modifier) {
+fun LeadStatusBadge(status: LeadStatus, modifier: Modifier = Modifier) {
     val color = when (status) {
-        "NEW" -> WCTheme.colors.statusNew
-        "CONTACTED" -> WCTheme.colors.statusContacted
-        "NEGOTIATING" -> WCTheme.colors.statusNegotiating
-        "WON" -> WCTheme.colors.statusWon
-        "LOST" -> WCTheme.colors.statusLost
-        "BOOKED" -> WCTheme.colors.statusBooked
-        "SHOOT_DONE" -> WCTheme.colors.statusShootDone
-        "EDITING" -> WCTheme.colors.statusEditing
-        "DELIVERED" -> WCTheme.colors.statusDelivered
-        "CLOSED" -> WCTheme.colors.statusClosed
-        else -> MaterialTheme.colorScheme.outline
+        LeadStatus.NEW -> WCTheme.colors.statusNew
+        LeadStatus.CONTACTED -> WCTheme.colors.statusContacted
+        LeadStatus.NEGOTIATING -> WCTheme.colors.statusNegotiating
+        LeadStatus.WON -> WCTheme.colors.statusWon
+        LeadStatus.LOST -> WCTheme.colors.statusLost
     }
-    StatusBadge(text = status, color = color, modifier = modifier)
+    StatusBadge(text = status.name, color = color, modifier = modifier)
 }
 
 @Composable

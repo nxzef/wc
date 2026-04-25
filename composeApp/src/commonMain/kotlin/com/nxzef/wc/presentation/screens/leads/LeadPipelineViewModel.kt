@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.domain.usecase.leads.UpdateLeadStatusUseCase
+import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
@@ -65,7 +66,7 @@ class LeadPipelineViewModel(
 
     private fun updateStatus(
         leadId: String,
-        status: String,
+        status: LeadStatus,
         notes: String?
     ) {
         viewModelScope.launch {
