@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -177,7 +178,23 @@ fun QuoteItemCard(
                 }
             }
             
-            if (quote.status == QuoteStatus.SENT || quote.status == QuoteStatus.DRAFT) {
+            if (quote.status == QuoteStatus.DRAFT) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
+                ) {
+                    OutlinedButton(
+                        onClick = { onStatusUpdate(QuoteStatus.REJECTED) },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Reject")
+                    }
+                    Button(onClick = { onStatusUpdate(QuoteStatus.SENT) }) {
+                        Text("Mark as Sent")
+                    }
+                }
+            } else if (quote.status == QuoteStatus.SENT) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -208,6 +225,8 @@ fun CreateQuoteDialog(
     var itemPrice by remember { mutableStateOf("") }
     val items = remember { mutableStateListOf<CreateQuoteItemRequest>() }
 
+    val totalAmount = items.sumOf { it.price }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = MaterialTheme.shapes.large,
@@ -220,52 +239,98 @@ fun CreateQuoteDialog(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notes") },
+                    label = { Text("Notes (Internal or for Client)") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 HorizontalDivider()
-                Text("Items", style = MaterialTheme.typography.titleSmall)
+                Text("Add Line Items", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = itemDescription,
                         onValueChange = { itemDescription = it },
                         label = { Text("Description") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
                     )
                     OutlinedTextField(
                         value = itemPrice,
-                        onValueChange = { itemPrice = it },
+                        onValueChange = { 
+                            // Only allow numbers and commas
+                            if (it.all { char -> char.isDigit() || char == ',' || char == '.' }) {
+                                itemPrice = it 
+                            }
+                        },
                         label = { Text("Price") },
-                        modifier = Modifier.width(80.dp)
+                        modifier = Modifier.width(100.dp),
+                        singleLine = true
                     )
                 }
                 Button(
                     onClick = {
-                        val price = itemPrice.toDoubleOrNull() ?: 0.0
-                        if (itemDescription.isNotBlank()) {
+                        val cleanedPrice = itemPrice.replace(",", "")
+                        val price = cleanedPrice.toDoubleOrNull() ?: 0.0
+                        if (itemDescription.isNotBlank() && price > 0) {
                             items.add(CreateQuoteItemRequest(itemDescription, price))
                             itemDescription = ""
                             itemPrice = ""
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = itemDescription.isNotBlank() && itemPrice.isNotBlank()
                 ) {
-                    Text("Add Item")
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Add to Quote")
                 }
                 
-                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
-                    items(items) { item ->
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(item.description)
-                            Text("$${item.price}")
+                if (items.isNotEmpty()) {
+                    Text("Quote Summary", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        shape = MaterialTheme.shapes.medium,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            items.forEachIndexed { index, item ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(item.description, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                                    Text("₹${item.price}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                    IconButton(
+                                        onClick = { items.removeAt(index) },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Remove",
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Total Amount", fontWeight = FontWeight.Bold)
+                                Text("₹$totalAmount", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
+                            }
                         }
                     }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(notes, items.toList()) }) {
-                Text("Create")
+            Button(
+                onClick = { onConfirm(notes, items.toList()) },
+                enabled = items.isNotEmpty()
+            ) {
+                Text("Create Quote")
             }
         },
         dismissButton = {
