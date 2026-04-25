@@ -2,9 +2,17 @@ package com.nxzef.wc.data.repository
 
 import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.LeadsTable
-import com.nxzef.wc.shared.model.*
-import org.jetbrains.exposed.sql.*
+import com.nxzef.wc.shared.model.Booking
+import com.nxzef.wc.shared.model.BookingStatus
+import com.nxzef.wc.shared.model.CreateBookingRequest
+import com.nxzef.wc.shared.model.LeadStatus
+import com.nxzef.wc.shared.model.UpdateBookingRequest
+import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import java.time.Instant
 import java.time.LocalDate
 
@@ -76,22 +84,24 @@ class BookingRepository {
 
     fun create(request: CreateBookingRequest): Booking {
         return transaction {
-            // Mark lead as WON
             LeadsTable.update(
                 { LeadsTable.id eq java.util.UUID.fromString(request.leadId) }
             ) {
                 it[LeadsTable.status] = LeadStatus.WON.name
             }
 
-            val id = BookingsTable.insert {
-                it[leadId] = java.util.UUID.fromString(request.leadId)
-                it[quoteId] = java.util.UUID.fromString(request.quoteId)
-                it[eventDate] = LocalDate.parse(request.eventDate)
-                it[eventType] = request.eventType
-                it[location] = request.location
-                it[status] = BookingStatus.BOOKED.name
-                it[notes] = request.notes
-                it[createdAt] = Instant.now()
+            val id = BookingsTable.insert { statement ->
+                statement[leadId]   = java.util.UUID.fromString(request.leadId)
+                // Only set quoteId if not blank
+                statement[quoteId] = request.quoteId
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { java.util.UUID.fromString(it) }
+                statement[eventDate] = LocalDate.parse(request.eventDate)
+                statement[eventType] = request.eventType
+                statement[location]  = request.location
+                statement[status]    = BookingStatus.BOOKED.name
+                statement[notes]     = request.notes
+                statement[createdAt] = Instant.now()
             } get BookingsTable.id
 
             getById(id.toString())!!

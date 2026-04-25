@@ -25,7 +25,7 @@ data class Booking(
 @Serializable
 data class CreateBookingRequest(
     val leadId: String,
-    val quoteId: String,
+    val quoteId: String? = null,
     val eventDate: String,
     val eventType: String,
     val location: String,
