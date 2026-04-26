@@ -18,11 +18,13 @@ object DatabaseFactory {
 
     fun init() {
         val dbUrl = System.getenv("DATABASE_URL")
-            ?: error("DATABASE_URL environment variable not set")
+            ?: "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
+
+        val isH2 = dbUrl.startsWith("jdbc:h2:")
 
         val config = HikariConfig().apply {
             jdbcUrl = dbUrl
-            driverClassName = "org.postgresql.Driver"
+            driverClassName = if (isH2) "org.h2.Driver" else "org.postgresql.Driver"
             maximumPoolSize = 10
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"
