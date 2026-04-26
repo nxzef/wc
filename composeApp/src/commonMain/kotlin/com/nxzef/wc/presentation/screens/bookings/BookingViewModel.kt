@@ -7,8 +7,13 @@ import com.nxzef.wc.domain.repository.UserRepository
 import com.nxzef.wc.domain.usecase.bookings.CreateBookingUseCase
 import com.nxzef.wc.domain.usecase.bookings.GetAllBookingsUseCase
 import com.nxzef.wc.domain.usecase.bookings.UpdateBookingUseCase
+import com.nxzef.wc.domain.usecase.tasks.CreateTaskUseCase
+import com.nxzef.wc.domain.usecase.tasks.DeleteTaskUseCase
+import com.nxzef.wc.domain.usecase.tasks.GetTasksByBookingUseCase
+import com.nxzef.wc.domain.usecase.tasks.MarkTaskDoneUseCase
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.CreateBookingRequest
+import com.nxzef.wc.shared.model.CreateTaskRequest
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import com.nxzef.wc.shared.util.onFailure
@@ -25,6 +30,10 @@ class BookingViewModel(
     private val getAllBookingsUseCase: GetAllBookingsUseCase,
     private val createBookingUseCase: CreateBookingUseCase,
     private val updateBookingUseCase: UpdateBookingUseCase,
+    private val getTasksByBookingUseCase: GetTasksByBookingUseCase,
+    private val createTaskUseCase: CreateTaskUseCase,
+    private val markTaskDoneUseCase: MarkTaskDoneUseCase,
+    private val deleteTaskUseCase: DeleteTaskUseCase,
     private val leadRepository: LeadRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
@@ -75,13 +84,15 @@ class BookingViewModel(
             BookingAction.HideCreateDialog ->
                 _state.update { it.copy(showCreateDialog = false) }
 
-            is BookingAction.SelectBooking ->
+            is BookingAction.SelectBooking -> {
                 _state.update {
                     it.copy(selectedBooking = action.booking)
                 }
+                loadTasks(action.booking.id)
+            }
 
             BookingAction.DismissDetail ->
-                _state.update { it.copy(selectedBooking = null) }
+                _state.update { it.copy(selectedBooking = null, tasks = emptyList()) }
 
             is BookingAction.OnLeadSelected ->
                 _state.update { it.copy(selectedLeadId = action.leadId) }
@@ -104,6 +115,61 @@ class BookingViewModel(
 
             is BookingAction.OnFilterStatus ->
                 _state.update { it.copy(filterStatus = action.status) }
+
+            is BookingAction.OnTaskToggle -> toggleTask(action.taskId, action.isDone)
+            BookingAction.ShowAddTaskDialog -> _state.update { it.copy(showAddTaskDialog = true) }
+            BookingAction.HideAddTaskDialog -> _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
+            is BookingAction.OnNewTaskTitleChange -> _state.update { it.copy(newTaskTitle = action.title) }
+            BookingAction.OnAddTask -> addTask()
+            is BookingAction.OnDeleteTask -> deleteTask(action.taskId)
+        }
+    }
+
+    private fun loadTasks(bookingId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isTasksLoading = true) }
+            getTasksByBookingUseCase(bookingId).onSuccess { tasks ->
+                _state.update { it.copy(tasks = tasks, isTasksLoading = false) }
+            }.onFailure {
+                _state.update { it.copy(isTasksLoading = false) }
+            }
+        }
+    }
+
+    private fun toggleTask(taskId: String, isDone: Boolean) {
+        viewModelScope.launch {
+            markTaskDoneUseCase(taskId, isDone).onSuccess {
+                val bookingId = _state.value.selectedBooking?.id ?: return@onSuccess
+                loadTasks(bookingId)
+            }
+        }
+    }
+
+    private fun addTask() {
+        val s = _state.value
+        val bookingId = s.selectedBooking?.id ?: return
+        if (s.newTaskTitle.isBlank()) return
+
+        viewModelScope.launch {
+            createTaskUseCase(
+                CreateTaskRequest(
+                    bookingId = bookingId,
+                    title = s.newTaskTitle,
+                    assignedTo = "" // Default to self or handle on server
+                )
+            ).onSuccess {
+                _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
+                loadTasks(bookingId)
+            }
+        }
+    }
+
+    private fun deleteTask(taskId: String) {
+        viewModelScope.launch {
+            deleteTaskUseCase(taskId).onSuccess {
+                val bookingId = _state.value.selectedBooking?.id ?: return@onSuccess
+                loadTasks(bookingId)
+            }
         }
     }
 

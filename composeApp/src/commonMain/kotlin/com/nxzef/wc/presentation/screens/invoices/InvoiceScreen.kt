@@ -119,7 +119,7 @@ fun InvoiceScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .widthIn(max = 800.dp)
+                    .widthIn(max = 1000.dp)
             ) {
                 when {
                     state.isLoading -> {
@@ -349,6 +349,7 @@ fun InvoiceDetailDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.large,
         title = {
             Text(
                 text = "Invoice Details",
@@ -357,7 +358,8 @@ fun InvoiceDetailDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.widthIn(max = 400.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 DetailInvoiceRow(
                     "Total Amount",
@@ -396,7 +398,10 @@ fun InvoiceDetailDialog(
                         )
                     }
                     if (!invoice.depositPaid) {
-                        FilledTonalButton(onClick = onMarkDeposit) {
+                        FilledTonalButton(
+                            onClick = onMarkDeposit,
+                            shape = MaterialTheme.shapes.medium
+                        ) {
                             Text("Mark Paid")
                         }
                     } else {
@@ -430,7 +435,10 @@ fun InvoiceDetailDialog(
                         )
                     }
                     if (!invoice.finalPaid && invoice.depositPaid) {
-                        FilledTonalButton(onClick = onMarkFinal) {
+                        FilledTonalButton(
+                            onClick = onMarkFinal,
+                            shape = MaterialTheme.shapes.medium
+                        ) {
                             Text("Mark Paid")
                         }
                     } else if (invoice.finalPaid) {
@@ -486,6 +494,7 @@ fun CreateInvoiceDialog(
 ) {
     AlertDialog(
         onDismissRequest = { onAction(InvoiceAction.HideCreateDialog) },
+        shape = MaterialTheme.shapes.large,
         title = {
             Text(
                 text = "Create Invoice",
@@ -494,7 +503,8 @@ fun CreateInvoiceDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.widthIn(max = 400.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 WCDropdown(
                     modifier = Modifier.fillMaxWidth(),
@@ -525,6 +535,7 @@ fun CreateInvoiceDialog(
                     label = { Text("Total Amount (₹) *") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number
                     ),
@@ -541,6 +552,7 @@ fun CreateInvoiceDialog(
                     label = { Text("Deposit Amount (₹) *") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number
                     ),
@@ -556,6 +568,7 @@ fun CreateInvoiceDialog(
                     },
                     label = { Text("Notes") },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
                     minLines = 2
                 )
             }
@@ -563,7 +576,8 @@ fun CreateInvoiceDialog(
         confirmButton = {
             Button(
                 onClick = { onAction(InvoiceAction.OnCreateInvoice) },
-                enabled = !state.isCreating
+                enabled = !state.isCreating,
+                shape = MaterialTheme.shapes.medium
             ) {
                 if (state.isCreating) {
                     CircularProgressIndicator(

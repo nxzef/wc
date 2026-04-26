@@ -152,10 +152,20 @@ class DashboardRepository {
                     )
                 }
 
+            val totalWonLeads = LeadsTable.selectAll().where { LeadsTable.status eq LeadStatus.WON.name }.count()
+            val totalLeads = LeadsTable.selectAll().count()
+            val conversionRate = if (totalLeads > 0) (totalWonLeads.toDouble() / totalLeads) * 100 else 0.0
+            
+            val totalInvoices = InvoicesTable.selectAll().count()
+            val avgOrderValue = if (totalInvoices > 0) InvoicesTable.selectAll().sumOf { it[InvoicesTable.totalAmount].toDouble() } / totalInvoices else 0.0
+
             DashboardStats(
                 totalLeadsThisMonth = totalLeadsThisMonth,
                 totalBookingsThisMonth = totalBookingsThisMonth,
                 totalRevenueThisMonth = totalRevenueThisMonth,
+                averageOrderValue = avgOrderValue,
+                conversionRate = conversionRate,
+                revenueTrend = listOf(0.2, 0.4, 0.35, 0.6, 0.55, 0.85, 0.75, 0.95), // Mock trend for now
                 pendingPayments = pendingPayments,
                 openLeads = openLeads,
                 pendingDeliveries = pendingDeliveries,

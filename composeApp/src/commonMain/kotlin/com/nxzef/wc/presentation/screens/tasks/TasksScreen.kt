@@ -111,7 +111,7 @@ fun TasksScreen(
                     ) {
                         Surface(
                             shape = MaterialTheme.shapes.extraLarge,
-                            color = Color(0xFF4CAF50).copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
                             modifier = Modifier.size(80.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -119,7 +119,7 @@ fun TasksScreen(
                                     Icons.Default.CheckCircle,
                                     contentDescription = null,
                                     modifier = Modifier.size(40.dp),
-                                    tint = Color(0xFF4CAF50)
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -141,8 +141,8 @@ fun TasksScreen(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .widthIn(max = 800.dp),
-                        contentPadding = PaddingValues(24.dp),
+                            .widthIn(max = 1000.dp),
+                        contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         item {

@@ -57,4 +57,13 @@ class TaskRepositoryImpl(
             AppResult.Failure(e)
         }
     }
+
+    override suspend fun delete(id: String): AppResult<Unit> {
+        return try {
+            service.delete(id)
+            AppResult.Success(Unit)
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
 }

@@ -44,10 +44,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.BookingStatusBadge
+import com.nxzef.wc.presentation.components.TaskCheckItem
 import com.nxzef.wc.presentation.components.WCTopBar
-import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.presentation.screens.photographer.ShootCard
-import com.nxzef.wc.presentation.screens.photographer.TaskCheckItem
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.BookingStatus
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -146,8 +146,8 @@ fun EditorScreen(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .widthIn(max = 800.dp),
-                        contentPadding = PaddingValues(24.dp),
+                            .widthIn(max = 1000.dp),
+                        contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         val priority = state.queue.filter { it.status == BookingStatus.SHOOT_DONE }

@@ -110,7 +110,7 @@ fun DashboardScreen(
                         onNavigateToTasks = onNavigateToTasks,
                         onNavigateToAddLead = onNavigateToAddLead,
                         onNavigateToBookings = onNavigateToBookings,
-                        modifier = Modifier.widthIn(max = 1000.dp)
+                        modifier = Modifier.widthIn(max = 1000.dp).fillMaxWidth()
                     )
                 }
             }
@@ -208,7 +208,7 @@ fun DashboardContent(
                         SummaryStatCard(
                             modifier = Modifier.weight(1f),
                             title = "Conversion Rate",
-                            value = "68%",
+                            value = "${stats.conversionRate.toInt()}%",
                             icon = Icons.AutoMirrored.Filled.TrendingUp,
                             color = WCTheme.colors.statusWon,
                             trend = "+4.2%",
@@ -217,7 +217,7 @@ fun DashboardContent(
                         SummaryStatCard(
                             modifier = Modifier.weight(1f),
                             title = "Avg. Order Value",
-                            value = "₹85k",
+                            value = "₹${formatCurrency(stats.averageOrderValue)}",
                             icon = Icons.Default.Analytics,
                             color = MaterialTheme.colorScheme.tertiary,
                             trend = "-2.1%",
@@ -241,7 +241,7 @@ fun DashboardContent(
                         SummaryStatCard(
                             modifier = Modifier.fillMaxWidth(),
                             title = "Conversion Rate",
-                            value = "68%",
+                            value = "${stats.conversionRate.toInt()}%",
                             icon = Icons.AutoMirrored.Filled.TrendingUp,
                             color = WCTheme.colors.statusWon,
                             trend = "+4.2%",
@@ -250,7 +250,7 @@ fun DashboardContent(
                         SummaryStatCard(
                             modifier = Modifier.fillMaxWidth(),
                             title = "Avg. Order Value",
-                            value = "₹85k",
+                            value = "₹${formatCurrency(stats.averageOrderValue)}",
                             icon = Icons.Default.Analytics,
                             color = MaterialTheme.colorScheme.tertiary,
                             trend = "-2.1%",
@@ -301,7 +301,7 @@ fun DashboardContent(
                             .height(280.dp)
                     ) {
                         RevenueChart(
-                            data = listOf(0.2f, 0.4f, 0.35f, 0.6f, 0.55f, 0.85f, 0.75f, 0.95f),
+                            data = stats.revenueTrend.map { it.toFloat() },
                             color = MaterialTheme.colorScheme.primary
                         )
                     }

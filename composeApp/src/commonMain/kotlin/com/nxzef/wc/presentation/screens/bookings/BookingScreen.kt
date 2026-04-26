@@ -1,7 +1,6 @@
 package com.nxzef.wc.presentation.screens.bookings
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,49 +14,31 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nxzef.wc.presentation.components.AddTaskDialog
 import com.nxzef.wc.presentation.components.BookingStatusBadge
+import com.nxzef.wc.presentation.components.TaskCheckItem
 import com.nxzef.wc.presentation.components.WCTopBar
-import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.presentation.screens.leads.WCDropdown
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
 import org.koin.compose.viewmodel.koinViewModel
@@ -95,7 +76,8 @@ fun BookingScreen(
                         onClick = {
                             viewModel.onAction(BookingAction.ShowCreateDialog)
                         },
-                        modifier = Modifier.padding(end = 16.dp)
+                        modifier = Modifier.padding(end = 16.dp),
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Icon(
                             Icons.Default.Add,
@@ -109,14 +91,18 @@ fun BookingScreen(
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background),
-            horizontalAlignment = Alignment.CenterHorizontally
+            contentAlignment = Alignment.TopCenter
         ) {
-            Column(modifier = Modifier.widthIn(max = 800.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 1000.dp)
+            ) {
                 // Status filter chips
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -134,7 +120,8 @@ fun BookingScreen(
                                     BookingAction.OnFilterStatus(null)
                                 )
                             },
-                            label = { Text("All") }
+                            label = { Text("All") },
+                            shape = MaterialTheme.shapes.medium
                         )
                     }
                     items(BookingStatus.entries) { status ->
@@ -147,62 +134,61 @@ fun BookingScreen(
                             },
                             label = {
                                 Text(status.name.replace("_", " "))
-                            }
+                            },
+                            shape = MaterialTheme.shapes.medium
                         )
                     }
                 }
 
-                HorizontalDivider()
-            }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // Content
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .widthIn(max = 800.dp)
-            ) {
-                when {
-                    state.isLoading -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-
-                    viewModel.filteredBookings.isEmpty() -> {
-                        Column(
-                            modifier = Modifier.align(Alignment.Center),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "No bookings found",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                // Content
+                Box(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    when {
+                        state.isLoading -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center)
                             )
                         }
-                    }
 
-                    else -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(24.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(viewModel.filteredBookings) { booking ->
-                                BookingCard(
-                                    booking = booking,
-                                    onClick = {
-                                        viewModel.onAction(
-                                            BookingAction.SelectBooking(booking)
-                                        )
-                                    }
+                        viewModel.filteredBookings.isEmpty() -> {
+                            Column(
+                                modifier = Modifier.align(Alignment.Center),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                Text(
+                                    text = "No bookings found",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(24.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(viewModel.filteredBookings) { booking ->
+                                    BookingCard(
+                                        booking = booking,
+                                        onClick = {
+                                            viewModel.onAction(
+                                                BookingAction.SelectBooking(booking)
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -215,6 +201,8 @@ fun BookingScreen(
     state.selectedBooking?.let { booking ->
         BookingDetailDialog(
             booking = booking,
+            tasks = state.tasks,
+            isTasksLoading = state.isTasksLoading,
             onDismiss = {
                 viewModel.onAction(BookingAction.DismissDetail)
             },
@@ -223,6 +211,25 @@ fun BookingScreen(
                     BookingAction.OnUpdateStatus(booking.id, status)
                 )
                 viewModel.onAction(BookingAction.DismissDetail)
+            },
+            onTaskToggle = { taskId, isDone ->
+                viewModel.onAction(BookingAction.OnTaskToggle(taskId, isDone))
+            },
+            onAddTaskClick = {
+                viewModel.onAction(BookingAction.ShowAddTaskDialog)
+            },
+            onDeleteTask = { taskId ->
+                viewModel.onAction(BookingAction.OnDeleteTask(taskId))
+            }
+        )
+    }
+
+    if (state.showAddTaskDialog) {
+        AddTaskDialog(
+            onDismiss = { viewModel.onAction(BookingAction.HideAddTaskDialog) },
+            onConfirm = { 
+                viewModel.onAction(BookingAction.OnNewTaskTitleChange(it))
+                viewModel.onAction(BookingAction.OnAddTask) 
             }
         )
     }
@@ -270,8 +277,8 @@ fun BookingCard(
             Surface(
                 modifier = Modifier
                     .width(4.dp)
-                    .height(60.dp),
-                shape = RoundedCornerShape(4.dp),
+                    .height(48.dp),
+                shape = MaterialTheme.shapes.small,
                 color = statusColor
             ) {}
 
@@ -301,11 +308,17 @@ fun BookingCard(
 @Composable
 fun BookingDetailDialog(
     booking: Booking,
+    tasks: List<com.nxzef.wc.shared.model.Task>,
+    isTasksLoading: Boolean,
     onDismiss: () -> Unit,
-    onUpdateStatus: (BookingStatus) -> Unit
+    onUpdateStatus: (BookingStatus) -> Unit,
+    onTaskToggle: (String, Boolean) -> Unit,
+    onAddTaskClick: () -> Unit,
+    onDeleteTask: (String) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.large,
         title = {
             Text(
                 text = "${booking.eventType} — ${booking.eventDate}",
@@ -314,7 +327,8 @@ fun BookingDetailDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.widthIn(max = 400.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -345,10 +359,54 @@ fun BookingDetailDialog(
 
                 HorizontalDivider()
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Tasks",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = onAddTaskClick) {
+                        Icon(
+                            Icons.Default.AddCircleOutline,
+                            contentDescription = "Add Task",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                if (isTasksLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally)
+                    )
+                } else if (tasks.isEmpty()) {
+                    Text(
+                        text = "No tasks for this booking",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        tasks.forEach { task ->
+                            TaskCheckItem(
+                                task = task,
+                                onToggle = { onTaskToggle(task.id, it) },
+                                onDelete = { onDeleteTask(task.id) }
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
                 Text(
                     text = "Update Status",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
                 )
 
                 // Status progression
@@ -373,7 +431,7 @@ fun BookingDetailDialog(
                                 contentColor = color
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = MaterialTheme.shapes.medium
                         ) {
                             Text(
                                 text = status.name.replace("_", " "),
@@ -385,7 +443,10 @@ fun BookingDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                shape = MaterialTheme.shapes.medium
+            ) {
                 Text("Close")
             }
         }
@@ -399,6 +460,7 @@ fun CreateBookingDialog(
 ) {
     AlertDialog(
         onDismissRequest = { onAction(BookingAction.HideCreateDialog) },
+        shape = MaterialTheme.shapes.large,
         title = {
             Text(
                 text = "Create Booking",
@@ -407,7 +469,8 @@ fun CreateBookingDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.widthIn(max = 400.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Select won lead
                 WCDropdown(
@@ -444,6 +507,7 @@ fun CreateBookingDialog(
                     label = { Text("Event Date (YYYY-MM-DD) *") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
                     leadingIcon = {
                         Icon(Icons.Default.CalendarMonth, null)
                     }
@@ -457,6 +521,7 @@ fun CreateBookingDialog(
                     label = { Text("Location *") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
                     leadingIcon = {
                         Icon(Icons.Default.LocationOn, null)
                     }
@@ -469,6 +534,7 @@ fun CreateBookingDialog(
                     },
                     label = { Text("Notes") },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
                     minLines = 2
                 )
             }
@@ -476,7 +542,8 @@ fun CreateBookingDialog(
         confirmButton = {
             Button(
                 onClick = { onAction(BookingAction.OnCreateBooking) },
-                enabled = !state.isCreating
+                enabled = !state.isCreating,
+                shape = MaterialTheme.shapes.medium
             ) {
                 if (state.isCreating) {
                     CircularProgressIndicator(
@@ -491,7 +558,8 @@ fun CreateBookingDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = { onAction(BookingAction.HideCreateDialog) }
+                onClick = { onAction(BookingAction.HideCreateDialog) },
+                shape = MaterialTheme.shapes.medium
             ) {
                 Text("Cancel")
             }

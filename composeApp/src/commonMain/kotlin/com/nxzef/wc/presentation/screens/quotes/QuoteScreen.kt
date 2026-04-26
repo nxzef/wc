@@ -70,8 +70,8 @@ fun QuoteScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .widthIn(max = 800.dp),
-                    contentPadding = PaddingValues(24.dp),
+                        .widthIn(max = 1000.dp),
+                    contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(state.quotes) { quote ->
@@ -166,7 +166,7 @@ fun QuoteItemCard(
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth(),
                     border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
@@ -186,11 +186,15 @@ fun QuoteItemCard(
                 ) {
                     OutlinedButton(
                         onClick = { onStatusUpdate(QuoteStatus.REJECTED) },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Text("Reject")
                     }
-                    Button(onClick = { onStatusUpdate(QuoteStatus.SENT) }) {
+                    Button(
+                        onClick = { onStatusUpdate(QuoteStatus.SENT) },
+                        shape = MaterialTheme.shapes.medium
+                    ) {
                         Text("Mark as Sent")
                     }
                 }
@@ -202,11 +206,15 @@ fun QuoteItemCard(
                 ) {
                     OutlinedButton(
                         onClick = { onStatusUpdate(QuoteStatus.REJECTED) },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Text("Reject")
                     }
-                    Button(onClick = { onStatusUpdate(QuoteStatus.ACCEPTED) }) {
+                    Button(
+                        onClick = { onStatusUpdate(QuoteStatus.ACCEPTED) },
+                        shape = MaterialTheme.shapes.medium
+                    ) {
                         Text("Accept Quote")
                     }
                 }
@@ -240,7 +248,8 @@ fun CreateQuoteDialog(
                     value = notes,
                     onValueChange = { notes = it },
                     label = { Text("Notes (Internal or for Client)") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
                 )
                 HorizontalDivider()
                 Text("Add Line Items", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -250,7 +259,8 @@ fun CreateQuoteDialog(
                         onValueChange = { itemDescription = it },
                         label = { Text("Description") },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.medium
                     )
                     OutlinedTextField(
                         value = itemPrice,
@@ -262,7 +272,8 @@ fun CreateQuoteDialog(
                         },
                         label = { Text("Price") },
                         modifier = Modifier.width(100.dp),
-                        singleLine = true
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.medium
                     )
                 }
                 Button(
@@ -276,7 +287,8 @@ fun CreateQuoteDialog(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = itemDescription.isNotBlank() && itemPrice.isNotBlank()
+                    enabled = itemDescription.isNotBlank() && itemPrice.isNotBlank(),
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -328,13 +340,17 @@ fun CreateQuoteDialog(
         confirmButton = {
             Button(
                 onClick = { onConfirm(notes, items.toList()) },
-                enabled = items.isNotEmpty()
+                enabled = items.isNotEmpty(),
+                shape = MaterialTheme.shapes.medium
             ) {
                 Text("Create Quote")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                shape = MaterialTheme.shapes.medium
+            ) {
                 Text("Cancel")
             }
         }

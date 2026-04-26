@@ -48,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.BookingStatusBadge
+import com.nxzef.wc.presentation.components.TaskCheckItem
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Booking
@@ -150,8 +151,8 @@ fun PhotographerScreen(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .widthIn(max = 800.dp),
-                        contentPadding = PaddingValues(24.dp),
+                            .widthIn(max = 1000.dp),
+                        contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         val upcoming = state.shoots.filter { it.status == BookingStatus.BOOKED }
@@ -348,36 +349,4 @@ fun ShootDetailDialog(
             TextButton(onClick = onDismiss) { Text("Close") }
         }
     )
-}
-
-@Composable
-fun TaskCheckItem(task: Task, onToggle: (Boolean) -> Unit) {
-    Surface(
-        onClick = { onToggle(!task.isDone) },
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Checkbox(checked = task.isDone, onCheckedChange = onToggle)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (task.isDone) FontWeight.Normal else FontWeight.Medium,
-                    color = if (task.isDone) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-                )
-                task.dueDate?.let {
-                    Text(
-                        text = "Due: $it",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-    }
 }

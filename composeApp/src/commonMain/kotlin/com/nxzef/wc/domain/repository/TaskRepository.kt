@@ -11,4 +11,5 @@ interface TaskRepository {
     suspend fun getByAssignedUser(userId: String): AppResult<List<Task>>
     suspend fun create(request: CreateTaskRequest): AppResult<Task>
     suspend fun markDone(id: String, done: Boolean): AppResult<Task>
+    suspend fun delete(id: String): AppResult<Unit>
 }

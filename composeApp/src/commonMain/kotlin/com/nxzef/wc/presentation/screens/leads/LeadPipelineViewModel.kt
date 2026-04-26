@@ -4,6 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.domain.usecase.leads.UpdateLeadStatusUseCase
+import com.nxzef.wc.domain.usecase.tasks.CreateTaskUseCase
+import com.nxzef.wc.domain.usecase.tasks.DeleteTaskUseCase
+import com.nxzef.wc.domain.usecase.tasks.GetTasksByLeadUseCase
+import com.nxzef.wc.domain.usecase.tasks.MarkTaskDoneUseCase
+import com.nxzef.wc.shared.model.CreateTaskRequest
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
@@ -17,7 +22,11 @@ import kotlinx.coroutines.launch
 
 class LeadPipelineViewModel(
     private val getAllLeadsUseCase: GetAllLeadsUseCase,
-    private val updateLeadStatusUseCase: UpdateLeadStatusUseCase
+    private val updateLeadStatusUseCase: UpdateLeadStatusUseCase,
+    private val getTasksByLeadUseCase: GetTasksByLeadUseCase,
+    private val markTaskDoneUseCase: MarkTaskDoneUseCase,
+    private val createTaskUseCase: CreateTaskUseCase,
+    private val deleteTaskUseCase: DeleteTaskUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LeadPipelineState())
@@ -35,14 +44,77 @@ class LeadPipelineViewModel(
             is LeadPipelineAction.LoadLeads ->
                 loadLeads()
 
-            is LeadPipelineAction.SelectLead ->
+            is LeadPipelineAction.SelectLead -> {
                 _state.update { it.copy(selectedLead = action.lead) }
+                loadTasks(action.lead.id)
+            }
 
             is LeadPipelineAction.DismissDetail ->
-                _state.update { it.copy(selectedLead = null) }
+                _state.update { it.copy(selectedLead = null, tasks = emptyList()) }
 
             is LeadPipelineAction.UpdateStatus ->
                 updateStatus(action.leadId, action.status, action.notes)
+
+            is LeadPipelineAction.MarkTaskDone ->
+                markTaskDone(action.taskId, action.isDone)
+
+            LeadPipelineAction.ShowAddTaskDialog -> _state.update { it.copy(showAddTaskDialog = true) }
+            LeadPipelineAction.HideAddTaskDialog -> _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
+            is LeadPipelineAction.OnNewTaskTitleChange -> _state.update { it.copy(newTaskTitle = action.title) }
+            LeadPipelineAction.OnAddTask -> addTask()
+            is LeadPipelineAction.OnDeleteTask -> deleteTask(action.taskId)
+        }
+    }
+
+    private fun addTask() {
+        val s = _state.value
+        val leadId = s.selectedLead?.id ?: return
+        if (s.newTaskTitle.isBlank()) return
+
+        viewModelScope.launch {
+            createTaskUseCase(
+                CreateTaskRequest(
+                    leadId = leadId,
+                    title = s.newTaskTitle,
+                    assignedTo = ""
+                )
+            ).onSuccess {
+                _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
+                loadTasks(leadId)
+            }
+        }
+    }
+
+    private fun deleteTask(taskId: String) {
+        viewModelScope.launch {
+            deleteTaskUseCase(taskId).onSuccess {
+                val leadId = _state.value.selectedLead?.id ?: return@onSuccess
+                loadTasks(leadId)
+            }
+        }
+    }
+
+    private fun markTaskDone(taskId: String, isDone: Boolean) {
+        viewModelScope.launch {
+            markTaskDoneUseCase(taskId, isDone)
+                .onSuccess { updatedTask ->
+                    _state.update { s ->
+                        s.copy(tasks = s.tasks.map { if (it.id == taskId) updatedTask else it })
+                    }
+                }
+        }
+    }
+
+    private fun loadTasks(leadId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isTasksLoading = true) }
+            getTasksByLeadUseCase(leadId)
+                .onSuccess { tasks ->
+                    _state.update { it.copy(tasks = tasks, isTasksLoading = false) }
+                }
+                .onFailure {
+                    _state.update { it.copy(isTasksLoading = false) }
+                }
         }
     }
 

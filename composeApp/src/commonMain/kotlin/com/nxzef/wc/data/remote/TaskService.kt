@@ -8,6 +8,7 @@ import com.nxzef.wc.shared.model.Task
 import com.nxzef.wc.shared.model.UpdateTaskRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -72,5 +73,11 @@ class TaskService(private val client: HttpClient) {
             setBody(UpdateTaskRequest(isDone = done))
         }.body()
         return dto.toDomain()
+    }
+
+    suspend fun delete(id: String) {
+        client.delete("${ApiClient.BASE_URL}/tasks/$id") {
+            header("Authorization", "Bearer ${SessionManager.getToken()}")
+        }
     }
 }

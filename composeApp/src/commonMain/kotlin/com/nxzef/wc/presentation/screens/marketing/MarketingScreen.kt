@@ -107,7 +107,7 @@ fun MarketingScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .widthIn(max = 800.dp)
+                    .widthIn(max = 1000.dp)
             ) {
                 when {
                     state.isLoading -> {
@@ -120,7 +120,7 @@ fun MarketingScreen(
                     else -> {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(24.dp),
+                            contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             // Source stats
@@ -217,7 +217,8 @@ fun MarketingScreen(
                                                     MarketingAction.FilterBySource(null)
                                                 )
                                             },
-                                            label = { Text("All") }
+                                            label = { Text("All") },
+                                            shape = MaterialTheme.shapes.medium
                                         )
                                     }
                                     items(LeadSource.entries) { source ->
@@ -230,7 +231,8 @@ fun MarketingScreen(
                                                     )
                                                 )
                                             },
-                                            label = { Text(source.name) }
+                                            label = { Text(source.name) },
+                                            shape = MaterialTheme.shapes.medium
                                         )
                                     }
                                 }
@@ -369,7 +371,7 @@ fun MarketingLeadCard(lead: Lead) {
                 modifier = Modifier
                     .width(4.dp)
                     .height(48.dp),
-                shape = RoundedCornerShape(4.dp),
+                shape = MaterialTheme.shapes.extraSmall,
                 color = sourceColor
             ) {}
 

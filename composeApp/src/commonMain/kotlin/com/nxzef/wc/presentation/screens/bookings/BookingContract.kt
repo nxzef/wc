@@ -3,6 +3,7 @@ package com.nxzef.wc.presentation.screens.bookings
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.model.Task
 import com.nxzef.wc.shared.model.User
 
 data class BookingState(
@@ -21,7 +22,12 @@ data class BookingState(
     val notes: String = "",
     val isCreating: Boolean = false,
     // Filter
-    val filterStatus: BookingStatus? = null
+    val filterStatus: BookingStatus? = null,
+    // Task management
+    val tasks: List<Task> = emptyList(),
+    val isTasksLoading: Boolean = false,
+    val showAddTaskDialog: Boolean = false,
+    val newTaskTitle: String = ""
 )
 
 sealed interface BookingAction {
@@ -44,6 +50,14 @@ sealed interface BookingAction {
     data class OnFilterStatus(
         val status: BookingStatus?
     ) : BookingAction
+
+    // Task Actions
+    data class OnTaskToggle(val taskId: String, val isDone: Boolean) : BookingAction
+    data object ShowAddTaskDialog : BookingAction
+    data object HideAddTaskDialog : BookingAction
+    data class OnNewTaskTitleChange(val title: String) : BookingAction
+    data object OnAddTask : BookingAction
+    data class OnDeleteTask(val taskId: String) : BookingAction
 }
 
 sealed interface BookingUiEvent {

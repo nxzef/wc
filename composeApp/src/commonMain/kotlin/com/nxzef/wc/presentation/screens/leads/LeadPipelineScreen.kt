@@ -1,54 +1,15 @@
 package com.nxzef.wc.presentation.screens.leads
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -68,8 +29,11 @@ import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.components.LeadStatusBadge
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.theme.WCTheme
+import com.nxzef.wc.presentation.components.TaskCheckItem
+import com.nxzef.wc.presentation.components.AddTaskDialog
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadStatus
+import com.nxzef.wc.shared.model.Task
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
 
@@ -159,9 +123,8 @@ fun LeadPipelineScreen(
                                 .padding(vertical = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(if (isCompact) 16.dp else 24.dp)
                         ) {
-                            Spacer(modifier = Modifier.width(horizontalPadding - (if (isCompact) 16.dp else 24.dp))) // Adjust for spacing
+                            Spacer(modifier = Modifier.width(horizontalPadding - (if (isCompact) 16.dp else 24.dp)))
                             
-                            // Add an initial spacer to respect padding with horizontal scroll
                             Spacer(modifier = Modifier.width(horizontalPadding/2))
 
                             PIPELINE_STAGES.forEach { stage ->
@@ -217,7 +180,6 @@ fun LeadPipelineScreen(
                                     }
                                 )
                             }
-                            // End spacer for scroll
                             Spacer(modifier = Modifier.width(horizontalPadding/2))
                         }
                     }
@@ -228,20 +190,41 @@ fun LeadPipelineScreen(
 
 
     state.selectedLead?.let { lead ->
-        LeadDetailDialog(
-            lead = lead,
-            onDismiss = {
-                viewModel.onAction(LeadPipelineAction.DismissDetail)
-            },
-            onUpdateStatus = { status, notes ->
-                viewModel.onAction(
-                    LeadPipelineAction.UpdateStatus(lead.id, status, notes)
-                )
-                viewModel.onAction(LeadPipelineAction.DismissDetail)
-            },
-            onViewQuotes = {
-                onViewQuotes(lead.id)
-                viewModel.onAction(LeadPipelineAction.DismissDetail)
+            LeadDetailDialog(
+                lead = lead,
+                tasks = state.tasks,
+                isTasksLoading = state.isTasksLoading,
+                onDismiss = {
+                    viewModel.onAction(LeadPipelineAction.DismissDetail)
+                },
+                onUpdateStatus = { status, notes ->
+                    viewModel.onAction(
+                        LeadPipelineAction.UpdateStatus(lead.id, status, notes)
+                    )
+                    viewModel.onAction(LeadPipelineAction.DismissDetail)
+                },
+                onViewQuotes = {
+                    onViewQuotes(lead.id)
+                    viewModel.onAction(LeadPipelineAction.DismissDetail)
+                },
+                onTaskToggle = { taskId, done ->
+                    viewModel.onAction(LeadPipelineAction.MarkTaskDone(taskId, done))
+                },
+                onAddTaskClick = {
+                    viewModel.onAction(LeadPipelineAction.ShowAddTaskDialog)
+                },
+                onDeleteTask = { taskId ->
+                    viewModel.onAction(LeadPipelineAction.OnDeleteTask(taskId))
+                }
+            )
+    }
+
+    if (state.showAddTaskDialog) {
+        AddTaskDialog(
+            onDismiss = { viewModel.onAction(LeadPipelineAction.HideAddTaskDialog) },
+            onConfirm = { 
+                viewModel.onAction(LeadPipelineAction.OnNewTaskTitleChange(it))
+                viewModel.onAction(LeadPipelineAction.OnAddTask) 
             }
         )
     }
@@ -492,9 +475,14 @@ fun LeadInfoRow(icon: ImageVector, text: String) {
 @Composable
 fun LeadDetailDialog(
     lead: Lead,
+    tasks: List<Task>,
+    isTasksLoading: Boolean,
     onDismiss: () -> Unit,
     onUpdateStatus: (LeadStatus, String?) -> Unit,
-    onViewQuotes: () -> Unit
+    onViewQuotes: () -> Unit,
+    onTaskToggle: (String, Boolean) -> Unit,
+    onAddTaskClick: () -> Unit,
+    onDeleteTask: (String) -> Unit
 ) {
     var notes by remember { mutableStateOf(lead.notes ?: "") }
 
@@ -539,6 +527,50 @@ fun LeadDetailDialog(
                             modifier = Modifier.width(90.dp)
                         )
                         LeadSourceBadge(source = lead.source)
+                    }
+                }
+
+                HorizontalDivider()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Related Tasks",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = onAddTaskClick) {
+                        Icon(
+                            Icons.Default.AddCircleOutline,
+                            contentDescription = "Add Task",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                if (isTasksLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally)
+                    )
+                } else if (tasks.isEmpty()) {
+                    Text(
+                        text = "No tasks for this lead",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        tasks.forEach { task ->
+                            TaskCheckItem(
+                                task = task,
+                                onToggle = { onTaskToggle(task.id, it) },
+                                onDelete = { onDeleteTask(task.id) }
+                            )
+                        }
                     }
                 }
 
@@ -597,7 +629,10 @@ fun LeadDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                shape = MaterialTheme.shapes.medium
+            ) {
                 Text("Close")
             }
         }

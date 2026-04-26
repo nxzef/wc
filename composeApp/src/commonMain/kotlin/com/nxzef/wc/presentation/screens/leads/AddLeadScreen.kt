@@ -369,6 +369,7 @@ fun WCDropdown(
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
+            shape = MaterialTheme.shapes.medium,
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded)
             },

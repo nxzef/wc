@@ -152,7 +152,7 @@ fun TeamScreen(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .widthIn(max = 800.dp),
+                            .widthIn(max = 1000.dp),
                         contentPadding = PaddingValues(24.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {

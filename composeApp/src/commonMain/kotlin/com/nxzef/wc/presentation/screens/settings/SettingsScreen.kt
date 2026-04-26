@@ -59,8 +59,8 @@ fun SettingsScreen(onBack: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .widthIn(max = 800.dp)
-                    .padding(24.dp),
+                    .widthIn(max = 1000.dp)
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Profile card

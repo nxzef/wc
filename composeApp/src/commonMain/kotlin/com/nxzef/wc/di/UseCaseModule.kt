@@ -17,7 +17,12 @@ import com.nxzef.wc.domain.usecase.leads.UpdateLeadStatusUseCase
 import com.nxzef.wc.domain.usecase.quotes.CreateQuoteUseCase
 import com.nxzef.wc.domain.usecase.quotes.GetQuotesByLeadIdUseCase
 import com.nxzef.wc.domain.usecase.quotes.UpdateQuoteStatusUseCase
+import com.nxzef.wc.domain.usecase.tasks.CreateTaskUseCase
+import com.nxzef.wc.domain.usecase.tasks.DeleteTaskUseCase
 import com.nxzef.wc.domain.usecase.tasks.GetMyPendingTasksUseCase
+import com.nxzef.wc.domain.usecase.tasks.GetTasksByBookingUseCase
+import com.nxzef.wc.domain.usecase.tasks.GetTasksByLeadUseCase
+import com.nxzef.wc.domain.usecase.tasks.MarkTaskDoneUseCase
 import com.nxzef.wc.domain.usecase.team.CreateTeamMemberUseCase
 import com.nxzef.wc.domain.usecase.team.DeleteTeamMemberUseCase
 import com.nxzef.wc.domain.usecase.team.GetTeamUseCase
@@ -44,5 +49,10 @@ val useCaseModule = module {
     factory { CreateQuoteUseCase(get()) }
     factory { UpdateQuoteStatusUseCase(get()) }
     factory { GetMyPendingTasksUseCase(get()) }
+    factory { GetTasksByLeadUseCase(get()) }
+    factory { GetTasksByBookingUseCase(get()) }
+    factory { CreateTaskUseCase(get()) }
+    factory { MarkTaskDoneUseCase(get()) }
+    factory { DeleteTaskUseCase(get()) }
     factory { DeleteTeamMemberUseCase(get()) }
 }
