@@ -138,6 +138,9 @@ fun TasksScreen(
                 }
 
                 else -> {
+                    val leadTasks = state.pendingTasks.filter { it.leadId != null }
+                    val bookingTasks = state.pendingTasks.filter { it.bookingId != null }
+
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
@@ -145,44 +148,90 @@ fun TasksScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Pending Tasks",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = MaterialTheme.shapes.extraSmall
+                        // From Leads section
+                        if (leadTasks.isNotEmpty()) {
+                            item {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "${state.pendingTasks.size} tasks",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                        fontWeight = FontWeight.Bold
+                                        text = "From Leads",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = MaterialTheme.shapes.extraSmall
+                                    ) {
+                                        Text(
+                                            text = "${leadTasks.size} tasks",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
+                            items(
+                                items = leadTasks,
+                                key = { it.id }
+                            ) { task ->
+                                TaskCard(
+                                    task = task,
+                                    onToggle = { done ->
+                                        viewModel.onAction(
+                                            TasksAction.MarkDone(task.id, done)
+                                        )
+                                    }
+                                )
+                            }
                         }
-                        items(
-                            items = state.pendingTasks,
-                            key = { it.id }
-                        ) { task ->
-                            TaskCard(
-                                task = task,
-                                onToggle = { done ->
-                                    viewModel.onAction(
-                                        TasksAction.MarkDone(task.id, done)
+
+                        // From Bookings section
+                        if (bookingTasks.isNotEmpty()) {
+                            item {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "From Bookings",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = MaterialTheme.shapes.extraSmall
+                                    ) {
+                                        Text(
+                                            text = "${bookingTasks.size} tasks",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
-                            )
+                            }
+                            items(
+                                items = bookingTasks,
+                                key = { it.id }
+                            ) { task ->
+                                TaskCard(
+                                    task = task,
+                                    onToggle = { done ->
+                                        viewModel.onAction(
+                                            TasksAction.MarkDone(task.id, done)
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
                 }

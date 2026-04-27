@@ -14,6 +14,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.application.call
+import io.ktor.server.routing.put
 import kotlinx.serialization.Serializable
 import org.mindrot.jbcrypt.BCrypt
 
@@ -23,6 +24,12 @@ data class CreateUserRequest(
     val email: String,
     val password: String,
     val role: String
+)
+
+@Serializable
+data class UpdatePasswordRequest(
+    val currentPassword: String,
+    val newPassword: String
 )
 
 fun Route.userRoutes(userRepository: UserRepository) {
@@ -103,6 +110,35 @@ fun Route.userRoutes(userRepository: UserRepository) {
                     HttpStatusCode.NotFound,
                     "User not found"
                 )
+            }
+        }
+
+        // PUT update current user password
+        put("/me/password") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload
+                ?.getClaim("userId")?.asString()
+                ?: return@put call.respond(
+                    HttpStatusCode.Unauthorized, "Unauthorized"
+                )
+
+            val request = call.receive<UpdatePasswordRequest>()
+            val currentHash = userRepository.getPasswordHash(userId)
+
+            if (currentHash == null || !BCrypt.checkpw(request.currentPassword, currentHash)) {
+                call.respond(HttpStatusCode.BadRequest, "Invalid current password")
+                return@put
+            }
+
+            val success = userRepository.updatePassword(
+                userId = userId,
+                newPasswordHash = BCrypt.hashpw(request.newPassword, BCrypt.gensalt())
+            )
+
+            if (success) {
+                call.respond(HttpStatusCode.OK, "Password updated successfully")
+            } else {
+                call.respond(HttpStatusCode.InternalServerError, "Failed to update password")
             }
         }
     }

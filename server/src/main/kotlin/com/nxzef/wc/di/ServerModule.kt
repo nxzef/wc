@@ -2,6 +2,7 @@ package com.nxzef.wc.di
 
 import com.nxzef.wc.data.repository.*
 import com.nxzef.wc.domain.service.AuthService
+import com.nxzef.wc.domain.service.NotificationService
 import org.koin.dsl.module
 
 val serverModule = module {
@@ -15,4 +16,5 @@ val serverModule = module {
     single { NotificationRepository() }
 
     single { AuthService(get()) }
+    single { NotificationService(get(), get()) }
 }

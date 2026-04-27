@@ -115,7 +115,9 @@ class BookingRepository {
             BookingsTable.update(
                 { BookingsTable.id eq java.util.UUID.fromString(id) }
             ) {
-                it[status] = request.status.name
+                if (request.status != null) {
+                    it[status] = request.status!!.name
+                }
                 if (request.photographerId != null) {
                     it[photographerId] = java.util.UUID.fromString(
                         request.photographerId

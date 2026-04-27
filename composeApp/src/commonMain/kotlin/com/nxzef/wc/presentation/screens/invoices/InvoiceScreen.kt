@@ -13,18 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,7 +28,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -47,13 +41,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.InvoiceStatusBadge
 import com.nxzef.wc.presentation.components.WCTopBar
-import com.nxzef.wc.presentation.screens.leads.WCDropdown
 import com.nxzef.wc.presentation.theme.WCTheme
+import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.Invoice
 import com.nxzef.wc.shared.util.DateUtils
 import org.koin.compose.viewmodel.koinViewModel
@@ -73,11 +66,11 @@ fun InvoiceScreen(
                 is InvoiceUiEvent.ShowSnackbar ->
                     snackbarState.showSnackbar(event.message)
 
-                InvoiceUiEvent.InvoiceCreated ->
-                    snackbarState.showSnackbar("Invoice created!")
-
                 InvoiceUiEvent.PaymentUpdated ->
                     snackbarState.showSnackbar("Payment updated!")
+
+                InvoiceUiEvent.InvoiceCreated ->
+                    snackbarState.showSnackbar("Invoice created!")
             }
         }
     }
@@ -88,24 +81,7 @@ fun InvoiceScreen(
             WCTopBar(
                 title = "Invoices",
                 subtitle = "${state.invoices.size} total",
-                onBack = onBack,
-                actions = {
-                    Button(
-                        onClick = {
-                            viewModel.onAction(InvoiceAction.ShowCreateDialog)
-                        },
-                        modifier = Modifier.padding(end = 16.dp),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("New Invoice")
-                    }
-                }
+                onBack = onBack
             )
         }
     ) { padding ->
@@ -159,8 +135,10 @@ fun InvoiceScreen(
                                 InvoiceSummaryRow(invoices = state.invoices)
                             }
                             items(state.invoices) { invoice ->
+                                val booking = state.bookings.find { it.id == invoice.bookingId }
                                 InvoiceCard(
                                     invoice = invoice,
+                                    booking = booking,
                                     onClick = {
                                         viewModel.onAction(
                                             InvoiceAction.SelectInvoice(invoice)
@@ -200,14 +178,6 @@ fun InvoiceScreen(
                 )
                 viewModel.onAction(InvoiceAction.DismissDetail)
             }
-        )
-    }
-
-    // Create dialog
-    if (state.showCreateDialog) {
-        CreateInvoiceDialog(
-            state = state,
-            onAction = viewModel::onAction
         )
     }
 }
@@ -288,6 +258,7 @@ fun SummaryCard(
 @Composable
 fun InvoiceCard(
     invoice: Invoice,
+    booking: Booking?,
     onClick: () -> Unit
 ) {
     val paymentStatus = when {
@@ -314,6 +285,15 @@ fun InvoiceCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
+                booking?.let {
+                    Text(
+                        text = "${it.eventType} • ${it.eventDate}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
                 Text(
                     text = "₹${invoice.totalAmount.toLong()}",
                     style = MaterialTheme.typography.titleMedium,
@@ -453,7 +433,7 @@ fun InvoiceDetailDialog(
                 invoice.notes?.let {
                     HorizontalDivider()
                     Text(
-                        text = "📝 $it",
+                        text = " $it",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -485,115 +465,4 @@ fun DetailInvoiceRow(label: String, value: String) {
             fontWeight = FontWeight.SemiBold
         )
     }
-}
-
-@Composable
-fun CreateInvoiceDialog(
-    state: InvoiceState,
-    onAction: (InvoiceAction) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = { onAction(InvoiceAction.HideCreateDialog) },
-        shape = MaterialTheme.shapes.large,
-        title = {
-            Text(
-                text = "Create Invoice",
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.widthIn(max = 400.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                WCDropdown(
-                    modifier = Modifier.fillMaxWidth(),
-                    label = "Select Booking *",
-                    selected = state.bookings
-                        .find { it.id == state.selectedBookingId }
-                        ?.let { "${it.eventType} — ${it.eventDate}" }
-                        ?: "Select booking",
-                    options = state.bookings
-                        .map { "${it.eventType} — ${it.eventDate}" },
-                    onSelect = { display ->
-                        val booking = state.bookings.find {
-                            "${it.eventType} — ${it.eventDate}" == display
-                        }
-                        booking?.let {
-                            onAction(
-                                InvoiceAction.OnBookingSelected(it.id)
-                            )
-                        }
-                    }
-                )
-
-                OutlinedTextField(
-                    value = state.totalAmount,
-                    onValueChange = {
-                        onAction(InvoiceAction.OnTotalAmountChange(it))
-                    },
-                    label = { Text("Total Amount (₹) *") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
-                    ),
-                    leadingIcon = {
-                        Icon(Icons.Default.CurrencyRupee, null)
-                    }
-                )
-
-                OutlinedTextField(
-                    value = state.depositAmount,
-                    onValueChange = {
-                        onAction(InvoiceAction.OnDepositAmountChange(it))
-                    },
-                    label = { Text("Deposit Amount (₹) *") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
-                    ),
-                    leadingIcon = {
-                        Icon(Icons.Default.CurrencyRupee, null)
-                    }
-                )
-
-                OutlinedTextField(
-                    value = state.notes,
-                    onValueChange = {
-                        onAction(InvoiceAction.OnNotesChange(it))
-                    },
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    minLines = 2
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onAction(InvoiceAction.OnCreateInvoice) },
-                enabled = !state.isCreating,
-                shape = MaterialTheme.shapes.medium
-            ) {
-                if (state.isCreating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Create")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = { onAction(InvoiceAction.HideCreateDialog) }
-            ) { Text("Cancel") }
-        }
-    )
 }

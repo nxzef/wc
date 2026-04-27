@@ -3,10 +3,8 @@ package com.nxzef.wc.presentation.screens.invoices
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.repository.BookingRepository
-import com.nxzef.wc.domain.usecase.invoices.CreateInvoiceUseCase
 import com.nxzef.wc.domain.usecase.invoices.GetAllInvoicesUseCase
 import com.nxzef.wc.domain.usecase.invoices.UpdatePaymentUseCase
-import com.nxzef.wc.shared.model.CreateInvoiceRequest
 import com.nxzef.wc.shared.model.UpdatePaymentRequest
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
@@ -20,7 +18,6 @@ import kotlinx.coroutines.launch
 
 class InvoiceViewModel(
     private val getAllInvoicesUseCase: GetAllInvoicesUseCase,
-    private val createInvoiceUseCase: CreateInvoiceUseCase,
     private val updatePaymentUseCase: UpdatePaymentUseCase,
     private val bookingRepository: BookingRepository
 ) : ViewModel() {
@@ -53,11 +50,6 @@ class InvoiceViewModel(
     fun onAction(action: InvoiceAction) {
         when (action) {
             InvoiceAction.LoadInvoices -> load()
-            InvoiceAction.ShowCreateDialog ->
-                _state.update { it.copy(showCreateDialog = true) }
-
-            InvoiceAction.HideCreateDialog ->
-                _state.update { it.copy(showCreateDialog = false) }
 
             is InvoiceAction.SelectInvoice ->
                 _state.update {
@@ -67,21 +59,9 @@ class InvoiceViewModel(
             InvoiceAction.DismissDetail ->
                 _state.update { it.copy(selectedInvoice = null) }
 
-            is InvoiceAction.OnBookingSelected ->
-                _state.update {
-                    it.copy(selectedBookingId = action.bookingId)
-                }
-
-            is InvoiceAction.OnTotalAmountChange ->
-                _state.update { it.copy(totalAmount = action.value) }
-
-            is InvoiceAction.OnDepositAmountChange ->
-                _state.update { it.copy(depositAmount = action.value) }
-
             is InvoiceAction.OnNotesChange ->
                 _state.update { it.copy(notes = action.value) }
 
-            InvoiceAction.OnCreateInvoice -> createInvoice()
             is InvoiceAction.OnMarkDepositPaid ->
                 updatePayment(
                     action.invoiceId,
@@ -99,58 +79,6 @@ class InvoiceViewModel(
                         finalPaidDate = action.date
                     )
                 )
-        }
-    }
-
-    private fun createInvoice() {
-        val s = _state.value
-        // Clean commas before parsing
-        val total = s.totalAmount.replace(",", "").toDoubleOrNull()
-        val deposit = s.depositAmount.replace(",", "").toDoubleOrNull()
-
-        if (s.selectedBookingId.isBlank() ||
-            total == null || deposit == null
-        ) {
-            viewModelScope.launch {
-                _uiEvent.send(
-                    InvoiceUiEvent.ShowSnackbar(
-                        "Booking and valid amounts are required"
-                    )
-                )
-            }
-            return
-        }
-
-        viewModelScope.launch {
-            _state.update { it.copy(isCreating = true) }
-            createInvoiceUseCase(
-                CreateInvoiceRequest(
-                    bookingId = s.selectedBookingId,
-                    totalAmount = total,
-                    depositAmount = deposit,
-                    notes = s.notes.ifBlank { null }
-                )
-            ).onSuccess {
-                _state.update {
-                    it.copy(
-                        isCreating = false,
-                        showCreateDialog = false,
-                        selectedBookingId = "",
-                        totalAmount = "",
-                        depositAmount = "",
-                        notes = ""
-                    )
-                }
-                _uiEvent.send(InvoiceUiEvent.InvoiceCreated)
-                load()
-            }.onFailure { e ->
-                _state.update { it.copy(isCreating = false) }
-                _uiEvent.send(
-                    InvoiceUiEvent.ShowSnackbar(
-                        e.message ?: "Failed to create invoice"
-                    )
-                )
-            }
         }
     }
 

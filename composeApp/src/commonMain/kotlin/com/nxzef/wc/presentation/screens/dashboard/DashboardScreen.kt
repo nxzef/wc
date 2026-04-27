@@ -1,23 +1,60 @@
 package com.nxzef.wc.presentation.screens.dashboard
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.AssignmentTurnedIn
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.EventAvailable
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PersonSearch
+import androidx.compose.material.icons.filled.ViewColumn
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,14 +67,16 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.components.LeadStatusBadge
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.theme.WCTheme
-import com.nxzef.wc.shared.model.*
+import com.nxzef.wc.shared.model.Booking
+import com.nxzef.wc.shared.model.DashboardStats
+import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.model.LeadSource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -48,6 +87,7 @@ fun DashboardScreen(
     onNavigateToTasks: () -> Unit = {},
     onNavigateToAddLead: () -> Unit = {},
     onNavigateToBookings: () -> Unit = {},
+    onViewLeads: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel(),
     sessionManager: SessionManager = koinInject()
 ) {
@@ -110,6 +150,7 @@ fun DashboardScreen(
                         onNavigateToTasks = onNavigateToTasks,
                         onNavigateToAddLead = onNavigateToAddLead,
                         onNavigateToBookings = onNavigateToBookings,
+                        onViewLeads = onViewLeads,
                         modifier = Modifier.widthIn(max = 1000.dp).fillMaxWidth()
                     )
                 }
@@ -126,6 +167,7 @@ fun DashboardContent(
     onNavigateToTasks: () -> Unit,
     onNavigateToAddLead: () -> Unit,
     onNavigateToBookings: () -> Unit,
+    onViewLeads: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -437,14 +479,17 @@ fun DashboardContent(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        TextButton(onClick = onNavigateToPipeline) {
+                        TextButton(onClick = onViewLeads) {
                             Text("View All")
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         stats.recentLeads.take(3).forEach { lead ->
-                            PremiumLeadCard(lead = lead)
+                            PremiumLeadCard(
+                                lead = lead,
+                                onClick = onViewLeads
+                            )
                         }
                     }
                 }
@@ -693,8 +738,12 @@ fun SourceRow(source: String, count: Int, total: Int) {
 }
 
 @Composable
-fun PremiumLeadCard(lead: Lead) {
+fun PremiumLeadCard(
+    lead: Lead,
+    onClick: () -> Unit = {}
+) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

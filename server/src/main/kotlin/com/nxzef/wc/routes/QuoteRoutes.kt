@@ -1,13 +1,18 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.BookingRepository
+import com.nxzef.wc.data.repository.InvoiceRepository
 import com.nxzef.wc.data.repository.LeadRepository
 import com.nxzef.wc.data.repository.QuoteRepository
 import com.nxzef.wc.data.repository.TaskRepository
+import com.nxzef.wc.domain.service.NotificationService
 import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.CreateBookingRequest
+import com.nxzef.wc.shared.model.CreateInvoiceRequest
 import com.nxzef.wc.shared.model.CreateQuoteRequest
+import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.QuoteStatus
+import com.nxzef.wc.shared.model.UpdateLeadStatusRequest
 import com.nxzef.wc.shared.model.UpdateQuoteStatusRequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -25,7 +30,9 @@ fun Route.quoteRoutes(
     quoteRepository: QuoteRepository,
     leadRepository: LeadRepository,
     bookingRepository: BookingRepository,
-    taskRepository: TaskRepository
+    taskRepository: TaskRepository,
+    invoiceRepository: InvoiceRepository,
+    notificationService: NotificationService
 ) {
     route("/quotes") {
 
@@ -92,15 +99,51 @@ fun Route.quoteRoutes(
                     "Quote not found"
                 )
 
+            val lead = leadRepository.getById(quote.leadId)
+            val ownerId = notificationService.getOwnerId()
+
+            if (lead != null) {
+                when (request.status) {
+                    QuoteStatus.SENT -> {
+                        ownerId?.let {
+                            notificationService.notify(
+                                userId = it,
+                                title = "Quote Sent to ${lead.fullName}",
+                                message = "A quote for ${lead.fullName} has been marked as SENT"
+                            )
+                        }
+                    }
+
+                    QuoteStatus.ACCEPTED -> {
+                        // Notify Owner
+                        ownerId?.let {
+                            notificationService.notify(
+                                userId = it,
+                                title = "Quote Accepted — ${lead.fullName} is now a client",
+                                message = "The quote for ${lead.fullName} was accepted."
+                            )
+                        }
+                        // Notify Coordinator (lead's assignedTo)
+                        notificationService.notify(
+                            userId = lead.assignedTo,
+                            title = "Quote accepted. Booking created for ${lead.fullName}",
+                            message = "The quote was accepted. A new booking has been generated."
+                        )
+                    }
+
+                    else -> {}
+                }
+            }
+
             // Automation: If quote is accepted, create a booking
             if (request.status == QuoteStatus.ACCEPTED) {
-                val lead = leadRepository.getById(quote.leadId)
                 if (lead != null) {
                     // Check if booking already exists for this lead to avoid duplicates
                     val existingBookings = bookingRepository.getAll()
                     val alreadyBooked = existingBookings.any { it.leadId == lead.id }
 
                     if (!alreadyBooked) {
+                        // 1. Create Booking
                         val booking = bookingRepository.create(
                             CreateBookingRequest(
                                 leadId = lead.id,
@@ -112,11 +155,27 @@ fun Route.quoteRoutes(
                             )
                         )
 
-                        // Create default tasks for the new booking, assigned to the person who accepted it
+                        // 2. Create Invoice (Total from quote, 50% deposit)
+                        invoiceRepository.create(
+                            CreateInvoiceRequest(
+                                bookingId = booking.id,
+                                totalAmount = quote.totalAmount,
+                                depositAmount = quote.totalAmount * 0.5,
+                                notes = "Automatically generated from accepted quote"
+                            )
+                        )
+
+                        // 3. Create default tasks for the new booking, assigned to the person who accepted it
                         taskRepository.createDefaultBookingTasks(
                             bookingId = booking.id,
                             assignedTo = userId,
                             createdBy = userId
+                        )
+
+                        // 4. Update lead status to WON
+                        leadRepository.updateStatus(
+                            lead.id,
+                            UpdateLeadStatusRequest(status = LeadStatus.WON)
                         )
                     }
                 }

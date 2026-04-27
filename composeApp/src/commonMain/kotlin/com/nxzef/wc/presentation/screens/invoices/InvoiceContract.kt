@@ -8,26 +8,14 @@ data class InvoiceState(
     val bookings: List<Booking> = emptyList(),
     val isLoading: Boolean = false,
     val selectedInvoice: Invoice? = null,
-    val showCreateDialog: Boolean = false,
-    // Create form
-    val selectedBookingId: String = "",
-    val totalAmount: String = "",
-    val depositAmount: String = "",
-    val notes: String = "",
-    val isCreating: Boolean = false
+    val notes: String = ""
 )
 
 sealed interface InvoiceAction {
     data object LoadInvoices : InvoiceAction
-    data object ShowCreateDialog : InvoiceAction
-    data object HideCreateDialog : InvoiceAction
     data class SelectInvoice(val invoice: Invoice) : InvoiceAction
     data object DismissDetail : InvoiceAction
-    data class OnBookingSelected(val bookingId: String) : InvoiceAction
-    data class OnTotalAmountChange(val value: String) : InvoiceAction
-    data class OnDepositAmountChange(val value: String) : InvoiceAction
     data class OnNotesChange(val value: String) : InvoiceAction
-    data object OnCreateInvoice : InvoiceAction
     data class OnMarkDepositPaid(
         val invoiceId: String,
         val date: String

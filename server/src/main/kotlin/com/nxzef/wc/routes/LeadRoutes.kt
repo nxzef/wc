@@ -2,6 +2,7 @@ package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.LeadRepository
 import com.nxzef.wc.data.repository.TaskRepository
+import com.nxzef.wc.domain.service.NotificationService
 import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.CreateLeadRequest
 import com.nxzef.wc.shared.model.UpdateLeadStatusRequest
@@ -18,7 +19,8 @@ import io.ktor.server.routing.route
 
 fun Route.leadRoutes(
     leadRepository: LeadRepository,
-    taskRepository: TaskRepository
+    taskRepository: TaskRepository,
+    notificationService: NotificationService
 ) {
     route("/leads") {
 
@@ -59,6 +61,13 @@ fun Route.leadRoutes(
                 leadId = lead.id,
                 assignedTo = request.assignedTo,
                 createdBy = addedBy
+            )
+
+            // Notify assigned user
+            notificationService.notify(
+                userId = request.assignedTo,
+                title = "New Lead Assigned",
+                message = "${lead.fullName} has been assigned to you"
             )
 
             call.respond(HttpStatusCode.Created, lead.toDto())

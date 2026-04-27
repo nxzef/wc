@@ -213,6 +213,11 @@ fun AppNavHost(
                     navController.navigate(Route.Bookings) {
                         launchSingleTop = true
                     }
+                },
+                onViewLeads = {
+                    navController.navigate(Route.LeadPipeline) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -225,6 +230,11 @@ fun AppNavHost(
                 },
                 onViewQuotes = { leadId ->
                     navController.navigate(Route.Quotes(leadId))
+                },
+                onViewBooking = {
+                    navController.navigate(Route.Bookings) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }

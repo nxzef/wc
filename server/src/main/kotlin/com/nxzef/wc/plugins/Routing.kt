@@ -9,6 +9,7 @@ import com.nxzef.wc.data.repository.QuoteRepository
 import com.nxzef.wc.data.repository.TaskRepository
 import com.nxzef.wc.data.repository.UserRepository
 import com.nxzef.wc.domain.service.AuthService
+import com.nxzef.wc.domain.service.NotificationService
 import com.nxzef.wc.routes.authRoutes
 import com.nxzef.wc.routes.bookingRoutes
 import com.nxzef.wc.routes.dashboardRoutes
@@ -38,6 +39,7 @@ fun Application.configureRouting() {
     val notificationRepository by inject<NotificationRepository>()
 
     val authService by inject<AuthService>()
+    val notificationService by inject<NotificationService>()
 
     userRepository.seedOwner()
 
@@ -60,11 +62,11 @@ fun Application.configureRouting() {
             }
 
             // Lead
-            leadRoutes(leadRepository, taskRepository)
+            leadRoutes(leadRepository, taskRepository, notificationService)
             // Quote
-            quoteRoutes(quoteRepository, leadRepository, bookingRepository, taskRepository)
+            quoteRoutes(quoteRepository, leadRepository, bookingRepository, taskRepository, invoiceRepository, notificationService)
             // Booking
-            bookingRoutes(bookingRepository, taskRepository)
+            bookingRoutes(bookingRepository, taskRepository, leadRepository, notificationService)
             // Invoice
             invoiceRoutes(invoiceRepository)
             // inside authenticate block:

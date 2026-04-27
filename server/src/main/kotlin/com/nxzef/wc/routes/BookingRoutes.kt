@@ -1,8 +1,11 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.BookingRepository
+import com.nxzef.wc.data.repository.LeadRepository
 import com.nxzef.wc.data.repository.TaskRepository
+import com.nxzef.wc.domain.service.NotificationService
 import com.nxzef.wc.shared.dto.toDto
+import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.CreateBookingRequest
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import io.ktor.http.HttpStatusCode
@@ -18,7 +21,9 @@ import io.ktor.server.routing.route
 
 fun Route.bookingRoutes(
     bookingRepository: BookingRepository,
-    taskRepository: TaskRepository
+    taskRepository: TaskRepository,
+    leadRepository: LeadRepository,
+    notificationService: NotificationService
 ) {
     route("/bookings") {
 
@@ -95,11 +100,77 @@ fun Route.bookingRoutes(
                     "Missing id"
                 )
             val request = call.receive<UpdateBookingRequest>()
+            
+            // Get current booking to check for changes
+            val oldBooking = bookingRepository.getById(id)
+            
             val booking = bookingRepository.update(id, request)
                 ?: return@put call.respond(
                     HttpStatusCode.NotFound,
                     "Booking not found"
                 )
+
+            // Notifications
+            val ownerId = notificationService.getOwnerId()
+
+            // 1. Photographer assigned
+            val newPhotographerId = request.photographerId
+            if (newPhotographerId != null && newPhotographerId != oldBooking?.photographerId) {
+                notificationService.notify(
+                    userId = newPhotographerId,
+                    title = "New Shoot Assigned",
+                    message = "You have been assigned to shoot ${booking.eventType} on ${booking.eventDate} at ${booking.location}",
+                    bookingId = booking.id
+                )
+            }
+
+            // 2. Status changes
+            if (request.status != null && request.status != oldBooking?.status) {
+                when (request.status) {
+                    BookingStatus.SHOOT_DONE -> {
+                        // Notify Editors
+                        notificationService.getEditors().forEach { editorId ->
+                            notificationService.notify(
+                                userId = editorId,
+                                title = "New editing job",
+                                message = "${booking.eventType} shoot is ready for editing",
+                                bookingId = booking.id
+                            )
+                        }
+                        // Notify Owner
+                        ownerId?.let {
+                            notificationService.notify(
+                                userId = it,
+                                title = "Shoot completed",
+                                message = "Shoot completed for ${booking.eventType} on ${booking.eventDate}",
+                                bookingId = booking.id
+                            )
+                        }
+                    }
+                    BookingStatus.DELIVERED -> {
+                        // Notify Owner
+                        ownerId?.let {
+                            notificationService.notify(
+                                userId = it,
+                                title = "Gallery delivered",
+                                message = "Gallery delivered for ${booking.eventType} on ${booking.eventDate}",
+                                bookingId = booking.id
+                            )
+                        }
+                        // Notify lead's assignedTo coordinator
+                        val lead = leadRepository.getById(booking.leadId)
+                        lead?.let {
+                            notificationService.notify(
+                                userId = it.assignedTo,
+                                title = "Gallery delivered",
+                                message = "Gallery delivered — collect final payment from client",
+                                bookingId = booking.id
+                            )
+                        }
+                    }
+                    else -> {}
+                }
+            }
 
             // Reassign tasks if photographer or editor was updated
             if (request.photographerId != null || request.editorId != null) {

@@ -63,6 +63,7 @@ class LeadPipelineViewModel(
             is LeadPipelineAction.OnNewTaskTitleChange -> _state.update { it.copy(newTaskTitle = action.title) }
             LeadPipelineAction.OnAddTask -> addTask()
             is LeadPipelineAction.OnDeleteTask -> deleteTask(action.taskId)
+            is LeadPipelineAction.SetFilter -> _state.update { it.copy(currentFilter = action.filter) }
         }
     }
 

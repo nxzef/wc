@@ -34,7 +34,7 @@ data class CreateBookingRequest(
 
 @Serializable
 data class UpdateBookingRequest(
-    val status: BookingStatus,
+    val status: BookingStatus? = null,
     val photographerId: String? = null,
     val editorId: String? = null,
     val notes: String? = null

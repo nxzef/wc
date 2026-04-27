@@ -7,7 +7,6 @@ import com.nxzef.wc.domain.usecase.bookings.GetMyEditingQueueUseCase
 import com.nxzef.wc.domain.usecase.bookings.GetMyShootsUseCase
 import com.nxzef.wc.domain.usecase.bookings.UpdateBookingUseCase
 import com.nxzef.wc.domain.usecase.dashboard.GetDashboardStatsUseCase
-import com.nxzef.wc.domain.usecase.invoices.CreateInvoiceUseCase
 import com.nxzef.wc.domain.usecase.invoices.GetAllInvoicesUseCase
 import com.nxzef.wc.domain.usecase.invoices.GetInvoiceByBookingUseCase
 import com.nxzef.wc.domain.usecase.invoices.UpdatePaymentUseCase
@@ -41,7 +40,6 @@ val useCaseModule = module {
     factory { UpdateBookingUseCase(get()) }
     factory { GetAllInvoicesUseCase(get()) }
     factory { GetInvoiceByBookingUseCase(get()) }
-    factory { CreateInvoiceUseCase(get()) }
     factory { UpdatePaymentUseCase(get()) }
     factory { GetMyShootsUseCase(get()) }
     factory { GetMyEditingQueueUseCase(get()) }

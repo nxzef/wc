@@ -57,4 +57,26 @@ class ApiService(
         }.body()
     }
 
+    suspend fun changePassword(currentPassword: String, newPassword: String) {
+        client.put("$baseUrl/users/me/password") {
+            header("Authorization", "Bearer ${sessionManager.getToken()}")
+            contentType(ContentType.Application.Json)
+            setBody(
+                mapOf(
+                    "currentPassword" to currentPassword,
+                    "newPassword" to newPassword
+                )
+            )
+        }
+    }
+
+    suspend fun checkHealth(): Boolean {
+        return try {
+            val response = client.get("$baseUrl/health")
+            response.status.value == 200
+        } catch (e: Exception) {
+            false
+        }
+    }
+
 }

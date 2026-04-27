@@ -8,6 +8,7 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import org.mindrot.jbcrypt.BCrypt
 import java.time.Instant
 
@@ -109,6 +110,34 @@ class UserRepository {
                 }
                 println("✅ Owner account seeded")
             }
+        }
+    }
+
+    fun updatePassword(userId: String, newPasswordHash: String): Boolean {
+        return transaction {
+            val uuid = try {
+                java.util.UUID.fromString(userId)
+            } catch (_: Exception) {
+                return@transaction false
+            }
+            UsersTable.update({ UsersTable.id eq uuid }) {
+                it[passwordHash] = newPasswordHash
+            } > 0
+        }
+    }
+
+    fun getPasswordHash(userId: String): String? {
+        return transaction {
+            val uuid = try {
+                java.util.UUID.fromString(userId)
+            } catch (_: Exception) {
+                return@transaction null
+            }
+            UsersTable
+                .selectAll()
+                .where { UsersTable.id eq uuid }
+                .singleOrNull()
+                ?.get(UsersTable.passwordHash)
         }
     }
 }

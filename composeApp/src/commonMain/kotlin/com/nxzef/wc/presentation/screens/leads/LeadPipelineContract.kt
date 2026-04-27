@@ -4,6 +4,10 @@ import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.Task
 
+enum class PipelineFilter {
+    ACTIVE, WON, LOST
+}
+
 data class LeadPipelineState(
     val isLoading: Boolean = false,
     val leads: List<Lead> = emptyList(),
@@ -12,7 +16,8 @@ data class LeadPipelineState(
     val tasks: List<Task> = emptyList(),
     val isTasksLoading: Boolean = false,
     val showAddTaskDialog: Boolean = false,
-    val newTaskTitle: String = ""
+    val newTaskTitle: String = "",
+    val currentFilter: PipelineFilter = PipelineFilter.ACTIVE
 )
 
 sealed interface LeadPipelineAction {
@@ -33,6 +38,7 @@ sealed interface LeadPipelineAction {
     data class OnDeleteTask(val taskId: String) : LeadPipelineAction
 
     data object DismissDetail : LeadPipelineAction
+    data class SetFilter(val filter: PipelineFilter) : LeadPipelineAction
 }
 
 sealed interface LeadPipelineUiEvent {

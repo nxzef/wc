@@ -2,9 +2,8 @@ package com.nxzef.wc.presentation.screens.bookings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nxzef.wc.domain.repository.LeadRepository
 import com.nxzef.wc.domain.repository.UserRepository
-import com.nxzef.wc.domain.usecase.bookings.CreateBookingUseCase
+import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.domain.usecase.bookings.GetAllBookingsUseCase
 import com.nxzef.wc.domain.usecase.bookings.UpdateBookingUseCase
 import com.nxzef.wc.domain.usecase.tasks.CreateTaskUseCase
@@ -12,9 +11,7 @@ import com.nxzef.wc.domain.usecase.tasks.DeleteTaskUseCase
 import com.nxzef.wc.domain.usecase.tasks.GetTasksByBookingUseCase
 import com.nxzef.wc.domain.usecase.tasks.MarkTaskDoneUseCase
 import com.nxzef.wc.shared.model.BookingStatus
-import com.nxzef.wc.shared.model.CreateBookingRequest
 import com.nxzef.wc.shared.model.CreateTaskRequest
-import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
@@ -28,13 +25,12 @@ import kotlinx.coroutines.launch
 
 class BookingViewModel(
     private val getAllBookingsUseCase: GetAllBookingsUseCase,
-    private val createBookingUseCase: CreateBookingUseCase,
+    private val getAllLeadsUseCase: GetAllLeadsUseCase,
     private val updateBookingUseCase: UpdateBookingUseCase,
     private val getTasksByBookingUseCase: GetTasksByBookingUseCase,
     private val createTaskUseCase: CreateTaskUseCase,
     private val markTaskDoneUseCase: MarkTaskDoneUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
-    private val leadRepository: LeadRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
 
@@ -51,22 +47,16 @@ class BookingViewModel(
     private fun load() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            // Load bookings, won leads and team in parallel
+            // Load bookings, leads and team in parallel
             val bookingsResult = getAllBookingsUseCase()
-            val leadsResult = leadRepository.getAll()
+            val leadsResult = getAllLeadsUseCase()
             val teamResult = userRepository.getTeam()
 
             bookingsResult.onSuccess { bookings ->
                 _state.update { it.copy(bookings = bookings) }
             }
             leadsResult.onSuccess { leads ->
-                _state.update {
-                    it.copy(
-                        wonLeads = leads.filter { l ->
-                            l.status == LeadStatus.WON
-                        }
-                    )
-                }
+                _state.update { it.copy(leads = leads) }
             }
             teamResult.onSuccess { team ->
                 _state.update { it.copy(team = team) }
@@ -78,12 +68,6 @@ class BookingViewModel(
     fun onAction(action: BookingAction) {
         when (action) {
             BookingAction.LoadBookings -> load()
-            BookingAction.ShowCreateDialog ->
-                _state.update { it.copy(showCreateDialog = true) }
-
-            BookingAction.HideCreateDialog ->
-                _state.update { it.copy(showCreateDialog = false) }
-
             is BookingAction.SelectBooking -> {
                 _state.update {
                     it.copy(selectedBooking = action.booking)
@@ -94,27 +78,14 @@ class BookingViewModel(
             BookingAction.DismissDetail ->
                 _state.update { it.copy(selectedBooking = null, tasks = emptyList()) }
 
-            is BookingAction.OnLeadSelected ->
-                _state.update { it.copy(selectedLeadId = action.leadId) }
-
-            is BookingAction.OnEventDateChange ->
-                _state.update { it.copy(eventDate = action.value) }
-
-            is BookingAction.OnEventTypeChange ->
-                _state.update { it.copy(eventType = action.value) }
-
-            is BookingAction.OnLocationChange ->
-                _state.update { it.copy(location = action.value) }
-
-            is BookingAction.OnNotesChange ->
-                _state.update { it.copy(notes = action.value) }
-
-            BookingAction.OnCreateBooking -> createBooking()
             is BookingAction.OnUpdateStatus ->
                 updateStatus(action.bookingId, action.status)
 
             is BookingAction.OnFilterStatus ->
                 _state.update { it.copy(filterStatus = action.status) }
+
+            is BookingAction.AssignPhotographer -> assignPhotographer(action.bookingId, action.userId)
+            is BookingAction.AssignEditor -> assignEditor(action.bookingId, action.userId)
 
             is BookingAction.OnTaskToggle -> toggleTask(action.taskId, action.isDone)
             BookingAction.ShowAddTaskDialog -> _state.update { it.copy(showAddTaskDialog = true) }
@@ -122,6 +93,44 @@ class BookingViewModel(
             is BookingAction.OnNewTaskTitleChange -> _state.update { it.copy(newTaskTitle = action.title) }
             BookingAction.OnAddTask -> addTask()
             is BookingAction.OnDeleteTask -> deleteTask(action.taskId)
+        }
+    }
+
+    private fun assignPhotographer(bookingId: String, userId: String?) {
+        viewModelScope.launch {
+            updateBookingUseCase(
+                id = bookingId,
+                request = UpdateBookingRequest(photographerId = userId)
+            ).onSuccess {
+                load()
+                // Update selected booking in state if it's the one being modified
+                if (_state.value.selectedBooking?.id == bookingId) {
+                    _state.update { s ->
+                        s.copy(selectedBooking = s.bookings.find { it.id == bookingId })
+                    }
+                }
+            }.onFailure { e ->
+                _uiEvent.send(BookingUiEvent.ShowSnackbar(e.message ?: "Failed to assign photographer"))
+            }
+        }
+    }
+
+    private fun assignEditor(bookingId: String, userId: String?) {
+        viewModelScope.launch {
+            updateBookingUseCase(
+                id = bookingId,
+                request = UpdateBookingRequest(editorId = userId)
+            ).onSuccess {
+                load()
+                // Update selected booking in state if it's the one being modified
+                if (_state.value.selectedBooking?.id == bookingId) {
+                    _state.update { s ->
+                        s.copy(selectedBooking = s.bookings.find { it.id == bookingId })
+                    }
+                }
+            }.onFailure { e ->
+                _uiEvent.send(BookingUiEvent.ShowSnackbar(e.message ?: "Failed to assign editor"))
+            }
         }
     }
 
@@ -173,65 +182,6 @@ class BookingViewModel(
         }
     }
 
-    private fun createBooking() {
-        val s = _state.value
-        if (s.selectedLeadId.isBlank() ||
-            s.eventDate.isBlank() ||
-            s.location.isBlank()
-        ) {
-            viewModelScope.launch {
-                _uiEvent.send(
-                    BookingUiEvent.ShowSnackbar(
-                        "Lead, date and location are required"
-                    )
-                )
-            }
-            return
-        }
-
-        // Get quote from selected lead
-        val lead = s.wonLeads.find { it.id == s.selectedLeadId }
-        val quoteId = s.selectedQuoteId.ifBlank {
-            "" // will be handled by server
-        }
-
-        viewModelScope.launch {
-            _state.update { it.copy(isCreating = true) }
-            createBookingUseCase(
-                CreateBookingRequest(
-                    leadId = s.selectedLeadId,
-                    quoteId = quoteId,
-                    eventDate = s.eventDate,
-                    eventType = s.eventType.ifBlank {
-                        lead?.eventType?.name ?: "WEDDING"
-                    },
-                    location = s.location,
-                    notes = s.notes.ifBlank { null }
-                )
-            ).onSuccess {
-                _state.update {
-                    it.copy(
-                        isCreating = false,
-                        showCreateDialog = false,
-                        selectedLeadId = "",
-                        eventDate = "",
-                        location = "",
-                        notes = ""
-                    )
-                }
-                _uiEvent.send(BookingUiEvent.BookingCreated)
-                load()
-            }.onFailure { e ->
-                _state.update { it.copy(isCreating = false) }
-                _uiEvent.send(
-                    BookingUiEvent.ShowSnackbar(
-                        e.message ?: "Failed to create booking"
-                    )
-                )
-            }
-        }
-    }
-
     private fun updateStatus(bookingId: String, status: BookingStatus) {
         viewModelScope.launch {
             updateBookingUseCase(
@@ -239,6 +189,12 @@ class BookingViewModel(
                 request = UpdateBookingRequest(status = status)
             ).onSuccess {
                 load()
+                // Update selected booking in state if it's the one being modified
+                if (_state.value.selectedBooking?.id == bookingId) {
+                    _state.update { s ->
+                        s.copy(selectedBooking = s.bookings.find { it.id == bookingId })
+                    }
+                }
             }.onFailure { e ->
                 _uiEvent.send(
                     BookingUiEvent.ShowSnackbar(

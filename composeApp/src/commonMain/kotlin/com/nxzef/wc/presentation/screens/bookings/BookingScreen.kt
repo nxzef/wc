@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,11 +18,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +55,8 @@ import com.nxzef.wc.presentation.screens.leads.WCDropdown
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
+import com.nxzef.wc.shared.model.User
+import com.nxzef.wc.shared.model.UserRole
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,24 +86,7 @@ fun BookingScreen(
             WCTopBar(
                 title = "Bookings",
                 subtitle = "${state.bookings.size} total bookings",
-                onBack = onBack,
-                actions = {
-                    Button(
-                        onClick = {
-                            viewModel.onAction(BookingAction.ShowCreateDialog)
-                        },
-                        modifier = Modifier.padding(end = 16.dp),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text("New Booking")
-                    }
-                }
+                onBack = onBack
             )
         }
     ) { padding ->
@@ -200,8 +199,11 @@ fun BookingScreen(
     // Booking detail dialog
     state.selectedBooking?.let { booking ->
         BookingDetailDialog(
+            modifier = Modifier.widthIn(max = 1000.dp),
             booking = booking,
+            leads = state.leads,
             tasks = state.tasks,
+            team = state.team,
             isTasksLoading = state.isTasksLoading,
             onDismiss = {
                 viewModel.onAction(BookingAction.DismissDetail)
@@ -211,6 +213,12 @@ fun BookingScreen(
                     BookingAction.OnUpdateStatus(booking.id, status)
                 )
                 viewModel.onAction(BookingAction.DismissDetail)
+            },
+            onAssignPhotographer = { userId ->
+                viewModel.onAction(BookingAction.AssignPhotographer(booking.id, userId))
+            },
+            onAssignEditor = { userId ->
+                viewModel.onAction(BookingAction.AssignEditor(booking.id, userId))
             },
             onTaskToggle = { taskId, isDone ->
                 viewModel.onAction(BookingAction.OnTaskToggle(taskId, isDone))
@@ -231,14 +239,6 @@ fun BookingScreen(
                 viewModel.onAction(BookingAction.OnNewTaskTitleChange(it))
                 viewModel.onAction(BookingAction.OnAddTask) 
             }
-        )
-    }
-
-    // Create booking dialog
-    if (state.showCreateDialog) {
-        CreateBookingDialog(
-            state = state,
-            onAction = viewModel::onAction
         )
     }
 }
@@ -289,12 +289,12 @@ fun BookingCard(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "📍 ${booking.location}",
+                    text = " ${booking.location}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "📅 ${booking.eventDate}",
+                    text = " ${booking.eventDate}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -307,23 +307,39 @@ fun BookingCard(
 
 @Composable
 fun BookingDetailDialog(
+    modifier: Modifier = Modifier,
     booking: Booking,
+    leads: List<com.nxzef.wc.shared.model.Lead>,
     tasks: List<com.nxzef.wc.shared.model.Task>,
+    team: List<User>,
     isTasksLoading: Boolean,
     onDismiss: () -> Unit,
     onUpdateStatus: (BookingStatus) -> Unit,
+    onAssignPhotographer: (String?) -> Unit,
+    onAssignEditor: (String?) -> Unit,
     onTaskToggle: (String, Boolean) -> Unit,
     onAddTaskClick: () -> Unit,
     onDeleteTask: (String) -> Unit
 ) {
+    val leadName = leads.find { it.id == booking.leadId }?.fullName ?: "Unknown Lead"
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = modifier,
         shape = MaterialTheme.shapes.large,
         title = {
-            Text(
-                text = "${booking.eventType} — ${booking.eventDate}",
-                fontWeight = FontWeight.Bold
-            )
+            Column {
+                Text(
+                    text = leadName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "${booking.eventType} — ${booking.eventDate}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
         text = {
             Column(
@@ -342,20 +358,48 @@ fun BookingDetailDialog(
                 HorizontalDivider()
 
                 Text(
-                    text = "📍 ${booking.location}",
+                    text = " ${booking.location}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "📅 ${booking.eventDate}",
+                    text = " ${booking.eventDate}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 booking.notes?.let {
                     Text(
-                        text = "📝 $it",
+                        text = " $it",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                HorizontalDivider()
+
+                // Assignments
+                val photographers = team.filter { it.role == UserRole.PHOTOGRAPHER }
+                val editors = team.filter { it.role == UserRole.EDITOR }
+
+                WCDropdown(
+                    label = "Photographer",
+                    selected = team.find { it.id == booking.photographerId }?.name ?: "Unassigned",
+                    options = listOf("Unassigned") + photographers.map { it.name },
+                    onSelect = { name ->
+                        if (name == "Unassigned") onAssignPhotographer(null)
+                        else photographers.find { it.name == name }?.let { onAssignPhotographer(it.id) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                WCDropdown(
+                    label = "Editor",
+                    selected = team.find { it.id == booking.editorId }?.name ?: "Unassigned",
+                    options = listOf("Unassigned") + editors.map { it.name },
+                    onSelect = { name ->
+                        if (name == "Unassigned") onAssignEditor(null)
+                        else editors.find { it.name == name }?.let { onAssignEditor(it.id) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 HorizontalDivider()
 
@@ -448,120 +492,6 @@ fun BookingDetailDialog(
                 shape = MaterialTheme.shapes.medium
             ) {
                 Text("Close")
-            }
-        }
-    )
-}
-
-@Composable
-fun CreateBookingDialog(
-    state: BookingState,
-    onAction: (BookingAction) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = { onAction(BookingAction.HideCreateDialog) },
-        shape = MaterialTheme.shapes.large,
-        title = {
-            Text(
-                text = "Create Booking",
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.widthIn(max = 400.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Select won lead
-                WCDropdown(
-                    modifier = Modifier.fillMaxWidth(),
-                    label = "Select Client (Won Lead) *",
-                    selected = state.wonLeads
-                        .find { it.id == state.selectedLeadId }
-                        ?.fullName ?: "Select client",
-                    options = state.wonLeads.map { it.fullName },
-                    onSelect = { name ->
-                        val lead = state.wonLeads
-                            .find { it.fullName == name }
-                        lead?.let {
-                            onAction(BookingAction.OnLeadSelected(it.id))
-                            onAction(
-                                BookingAction.OnEventTypeChange(
-                                    it.eventType.name
-                                )
-                            )
-                            it.eventDate?.let { date ->
-                                onAction(
-                                    BookingAction.OnEventDateChange(date)
-                                )
-                            }
-                        }
-                    }
-                )
-
-                OutlinedTextField(
-                    value = state.eventDate,
-                    onValueChange = {
-                        onAction(BookingAction.OnEventDateChange(it))
-                    },
-                    label = { Text("Event Date (YYYY-MM-DD) *") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    leadingIcon = {
-                        Icon(Icons.Default.CalendarMonth, null)
-                    }
-                )
-
-                OutlinedTextField(
-                    value = state.location,
-                    onValueChange = {
-                        onAction(BookingAction.OnLocationChange(it))
-                    },
-                    label = { Text("Location *") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    leadingIcon = {
-                        Icon(Icons.Default.LocationOn, null)
-                    }
-                )
-
-                OutlinedTextField(
-                    value = state.notes,
-                    onValueChange = {
-                        onAction(BookingAction.OnNotesChange(it))
-                    },
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    minLines = 2
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onAction(BookingAction.OnCreateBooking) },
-                enabled = !state.isCreating,
-                shape = MaterialTheme.shapes.medium
-            ) {
-                if (state.isCreating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Create Booking")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = { onAction(BookingAction.HideCreateDialog) },
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text("Cancel")
             }
         }
     )
