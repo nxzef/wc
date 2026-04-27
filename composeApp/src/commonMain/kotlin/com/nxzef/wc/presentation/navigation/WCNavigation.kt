@@ -126,47 +126,31 @@ fun AppNavHost(
         startDestination = startDestination,
         modifier = modifier,
         enterTransition = {
-            fadeIn(animationSpec = tween(300, easing = EaseOutQuart)) +
+            fadeIn(animationSpec = tween(300, easing = EaseOutCubic)) +
                     slideInHorizontally(
-                        initialOffsetX = { it / 8 },
-                        animationSpec = tween(300, easing = EaseOutQuart)
-                    ) +
-                    scaleIn(
-                        initialScale = 0.96f,
-                        animationSpec = tween(300, easing = EaseOutQuart)
+                        initialOffsetX = { it / 4 },
+                        animationSpec = tween(300, easing = EaseOutCubic)
                     )
         },
         exitTransition = {
-            fadeOut(animationSpec = tween(300, easing = EaseOutQuart)) +
+            fadeOut(animationSpec = tween(300, easing = EaseOutCubic)) +
                     slideOutHorizontally(
-                        targetOffsetX = { -it / 8 },
-                        animationSpec = tween(300, easing = EaseOutQuart)
-                    ) +
-                    scaleOut(
-                        targetScale = 1.04f,
-                        animationSpec = tween(300, easing = EaseOutQuart)
+                        targetOffsetX = { -it / 4 },
+                        animationSpec = tween(300, easing = EaseOutCubic)
                     )
         },
         popEnterTransition = {
-            fadeIn(animationSpec = tween(300, easing = EaseOutQuart)) +
+            fadeIn(animationSpec = tween(300, easing = EaseOutCubic)) +
                     slideInHorizontally(
-                        initialOffsetX = { -it / 8 },
-                        animationSpec = tween(300, easing = EaseOutQuart)
-                    ) +
-                    scaleIn(
-                        initialScale = 1.04f,
-                        animationSpec = tween(300, easing = EaseOutQuart)
+                        initialOffsetX = { -it / 4 },
+                        animationSpec = tween(300, easing = EaseOutCubic)
                     )
         },
         popExitTransition = {
-            fadeOut(animationSpec = tween(300, easing = EaseOutQuart)) +
+            fadeOut(animationSpec = tween(300, easing = EaseOutCubic)) +
                     slideOutHorizontally(
-                        targetOffsetX = { it / 8 },
-                        animationSpec = tween(300, easing = EaseOutQuart)
-                    ) +
-                    scaleOut(
-                        targetScale = 0.96f,
-                        animationSpec = tween(300, easing = EaseOutQuart)
+                        targetOffsetX = { it / 4 },
+                        animationSpec = tween(300, easing = EaseOutCubic)
                     )
         }
     ) {
