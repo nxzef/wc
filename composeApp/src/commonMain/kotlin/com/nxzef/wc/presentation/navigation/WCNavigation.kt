@@ -126,31 +126,31 @@ fun AppNavHost(
         startDestination = startDestination,
         modifier = modifier,
         enterTransition = {
-            fadeIn(animationSpec = tween(300, easing = EaseOutCubic)) +
+            fadeIn(animationSpec = tween(300, easing = EaseOutQuart)) +
                     slideInHorizontally(
                         initialOffsetX = { it / 4 },
-                        animationSpec = tween(300, easing = EaseOutCubic)
+                        animationSpec = tween(300, easing = EaseOutQuart)
                     )
         },
         exitTransition = {
-            fadeOut(animationSpec = tween(300, easing = EaseOutCubic)) +
+            fadeOut(animationSpec = tween(300, easing = EaseOutQuart)) +
                     slideOutHorizontally(
                         targetOffsetX = { -it / 4 },
-                        animationSpec = tween(300, easing = EaseOutCubic)
+                        animationSpec = tween(300, easing = EaseOutQuart)
                     )
         },
         popEnterTransition = {
-            fadeIn(animationSpec = tween(300, easing = EaseOutCubic)) +
+            fadeIn(animationSpec = tween(300, easing = EaseOutQuart)) +
                     slideInHorizontally(
                         initialOffsetX = { -it / 4 },
-                        animationSpec = tween(300, easing = EaseOutCubic)
+                        animationSpec = tween(300, easing = EaseOutQuart)
                     )
         },
         popExitTransition = {
-            fadeOut(animationSpec = tween(300, easing = EaseOutCubic)) +
+            fadeOut(animationSpec = tween(300, easing = EaseOutQuart)) +
                     slideOutHorizontally(
                         targetOffsetX = { it / 4 },
-                        animationSpec = tween(300, easing = EaseOutCubic)
+                        animationSpec = tween(300, easing = EaseOutQuart)
                     )
         }
     ) {

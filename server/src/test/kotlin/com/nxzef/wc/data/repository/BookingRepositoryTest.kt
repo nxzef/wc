@@ -30,7 +30,7 @@ class BookingRepositoryTest {
 
     @Before
     fun setup() {
-        DatabaseFactory.init("jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;MODE=PostgreSQL") // Unique DB per test
+        DatabaseFactory.init("jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;MODE=PostgreSQL") // Unique DB per test // Unique DB per test
         repository = BookingRepository()
 
         // Seed test data
