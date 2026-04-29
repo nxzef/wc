@@ -548,7 +548,7 @@ fun LeadDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = modifier,
+        modifier = modifier.widthIn(max = 800.dp),
         shape = MaterialTheme.shapes.large,
         title = {
             Row(
@@ -556,159 +556,201 @@ fun LeadDetailDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = lead.fullName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Column {
+                    Text(
+                        text = lead.fullName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${lead.eventType} — ${lead.eventDate ?: "Date TBD"}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 LeadStatusBadge(status = lead.status)
             }
         },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.widthIn(max = 400.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 400.dp, max = 600.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DetailRow("📱 Phone", lead.phone)
-                    lead.email?.let { DetailRow("📧 Email", it) }
-                    DetailRow("🎉 Event", lead.eventType.name)
-                    lead.eventDate?.let { DetailRow("📅 Date", it) }
-                    lead.location?.let { DetailRow("📍 Location", it) }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 4.dp)
-                    ) {
-                        Text(
-                            text = "📣 Source",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.width(90.dp)
-                        )
-                        LeadSourceBadge(source = lead.source)
-                    }
-                }
-
-                HorizontalDivider()
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // Left Side: Details & Status
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Related Tasks",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        text = "Lead Information",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                    IconButton(onClick = onAddTaskClick) {
-                        Icon(
-                            Icons.Default.AddCircleOutline,
-                            contentDescription = "Add Task",
-                            tint = MaterialTheme.colorScheme.primary
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DetailRow("📱 Phone", lead.phone)
+                        lead.email?.let { DetailRow("📧 Email", it) }
+                        DetailRow("🎉 Event", lead.eventType.name)
+                        lead.eventDate?.let { DetailRow("📅 Date", it) }
+                        lead.location?.let { DetailRow("📍 Location", it) }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Text(
+                                text = "📣 Source",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.width(90.dp)
+                            )
+                            LeadSourceBadge(source = lead.source)
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                    if (lead.status == LeadStatus.NEGOTIATING) {
+                        Button(
+                            onClick = onViewQuotes,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Icon(Icons.Default.Payments, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("View Quotes & Financials")
+                        }
+                    }
+
+                    if (lead.status == LeadStatus.WON) {
+                        Button(
+                            onClick = { onViewBooking() },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = WCTheme.colors.statusWon
+                            )
+                        ) {
+                            Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("View Booking")
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        label = { Text("Lead Notes") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        minLines = 3
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                    if (lead.status == LeadStatus.LOST) {
+                        Button(
+                            onClick = { onUpdateStatus(LeadStatus.NEW, null) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text("Reopen Lead")
+                        }
+                    } else if (lead.status != LeadStatus.WON) {
+                        Text(
+                            text = "Update Status",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
                         )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.horizontalScroll(rememberScrollState())
+                        ) {
+                            val availableStatuses = when (lead.status) {
+                                LeadStatus.NEW -> listOf(LeadStatus.CONTACTED, LeadStatus.LOST)
+                                LeadStatus.CONTACTED -> listOf(LeadStatus.NEGOTIATING, LeadStatus.LOST)
+                                LeadStatus.NEGOTIATING -> listOf(LeadStatus.WON, LeadStatus.LOST)
+                                else -> emptyList()
+                            }
+
+                            availableStatuses.forEach { stage ->
+                                val stageColor = when (stage) {
+                                    LeadStatus.NEW -> WCTheme.colors.statusNew
+                                    LeadStatus.CONTACTED -> WCTheme.colors.statusContacted
+                                    LeadStatus.NEGOTIATING -> WCTheme.colors.statusNegotiating
+                                    LeadStatus.WON -> WCTheme.colors.statusWon
+                                    LeadStatus.LOST -> WCTheme.colors.statusLost
+                                }
+                                OutlinedButton(
+                                    onClick = { onUpdateStatus(stage, notes.ifBlank { null }) },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = stageColor),
+                                    shape = MaterialTheme.shapes.medium,
+                                    modifier = Modifier.height(36.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp)
+                                ) {
+                                    Text(text = stage.name, style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
                     }
                 }
 
-                if (isTasksLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally)
-                    )
-                } else if (tasks.isEmpty()) {
-                    Text(
-                        text = "No tasks for this lead",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        tasks.forEach { task ->
-                            TaskCheckItem(
-                                task = task,
-                                onToggle = { onTaskToggle(task.id, it) },
-                                onDelete = { onDeleteTask(task.id) }
+                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                // Right Side: Tasks
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Follow-up Tasks",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        IconButton(onClick = onAddTaskClick) {
+                            Icon(
+                                Icons.Default.AddCircleOutline,
+                                contentDescription = "Add Task",
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
-                }
 
-                HorizontalDivider()
-
-                if (lead.status == LeadStatus.NEGOTIATING) {
-                    Button(
-                        onClick = onViewQuotes,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text("View Quotes & Financials")
-                    }
-                    HorizontalDivider()
-                }
-
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Lead Notes") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    minLines = 3
-                )
-
-                HorizontalDivider()
-
-                if (lead.status == LeadStatus.WON) {
-                    Button(
-                        onClick = { onViewBooking() },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text("View Booking")
-                    }
-                } else if (lead.status == LeadStatus.LOST) {
-                    Button(
-                        onClick = { onUpdateStatus(LeadStatus.NEW, null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text("Reopen Lead")
-                    }
-                } else {
-                    Text(
-                        text = "Quick Status Update",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.horizontalScroll(rememberScrollState())
-                    ) {
-                        val availableStatuses = when (lead.status) {
-                            LeadStatus.NEW -> listOf(LeadStatus.CONTACTED, LeadStatus.LOST)
-                            LeadStatus.CONTACTED -> listOf(LeadStatus.NEGOTIATING, LeadStatus.LOST)
-                            LeadStatus.NEGOTIATING -> listOf(LeadStatus.LOST)
-                            else -> emptyList()
-                        }
-
-                        availableStatuses.forEach { stage ->
-                            val stageColor = when (stage) {
-                                LeadStatus.NEW -> WCTheme.colors.statusNew
-                                LeadStatus.CONTACTED -> WCTheme.colors.statusContacted
-                                LeadStatus.NEGOTIATING -> WCTheme.colors.statusNegotiating
-                                LeadStatus.WON -> WCTheme.colors.statusWon
-                                LeadStatus.LOST -> WCTheme.colors.statusLost
-                            }
-                            OutlinedButton(
-                                onClick = { onUpdateStatus(stage, notes.ifBlank { null }) },
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = stageColor),
-                                shape = MaterialTheme.shapes.small,
-                                modifier = Modifier.height(36.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp)
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (isTasksLoading) {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                        } else if (tasks.isEmpty()) {
+                            Text(
+                                "No tasks for this lead",
+                                modifier = Modifier.align(Alignment.Center),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(bottom = 16.dp)
                             ) {
-                                Text(text = stage.name, style = MaterialTheme.typography.labelMedium)
+                                items(tasks) { task ->
+                                    TaskCheckItem(
+                                        task = task,
+                                        onToggle = { onTaskToggle(task.id, it) },
+                                        onDelete = { onDeleteTask(task.id) }
+                                    )
+                                }
                             }
                         }
                     }
