@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val apiService: ApiService,
-    private val sessionManager: SessionManager
+    sessionManager: SessionManager
 ) : ViewModel() {
 
     val user: User? = sessionManager.getUser()
