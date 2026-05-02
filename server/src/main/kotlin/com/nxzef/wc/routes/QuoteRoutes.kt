@@ -5,14 +5,13 @@ import com.nxzef.wc.data.repository.InvoiceRepository
 import com.nxzef.wc.data.repository.LeadRepository
 import com.nxzef.wc.data.repository.QuoteRepository
 import com.nxzef.wc.data.repository.TaskRepository
+import com.nxzef.wc.domain.service.EmailService
 import com.nxzef.wc.domain.service.NotificationService
 import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.CreateBookingRequest
 import com.nxzef.wc.shared.model.CreateInvoiceRequest
-import com.nxzef.wc.shared.model.CreateQuoteRequest
-import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.QuoteStatus
-import com.nxzef.wc.shared.model.UpdateLeadStatusRequest
+import com.nxzef.wc.shared.model.SendQuoteRequest
 import com.nxzef.wc.shared.model.UpdateQuoteStatusRequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -32,7 +31,8 @@ fun Route.quoteRoutes(
     bookingRepository: BookingRepository,
     taskRepository: TaskRepository,
     invoiceRepository: InvoiceRepository,
-    notificationService: NotificationService
+    notificationService: NotificationService,
+    emailService: EmailService
 ) {
     route("/quotes") {
 
@@ -62,17 +62,40 @@ fun Route.quoteRoutes(
             call.respond(quote.toDto())
         }
 
-        // POST create quote
-        post {
+        // POST send quote (PDF via base64 + email)
+        post("/send") {
             val principal = call.principal<JWTPrincipal>()
             val createdBy = principal?.payload
                 ?.getClaim("userId")?.asString()
-                ?: return@post call.respond(
-                    HttpStatusCode.Unauthorized,
-                    "Unauthorized"
-                )
-            val request = call.receive<CreateQuoteRequest>()
-            val quote = quoteRepository.create(request, createdBy)
+                ?: return@post call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+
+            val request = call.receive<SendQuoteRequest>()
+            val pdfBytes = java.util.Base64.getDecoder().decode(request.fileBase64)
+
+            emailService.sendQuoteEmail(
+                to = request.clientEmail,
+                fileName = request.fileName,
+                pdfBytes = pdfBytes
+            )
+
+            val quote = quoteRepository.sendQuote(
+                leadId = request.leadId,
+                createdByUserId = createdBy,
+                fileName = request.fileName
+            )
+
+            val lead = leadRepository.getById(quote.leadId)
+            val ownerId = notificationService.getOwnerId()
+            if (lead != null) {
+                ownerId?.let {
+                    notificationService.notify(
+                        userId = it,
+                        title = "Quote Sent to ${lead.fullName}",
+                        message = "A quote PDF was emailed to ${request.clientEmail}"
+                    )
+                }
+            }
+
             call.respond(HttpStatusCode.Created, quote.toDto())
         }
 
@@ -172,11 +195,6 @@ fun Route.quoteRoutes(
                             createdBy = userId
                         )
 
-                        // 4. Update lead status to WON
-                        leadRepository.updateStatus(
-                            lead.id,
-                            UpdateLeadStatusRequest(status = LeadStatus.WON)
-                        )
                     }
                 }
             }

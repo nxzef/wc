@@ -37,6 +37,9 @@ dependencies {
     implementation(libs.postgresql)
     implementation(libs.hikari)
 
+    // Email
+    implementation("com.sun.mail:jakarta.mail:2.0.1")
+
     // Security
     implementation(libs.bcrypt)
 

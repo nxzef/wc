@@ -49,7 +49,6 @@ import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadSource
-import com.nxzef.wc.shared.model.LeadStatus
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -149,10 +148,10 @@ fun MarketingScreen(
                             // Conversion summary
                             item {
                                 val won = state.leads.count {
-                                    it.status == LeadStatus.WON
+                                    it.statusName.equals("WON", ignoreCase = true)
                                 }
                                 val lost = state.leads.count {
-                                    it.status == LeadStatus.LOST
+                                    it.statusName.equals("LOST", ignoreCase = true)
                                 }
                                 val total = state.leads.size
                                 val rate = if (total > 0)
@@ -395,7 +394,7 @@ fun MarketingLeadCard(lead: Lead) {
                 }
             }
 
-            LeadStatusBadge(status = lead.status)
+            LeadStatusBadge(statusName = lead.statusName, color = lead.customStatus?.color)
         }
     }
 }

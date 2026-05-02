@@ -24,46 +24,32 @@ fun Route.leadRoutes(
 ) {
     route("/leads") {
 
-        // GET all leads
         get {
             val leads = leadRepository.getAll()
             call.respond(leads.map { it.toDto() })
         }
 
-        // GET lead by id
         get("/{id}") {
             val id = call.parameters["id"]
-                ?: return@get call.respond(
-                    HttpStatusCode.BadRequest,
-                    "Missing id"
-                )
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing id")
             val lead = leadRepository.getById(id)
-                ?: return@get call.respond(
-                    HttpStatusCode.NotFound,
-                    "Lead not found"
-                )
+                ?: return@get call.respond(HttpStatusCode.NotFound, "Lead not found")
             call.respond(lead.toDto())
         }
 
-        // POST create lead
         post {
             val principal = call.principal<JWTPrincipal>()
-            val addedBy = principal?.payload
-                ?.getClaim("userId")?.asString()
-                ?: return@post call.respond(
-                    HttpStatusCode.Unauthorized, "Unauthorized"
-                )
+            val addedBy = principal?.payload?.getClaim("userId")?.asString()
+                ?: return@post call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
             val request = call.receive<CreateLeadRequest>()
             val lead = leadRepository.create(request, addedBy)
 
-            // Auto create default tasks for this lead
             taskRepository.createDefaultLeadTasks(
                 leadId = lead.id,
                 assignedTo = request.assignedTo,
                 createdBy = addedBy
             )
 
-            // Notify assigned user
             notificationService.notify(
                 userId = request.assignedTo,
                 title = "New Lead Assigned",
@@ -73,19 +59,12 @@ fun Route.leadRoutes(
             call.respond(HttpStatusCode.Created, lead.toDto())
         }
 
-        // PUT update lead status
         put("/{id}/status") {
             val id = call.parameters["id"]
-                ?: return@put call.respond(
-                    HttpStatusCode.BadRequest,
-                    "Missing id"
-                )
+                ?: return@put call.respond(HttpStatusCode.BadRequest, "Missing id")
             val request = call.receive<UpdateLeadStatusRequest>()
             val lead = leadRepository.updateStatus(id, request)
-                ?: return@put call.respond(
-                    HttpStatusCode.NotFound,
-                    "Lead not found"
-                )
+                ?: return@put call.respond(HttpStatusCode.NotFound, "Lead not found")
             call.respond(lead.toDto())
         }
     }

@@ -3,8 +3,8 @@ package com.nxzef.wc.data.remote
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.QuoteDto
 import com.nxzef.wc.shared.dto.toDomain
-import com.nxzef.wc.shared.model.CreateQuoteRequest
 import com.nxzef.wc.shared.model.Quote
+import com.nxzef.wc.shared.model.SendQuoteRequest
 import com.nxzef.wc.shared.model.UpdateQuoteStatusRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -32,8 +32,8 @@ class QuoteService(private val client: HttpClient) {
         return dto.toDomain()
     }
 
-    suspend fun create(request: CreateQuoteRequest): Quote {
-        val dto: QuoteDto = client.post("${ApiClient.BASE_URL}/quotes") {
+    suspend fun sendQuote(request: SendQuoteRequest): Quote {
+        val dto: QuoteDto = client.post("${ApiClient.BASE_URL}/quotes/send") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)

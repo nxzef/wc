@@ -212,8 +212,8 @@ fun AppNavHost(
                 onAddLead = {
                     navController.navigate(Route.AddLead)
                 },
-                onViewQuotes = { leadId ->
-                    navController.navigate(Route.Quotes(leadId))
+                onViewQuotes = { leadId, clientName, clientEmail ->
+                    navController.navigate(Route.Quotes(leadId, clientName, clientEmail))
                 },
                 onViewBooking = {
                     navController.navigate(Route.Bookings) {
@@ -271,6 +271,8 @@ fun AppNavHost(
             val route: Route.Quotes = backStackEntry.toRoute()
             QuoteScreen(
                 leadId = route.leadId,
+                clientName = route.clientName,
+                clientEmail = route.clientEmail,
                 onBack = { navController.popBackStack() }
             )
         }

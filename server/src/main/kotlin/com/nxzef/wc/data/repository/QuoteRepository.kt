@@ -2,7 +2,6 @@ package com.nxzef.wc.data.repository
 
 import com.nxzef.wc.data.db.tables.QuoteItemsTable
 import com.nxzef.wc.data.db.tables.QuotesTable
-import com.nxzef.wc.shared.model.CreateQuoteRequest
 import com.nxzef.wc.shared.model.Quote
 import com.nxzef.wc.shared.model.QuoteItem
 import com.nxzef.wc.shared.model.QuoteStatus
@@ -13,7 +12,6 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.time.Instant
-import java.time.LocalDate
 
 class QuoteRepository {
 
@@ -31,8 +29,7 @@ class QuoteRepository {
         return QuoteItemsTable
             .selectAll()
             .where {
-                QuoteItemsTable.quoteId eq
-                        java.util.UUID.fromString(quoteId)
+                QuoteItemsTable.quoteId eq java.util.UUID.fromString(quoteId)
             }
             .map { rowToQuoteItem(it) }
     }
@@ -49,6 +46,7 @@ class QuoteRepository {
             status = QuoteStatus.valueOf(row[QuotesTable.status]),
             items = items,
             totalAmount = items.sumOf { it.price },
+            fileName = row[QuotesTable.fileName],
             createdAt = row[QuotesTable.createdAt].toString()
         )
     }
@@ -57,10 +55,7 @@ class QuoteRepository {
         return transaction {
             QuotesTable
                 .selectAll()
-                .where {
-                    QuotesTable.leadId eq
-                            java.util.UUID.fromString(leadId)
-                }
+                .where { QuotesTable.leadId eq java.util.UUID.fromString(leadId) }
                 .map { rowToQuote(it) }
         }
     }
@@ -69,39 +64,25 @@ class QuoteRepository {
         return transaction {
             QuotesTable
                 .selectAll()
-                .where {
-                    QuotesTable.id eq
-                            java.util.UUID.fromString(id)
-                }
+                .where { QuotesTable.id eq java.util.UUID.fromString(id) }
                 .singleOrNull()
                 ?.let { rowToQuote(it) }
         }
     }
 
-    fun create(
-        request: CreateQuoteRequest,
-        createdByUserId: String
+    fun sendQuote(
+        leadId: String,
+        createdByUserId: String,
+        fileName: String
     ): Quote {
         return transaction {
             val insertedId = QuotesTable.insert {
-                it[leadId] = java.util.UUID.fromString(request.leadId)
-                it[createdBy] = java.util.UUID.fromString(createdByUserId)
-                it[validUntil] = request.validUntil?.let { d ->
-                    LocalDate.parse(d)
-                }
-                it[notes] = request.notes
-                it[status] = QuoteStatus.DRAFT.name
-                it[createdAt] = Instant.now()
+                it[QuotesTable.leadId] = java.util.UUID.fromString(leadId)
+                it[QuotesTable.createdBy] = java.util.UUID.fromString(createdByUserId)
+                it[QuotesTable.status] = QuoteStatus.SENT.name
+                it[QuotesTable.fileName] = fileName
+                it[QuotesTable.createdAt] = Instant.now()
             }[QuotesTable.id]
-
-            request.items.forEach { item ->
-                QuoteItemsTable.insert {
-                    it[QuoteItemsTable.quoteId] = insertedId
-                    it[QuoteItemsTable.description] = item.description
-                    it[QuoteItemsTable.price] = item.price.toBigDecimal()
-                    it[QuoteItemsTable.createdAt] = Instant.now()
-                }
-            }
 
             getById(insertedId.toString())!!
         }

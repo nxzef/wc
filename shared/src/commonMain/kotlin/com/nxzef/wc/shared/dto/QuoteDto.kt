@@ -24,6 +24,7 @@ data class QuoteDto(
     val status: String,
     val items: List<QuoteItemDto> = emptyList(),
     val totalAmount: Double = 0.0,
+    val fileName: String? = null,
     val createdAt: String
 )
 
@@ -57,6 +58,7 @@ fun QuoteDto.toDomain(): Quote {
         status = try { QuoteStatus.valueOf(status) } catch (e: Exception) { QuoteStatus.DRAFT },
         items = items.map { it.toDomain() },
         totalAmount = totalAmount,
+        fileName = fileName,
         createdAt = createdAt
     )
 }
@@ -71,6 +73,7 @@ fun Quote.toDto(): QuoteDto {
         status = status.name,
         items = items.map { it.toDto() },
         totalAmount = totalAmount,
+        fileName = fileName,
         createdAt = createdAt
     )
 }

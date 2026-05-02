@@ -4,6 +4,7 @@ import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.InvoicesTable
 import com.nxzef.wc.data.db.tables.LeadsTable
 import com.nxzef.wc.data.db.tables.NotificationsTable
+import com.nxzef.wc.data.db.tables.LeadStatusesTable
 import com.nxzef.wc.data.db.tables.QuoteItemsTable
 import com.nxzef.wc.data.db.tables.QuotesTable
 import com.nxzef.wc.data.db.tables.TasksTable
@@ -39,6 +40,7 @@ object DatabaseFactory {
         transaction {
             SchemaUtils.create(
                 UsersTable,
+                LeadStatusesTable,
                 LeadsTable,
                 QuotesTable,
                 QuoteItemsTable,
@@ -49,6 +51,7 @@ object DatabaseFactory {
             )
         }
 
+        com.nxzef.wc.data.repository.LeadStatusRepository().seedDefault()
         println("\uD83D\uDFE2 Database connected and tables created")
     }
 }

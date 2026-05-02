@@ -4,17 +4,20 @@ import com.nxzef.wc.data.repository.BookingRepository
 import com.nxzef.wc.data.repository.DashboardRepository
 import com.nxzef.wc.data.repository.InvoiceRepository
 import com.nxzef.wc.data.repository.LeadRepository
+import com.nxzef.wc.data.repository.LeadStatusRepository
 import com.nxzef.wc.data.repository.NotificationRepository
 import com.nxzef.wc.data.repository.QuoteRepository
 import com.nxzef.wc.data.repository.TaskRepository
 import com.nxzef.wc.data.repository.UserRepository
 import com.nxzef.wc.domain.service.AuthService
+import com.nxzef.wc.domain.service.EmailService
 import com.nxzef.wc.domain.service.NotificationService
 import com.nxzef.wc.routes.authRoutes
 import com.nxzef.wc.routes.bookingRoutes
 import com.nxzef.wc.routes.dashboardRoutes
 import com.nxzef.wc.routes.invoiceRoutes
 import com.nxzef.wc.routes.leadRoutes
+import com.nxzef.wc.routes.leadStatusRoutes
 import com.nxzef.wc.routes.notificationRoutes
 import com.nxzef.wc.routes.quoteRoutes
 import com.nxzef.wc.routes.taskRoutes
@@ -40,6 +43,8 @@ fun Application.configureRouting() {
 
     val authService by inject<AuthService>()
     val notificationService by inject<NotificationService>()
+    val emailService by inject<EmailService>()
+    val leadStatusRepository by inject<LeadStatusRepository>()
 
     userRepository.seedOwner()
 
@@ -63,8 +68,10 @@ fun Application.configureRouting() {
 
             // Lead
             leadRoutes(leadRepository, taskRepository, notificationService)
+            // Lead Statuses
+            leadStatusRoutes(leadStatusRepository)
             // Quote
-            quoteRoutes(quoteRepository, leadRepository, bookingRepository, taskRepository, invoiceRepository, notificationService)
+            quoteRoutes(quoteRepository, leadRepository, bookingRepository, taskRepository, invoiceRepository, notificationService, emailService)
             // Booking
             bookingRoutes(bookingRepository, taskRepository, leadRepository, notificationService)
             // Invoice

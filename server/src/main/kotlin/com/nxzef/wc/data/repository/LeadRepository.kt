@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.repository
 
+import com.nxzef.wc.data.db.tables.LeadStatusesTable
 import com.nxzef.wc.data.db.tables.LeadsTable
 import com.nxzef.wc.shared.model.CreateLeadRequest
 import com.nxzef.wc.shared.model.EventType
@@ -19,6 +20,29 @@ import java.time.LocalDate
 class LeadRepository {
 
     fun rowToLead(row: ResultRow): Lead {
+        val customStatusId = row[LeadsTable.customStatusId]
+        val customStatus: LeadStatus?
+        val statusName: String
+
+        if (customStatusId != null) {
+            val statusRow = LeadStatusesTable
+                .selectAll()
+                .where { LeadStatusesTable.id eq customStatusId }
+                .singleOrNull()
+            statusName = statusRow?.get(LeadStatusesTable.name) ?: row[LeadsTable.status]
+            customStatus = statusRow?.let {
+                LeadStatus(
+                    id = it[LeadStatusesTable.id].toString(),
+                    name = it[LeadStatusesTable.name],
+                    color = it[LeadStatusesTable.color],
+                    isDefault = it[LeadStatusesTable.isDefault]
+                )
+            }
+        } else {
+            statusName = row[LeadsTable.status]
+            customStatus = null
+        }
+
         return Lead(
             id = row[LeadsTable.id].toString(),
             fullName = row[LeadsTable.fullName],
@@ -28,7 +52,9 @@ class LeadRepository {
             eventType = EventType.valueOf(row[LeadsTable.eventType]),
             eventDate = row[LeadsTable.eventDate]?.toString(),
             location = row[LeadsTable.location],
-            status = LeadStatus.valueOf(row[LeadsTable.status]),
+            statusName = statusName,
+            customStatus = customStatus,
+            priority = row[LeadsTable.priority],
             lostReason = row[LeadsTable.lostReason],
             notes = row[LeadsTable.notes],
             addedBy = row[LeadsTable.addedBy].toString(),
@@ -56,29 +82,24 @@ class LeadRepository {
         }
     }
 
-    fun getByStatus(status: LeadStatus): List<Lead> {
-        return transaction {
-            LeadsTable
-                .selectAll()
-                .where { LeadsTable.status eq status.name }
-                .orderBy(LeadsTable.createdAt, SortOrder.DESC)
-                .map { rowToLead(it) }
-        }
-    }
-
     fun create(request: CreateLeadRequest, addedByUserId: String): Lead {
         return transaction {
+            val defaultStatus = LeadStatusesTable
+                .selectAll()
+                .where { LeadStatusesTable.isDefault eq true }
+                .firstOrNull()
+
             val id = LeadsTable.insert {
                 it[fullName] = request.fullName
                 it[phone] = request.phone
                 it[email] = request.email
                 it[leadSource] = request.source.name
                 it[eventType] = request.eventType.name
-                it[eventDate] = request.eventDate?.let { d ->
-                    LocalDate.parse(d)
-                }
+                it[eventDate] = request.eventDate?.let { d -> LocalDate.parse(d) }
                 it[location] = request.location
-                it[status] = LeadStatus.NEW.name
+                it[priority] = request.priority
+                it[status] = "New"
+                it[customStatusId] = defaultStatus?.get(LeadStatusesTable.id)
                 it[notes] = request.notes
                 it[addedBy] = java.util.UUID.fromString(addedByUserId)
                 it[assignedTo] = java.util.UUID.fromString(request.assignedTo)
@@ -89,15 +110,12 @@ class LeadRepository {
         }
     }
 
-    fun updateStatus(
-        id: String,
-        request: UpdateLeadStatusRequest
-    ): Lead? {
+    fun updateStatus(id: String, request: UpdateLeadStatusRequest): Lead? {
         return transaction {
             LeadsTable.update(
                 { LeadsTable.id eq java.util.UUID.fromString(id) }
             ) {
-                it[status] = request.status.name
+                it[customStatusId] = java.util.UUID.fromString(request.customStatusId)
                 it[lostReason] = request.lostReason
                 if (request.notes != null) {
                     it[notes] = request.notes

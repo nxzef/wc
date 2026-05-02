@@ -19,6 +19,15 @@ import io.ktor.http.contentType
 
 class TaskService(private val client: HttpClient) {
 
+    suspend fun getActiveCountByLeadId(leadId: String): Int {
+        val result: Map<String, Int> = client.get(
+            "${ApiClient.BASE_URL}/tasks/count/lead/$leadId"
+        ) {
+            header("Authorization", "Bearer ${SessionManager.getToken()}")
+        }.body()
+        return result["count"] ?: 0
+    }
+
     suspend fun getByLeadId(leadId: String): List<Task> {
         val dtos: List<TaskDto> = client.get(
             "${ApiClient.BASE_URL}/tasks/lead/$leadId"

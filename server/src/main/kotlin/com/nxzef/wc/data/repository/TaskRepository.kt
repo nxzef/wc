@@ -31,6 +31,18 @@ class TaskRepository {
         )
     }
 
+    fun getActiveCountByLeadId(leadId: String): Int {
+        return transaction {
+            TasksTable
+                .selectAll()
+                .where {
+                    (TasksTable.leadId eq java.util.UUID.fromString(leadId)) and
+                    (TasksTable.isDone eq false)
+                }
+                .count().toInt()
+        }
+    }
+
     fun getByLeadId(leadId: String): List<Task> {
         return transaction {
             TasksTable

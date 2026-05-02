@@ -13,7 +13,7 @@ import com.nxzef.wc.domain.usecase.invoices.UpdatePaymentUseCase
 import com.nxzef.wc.domain.usecase.leads.CreateLeadUseCase
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.domain.usecase.leads.UpdateLeadStatusUseCase
-import com.nxzef.wc.domain.usecase.quotes.CreateQuoteUseCase
+import com.nxzef.wc.domain.usecase.quotes.SendQuoteUseCase
 import com.nxzef.wc.domain.usecase.quotes.GetQuotesByLeadIdUseCase
 import com.nxzef.wc.domain.usecase.quotes.UpdateQuoteStatusUseCase
 import com.nxzef.wc.domain.usecase.tasks.CreateTaskUseCase
@@ -44,7 +44,7 @@ val useCaseModule = module {
     factory { GetMyShootsUseCase(get()) }
     factory { GetMyEditingQueueUseCase(get()) }
     factory { GetQuotesByLeadIdUseCase(get()) }
-    factory { CreateQuoteUseCase(get()) }
+    factory { SendQuoteUseCase(get()) }
     factory { UpdateQuoteStatusUseCase(get()) }
     factory { GetMyPendingTasksUseCase(get()) }
     factory { GetTasksByLeadUseCase(get()) }

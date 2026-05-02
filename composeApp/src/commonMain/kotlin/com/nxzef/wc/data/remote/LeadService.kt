@@ -5,7 +5,6 @@ import com.nxzef.wc.shared.dto.LeadDto
 import com.nxzef.wc.shared.dto.toDomain
 import com.nxzef.wc.shared.model.CreateLeadRequest
 import com.nxzef.wc.shared.model.Lead
-import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.UpdateLeadStatusRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -32,18 +31,13 @@ class LeadService(
 
     suspend fun updateLeadStatus(
         id: String,
-        status: LeadStatus,
+        customStatusId: String,
         notes: String? = null
     ): Lead {
         val dto: LeadDto = client.put("$baseUrl/leads/$id/status") {
             header("Authorization", "Bearer ${sessionManager.getToken()}")
             contentType(ContentType.Application.Json)
-            setBody(
-                UpdateLeadStatusRequest(
-                    status = status,
-                    notes = notes
-                )
-            )
+            setBody(UpdateLeadStatusRequest(customStatusId = customStatusId, notes = notes))
         }.body()
         return dto.toDomain()
     }

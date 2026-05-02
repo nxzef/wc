@@ -2,6 +2,8 @@ package com.nxzef.wc.presentation.screens.leads
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nxzef.wc.domain.repository.LeadStatusRepository
+import com.nxzef.wc.domain.repository.TaskRepository
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.domain.usecase.leads.UpdateLeadStatusUseCase
 import com.nxzef.wc.domain.usecase.tasks.CreateTaskUseCase
@@ -9,9 +11,11 @@ import com.nxzef.wc.domain.usecase.tasks.DeleteTaskUseCase
 import com.nxzef.wc.domain.usecase.tasks.GetTasksByLeadUseCase
 import com.nxzef.wc.domain.usecase.tasks.MarkTaskDoneUseCase
 import com.nxzef.wc.shared.model.CreateTaskRequest
-import com.nxzef.wc.shared.model.LeadStatus
+import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +30,9 @@ class LeadPipelineViewModel(
     private val getTasksByLeadUseCase: GetTasksByLeadUseCase,
     private val markTaskDoneUseCase: MarkTaskDoneUseCase,
     private val createTaskUseCase: CreateTaskUseCase,
-    private val deleteTaskUseCase: DeleteTaskUseCase
+    private val deleteTaskUseCase: DeleteTaskUseCase,
+    private val leadStatusRepository: LeadStatusRepository,
+    private val taskRepository: TaskRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LeadPipelineState())
@@ -36,34 +42,54 @@ class LeadPipelineViewModel(
     val uiEvent = _uiEvent.receiveAsFlow()
 
     init {
+        loadStatuses()
         onAction(LeadPipelineAction.LoadLeads)
     }
 
     fun onAction(action: LeadPipelineAction) {
         when (action) {
-            is LeadPipelineAction.LoadLeads ->
-                loadLeads()
-
+            is LeadPipelineAction.LoadLeads -> loadLeads()
             is LeadPipelineAction.SelectLead -> {
                 _state.update { it.copy(selectedLead = action.lead) }
                 loadTasks(action.lead.id)
             }
-
             is LeadPipelineAction.DismissDetail ->
                 _state.update { it.copy(selectedLead = null, tasks = emptyList()) }
-
             is LeadPipelineAction.UpdateStatus ->
-                updateStatus(action.leadId, action.status, action.notes)
-
+                updateStatus(action.leadId, action.customStatusId, action.notes)
             is LeadPipelineAction.MarkTaskDone ->
                 markTaskDone(action.taskId, action.isDone)
-
             LeadPipelineAction.ShowAddTaskDialog -> _state.update { it.copy(showAddTaskDialog = true) }
             LeadPipelineAction.HideAddTaskDialog -> _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
             is LeadPipelineAction.OnNewTaskTitleChange -> _state.update { it.copy(newTaskTitle = action.title) }
             LeadPipelineAction.OnAddTask -> addTask()
             is LeadPipelineAction.OnDeleteTask -> deleteTask(action.taskId)
-            is LeadPipelineAction.SetFilter -> _state.update { it.copy(currentFilter = action.filter) }
+            LeadPipelineAction.ShowCreateStatusDialog -> _state.update { it.copy(showCreateStatusDialog = true) }
+            LeadPipelineAction.HideCreateStatusDialog -> _state.update { it.copy(showCreateStatusDialog = false) }
+            is LeadPipelineAction.CreateStatus -> createStatus(action.name, action.color)
+        }
+    }
+
+    private fun loadStatuses() {
+        viewModelScope.launch {
+            leadStatusRepository.getAll().onSuccess { statuses ->
+                _state.update { it.copy(statuses = statuses) }
+            }
+        }
+    }
+
+    private fun createStatus(name: String, color: String) {
+        viewModelScope.launch {
+            leadStatusRepository.create(name, color)
+                .onSuccess { newStatus ->
+                    _state.update { it.copy(
+                        statuses = it.statuses + newStatus,
+                        showCreateStatusDialog = false
+                    ) }
+                }
+                .onFailure { error ->
+                    _uiEvent.send(LeadPipelineUiEvent.ShowError(error.message ?: "Failed to create status"))
+                }
         }
     }
 
@@ -74,14 +100,11 @@ class LeadPipelineViewModel(
 
         viewModelScope.launch {
             createTaskUseCase(
-                CreateTaskRequest(
-                    leadId = leadId,
-                    title = s.newTaskTitle,
-                    assignedTo = ""
-                )
+                CreateTaskRequest(leadId = leadId, title = s.newTaskTitle, assignedTo = "")
             ).onSuccess {
                 _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
                 loadTasks(leadId)
+                refreshTaskCount(leadId)
             }
         }
     }
@@ -91,6 +114,7 @@ class LeadPipelineViewModel(
             deleteTaskUseCase(taskId).onSuccess {
                 val leadId = _state.value.selectedLead?.id ?: return@onSuccess
                 loadTasks(leadId)
+                refreshTaskCount(leadId)
             }
         }
     }
@@ -102,6 +126,8 @@ class LeadPipelineViewModel(
                     _state.update { s ->
                         s.copy(tasks = s.tasks.map { if (it.id == taskId) updatedTask else it })
                     }
+                    val leadId = _state.value.selectedLead?.id ?: return@onSuccess
+                    refreshTaskCount(leadId)
                 }
         }
     }
@@ -110,12 +136,8 @@ class LeadPipelineViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isTasksLoading = true) }
             getTasksByLeadUseCase(leadId)
-                .onSuccess { tasks ->
-                    _state.update { it.copy(tasks = tasks, isTasksLoading = false) }
-                }
-                .onFailure {
-                    _state.update { it.copy(isTasksLoading = false) }
-                }
+                .onSuccess { tasks -> _state.update { it.copy(tasks = tasks, isTasksLoading = false) } }
+                .onFailure { _state.update { it.copy(isTasksLoading = false) } }
         }
     }
 
@@ -125,32 +147,41 @@ class LeadPipelineViewModel(
             getAllLeadsUseCase()
                 .onSuccess { leads ->
                     _state.update { it.copy(leads = leads, isLoading = false) }
+                    loadTaskCounts(leads)
                 }
                 .onFailure { error ->
-                    _state.update {
-                        it.copy(
-                            error = error.message ?: "Failed to load leads",
-                            isLoading = false
-                        )
-                    }
+                    _state.update { it.copy(error = error.message ?: "Failed to load leads", isLoading = false) }
                 }
         }
     }
 
-    private fun updateStatus(
-        leadId: String,
-        status: LeadStatus,
-        notes: String?
-    ) {
+    private fun loadTaskCounts(leads: List<Lead>) {
         viewModelScope.launch {
-            updateLeadStatusUseCase(leadId, status, notes)
-                .onSuccess {
-                    loadLeads() // refresh
+            val counts = leads.map { lead ->
+                async {
+                    var count = 0
+                    taskRepository.getActiveCountByLeadId(lead.id).onSuccess { count = it }
+                    lead.id to count
                 }
+            }.awaitAll().toMap()
+            _state.update { it.copy(taskCounts = counts) }
+        }
+    }
+
+    private fun refreshTaskCount(leadId: String) {
+        viewModelScope.launch {
+            taskRepository.getActiveCountByLeadId(leadId).onSuccess { count ->
+                _state.update { it.copy(taskCounts = it.taskCounts + (leadId to count)) }
+            }
+        }
+    }
+
+    private fun updateStatus(leadId: String, customStatusId: String, notes: String?) {
+        viewModelScope.launch {
+            updateLeadStatusUseCase(leadId, customStatusId, notes)
+                .onSuccess { loadLeads() }
                 .onFailure { error ->
-                    _state.update {
-                        it.copy(error = error.message ?: "Failed to update")
-                    }
+                    _state.update { it.copy(error = error.message ?: "Failed to update") }
                 }
         }
     }

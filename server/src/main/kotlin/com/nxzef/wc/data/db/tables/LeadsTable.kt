@@ -14,6 +14,8 @@ object LeadsTable : Table("leads") {
     val eventDate = date("event_date").nullable()
     val location = varchar("location", 200).nullable()
     val status = varchar("status", 50).default("NEW")
+    val customStatusId = uuid("custom_status_id").references(LeadStatusesTable.id).nullable()
+    val priority = integer("priority").default(0)
     val lostReason = varchar("lost_reason", 500).nullable()
     val notes = text("notes").nullable()
     val addedBy = uuid("added_by").references(UsersTable.id)

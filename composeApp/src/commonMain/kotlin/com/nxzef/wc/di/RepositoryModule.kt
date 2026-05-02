@@ -4,6 +4,7 @@ import com.nxzef.wc.data.repository.AuthRepositoryImpl
 import com.nxzef.wc.data.repository.BookingRepositoryImpl
 import com.nxzef.wc.data.repository.DashboardRepositoryImpl
 import com.nxzef.wc.data.repository.InvoiceRepositoryImpl
+import com.nxzef.wc.data.repository.LeadStatusRepositoryImpl
 import com.nxzef.wc.data.repository.QuoteRepositoryImpl
 import com.nxzef.wc.data.repository.LeadRepositoryImpl
 import com.nxzef.wc.data.repository.NotificationRepositoryImpl
@@ -13,6 +14,7 @@ import com.nxzef.wc.domain.repository.AuthRepository
 import com.nxzef.wc.domain.repository.BookingRepository
 import com.nxzef.wc.domain.repository.DashboardRepository
 import com.nxzef.wc.domain.repository.InvoiceRepository
+import com.nxzef.wc.domain.repository.LeadStatusRepository
 import com.nxzef.wc.domain.repository.QuoteRepository
 import com.nxzef.wc.domain.repository.LeadRepository
 import com.nxzef.wc.domain.repository.NotificationRepository
@@ -30,4 +32,5 @@ val repositoryModule = module {
     single<UserRepository> { UserRepositoryImpl(get()) }
     single<InvoiceRepository> { InvoiceRepositoryImpl(get()) }
     single<QuoteRepository> { QuoteRepositoryImpl(get()) }
+    single<LeadStatusRepository> { LeadStatusRepositoryImpl(get()) }
 }

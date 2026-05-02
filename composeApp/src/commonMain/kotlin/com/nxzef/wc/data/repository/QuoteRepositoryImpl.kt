@@ -2,8 +2,8 @@ package com.nxzef.wc.data.repository
 
 import com.nxzef.wc.data.remote.QuoteService
 import com.nxzef.wc.domain.repository.QuoteRepository
-import com.nxzef.wc.shared.model.CreateQuoteRequest
 import com.nxzef.wc.shared.model.Quote
+import com.nxzef.wc.shared.model.SendQuoteRequest
 import com.nxzef.wc.shared.model.UpdateQuoteStatusRequest
 import com.nxzef.wc.shared.util.AppResult
 
@@ -20,8 +20,8 @@ class QuoteRepositoryImpl(private val service: QuoteService) : QuoteRepository {
         AppResult.Failure(e)
     }
 
-    override suspend fun create(request: CreateQuoteRequest): AppResult<Quote> = try {
-        AppResult.Success(service.create(request))
+    override suspend fun sendQuote(request: SendQuoteRequest): AppResult<Quote> = try {
+        AppResult.Success(service.sendQuote(request))
     } catch (e: Exception) {
         AppResult.Failure(e)
     }

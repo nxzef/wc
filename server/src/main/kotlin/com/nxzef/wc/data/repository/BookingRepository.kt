@@ -5,7 +5,6 @@ import com.nxzef.wc.data.db.tables.LeadsTable
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.CreateBookingRequest
-import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
@@ -84,12 +83,6 @@ class BookingRepository {
 
     fun create(request: CreateBookingRequest): Booking {
         return transaction {
-            LeadsTable.update(
-                { LeadsTable.id eq java.util.UUID.fromString(request.leadId) }
-            ) {
-                it[LeadsTable.status] = LeadStatus.WON.name
-            }
-
             val newId = java.util.UUID.randomUUID()
             BookingsTable.insert { statement ->
                 statement[id] = newId

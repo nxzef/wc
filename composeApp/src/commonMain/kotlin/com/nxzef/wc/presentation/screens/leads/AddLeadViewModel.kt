@@ -73,6 +73,9 @@ class AddLeadViewModel(
             is AddLeadAction.OnLocationChange ->
                 _state.update { it.copy(location = action.value) }
 
+            is AddLeadAction.OnPriorityChange ->
+                _state.update { it.copy(priority = action.value) }
+
             is AddLeadAction.OnNotesChange ->
                 _state.update { it.copy(notes = action.value) }
 
@@ -110,6 +113,7 @@ class AddLeadViewModel(
                     eventType = s.eventType,
                     eventDate = s.eventDate.trim().ifBlank { null },
                     location = s.location.trim().ifBlank { null },
+                    priority = s.priority,
                     notes = s.notes.trim().ifBlank { null },
                     assignedTo = assignedTo
                 )

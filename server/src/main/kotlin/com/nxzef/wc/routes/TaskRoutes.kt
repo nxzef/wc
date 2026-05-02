@@ -18,6 +18,14 @@ import io.ktor.server.routing.route
 fun Route.taskRoutes(taskRepository: TaskRepository) {
     route("/tasks") {
 
+        // GET active task count for a lead
+        get("/count/lead/{leadId}") {
+            val leadId = call.parameters["leadId"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing leadId")
+            val count = taskRepository.getActiveCountByLeadId(leadId)
+            call.respond(mapOf("count" to count))
+        }
+
         // GET tasks by lead
         get("/lead/{leadId}") {
             val leadId = call.parameters["leadId"]

@@ -2,6 +2,7 @@ package com.nxzef.wc.data.repository
 
 import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.InvoicesTable
+import com.nxzef.wc.data.db.tables.LeadStatusesTable
 import com.nxzef.wc.data.db.tables.LeadsTable
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
@@ -29,7 +30,6 @@ class DashboardRepository {
                 .toInstant(ZoneOffset.UTC)
             val monthEnd = Instant.now()
 
-            // Leads this month
             val totalLeadsThisMonth = LeadsTable
                 .selectAll()
                 .where {
@@ -38,19 +38,8 @@ class DashboardRepository {
                 }
                 .count().toInt()
 
-            // Open leads
-            val openLeads = LeadsTable
-                .selectAll()
-                .where {
-                    LeadsTable.status inList listOf(
-                        LeadStatus.NEW.name,
-                        LeadStatus.CONTACTED.name,
-                        LeadStatus.NEGOTIATING.name
-                    )
-                }
-                .count().toInt()
+            val openLeads = LeadsTable.selectAll().count().toInt()
 
-            // Bookings this month
             val totalBookingsThisMonth = BookingsTable
                 .selectAll()
                 .where {
@@ -59,7 +48,6 @@ class DashboardRepository {
                 }
                 .count().toInt()
 
-            // Pending deliveries
             val pendingDeliveries = BookingsTable
                 .selectAll()
                 .where {
@@ -71,11 +59,7 @@ class DashboardRepository {
                 }
                 .count().toInt()
 
-            // Revenue this month
-            val invoicesThisMonth = InvoicesTable
-                .selectAll()
-                .toList()
-
+            val invoicesThisMonth = InvoicesTable.selectAll().toList()
             val totalRevenueThisMonth = invoicesThisMonth
                 .filter { row ->
                     val createdAt = row[InvoicesTable.createdAt]
@@ -83,12 +67,9 @@ class DashboardRepository {
                 }
                 .sumOf { it[InvoicesTable.totalAmount].toDouble() }
 
-            // Pending payments
             val pendingPayments = InvoicesTable
                 .selectAll()
-                .where {
-                    InvoicesTable.finalPaid eq false
-                }
+                .where { InvoicesTable.finalPaid eq false }
                 .toList()
                 .sumOf { row ->
                     val total = row[InvoicesTable.totalAmount].toDouble()
@@ -97,18 +78,32 @@ class DashboardRepository {
                     if (depPaid) total - deposit else total
                 }
 
-            // Leads by source
             val leadsBySource = LeadsTable
                 .selectAll()
                 .groupBy { it[LeadsTable.leadSource] }
                 .mapValues { it.value.size }
 
-            // Recent leads (last 5)
             val recentLeads = LeadsTable
                 .selectAll()
                 .orderBy(LeadsTable.createdAt, SortOrder.DESC)
                 .limit(5)
                 .map { row ->
+                    val customStatusId = row[LeadsTable.customStatusId]
+                    val customStatus = customStatusId?.let { sid ->
+                        LeadStatusesTable.selectAll()
+                            .where { LeadStatusesTable.id eq sid }
+                            .singleOrNull()
+                            ?.let {
+                                LeadStatus(
+                                    id = it[LeadStatusesTable.id].toString(),
+                                    name = it[LeadStatusesTable.name],
+                                    color = it[LeadStatusesTable.color],
+                                    isDefault = it[LeadStatusesTable.isDefault]
+                                )
+                            }
+                    }
+                    val statusName = customStatus?.name ?: row[LeadsTable.status]
+
                     Lead(
                         id = row[LeadsTable.id].toString(),
                         fullName = row[LeadsTable.fullName],
@@ -118,7 +113,8 @@ class DashboardRepository {
                         eventType = EventType.valueOf(row[LeadsTable.eventType]),
                         eventDate = row[LeadsTable.eventDate]?.toString(),
                         location = row[LeadsTable.location],
-                        status = LeadStatus.valueOf(row[LeadsTable.status]),
+                        statusName = statusName,
+                        customStatus = customStatus,
                         lostReason = row[LeadsTable.lostReason],
                         notes = row[LeadsTable.notes],
                         addedBy = row[LeadsTable.addedBy].toString(),
@@ -127,7 +123,6 @@ class DashboardRepository {
                     )
                 }
 
-            // Upcoming bookings (next 5)
             val upcomingBookings = BookingsTable
                 .selectAll()
                 .where {
@@ -152,20 +147,18 @@ class DashboardRepository {
                     )
                 }
 
-            val totalWonLeads = LeadsTable.selectAll().where { LeadsTable.status eq LeadStatus.WON.name }.count()
-            val totalLeads = LeadsTable.selectAll().count()
-            val conversionRate = if (totalLeads > 0) (totalWonLeads.toDouble() / totalLeads) * 100 else 0.0
-            
             val totalInvoices = InvoicesTable.selectAll().count()
-            val avgOrderValue = if (totalInvoices > 0) InvoicesTable.selectAll().sumOf { it[InvoicesTable.totalAmount].toDouble() } / totalInvoices else 0.0
+            val avgOrderValue = if (totalInvoices > 0)
+                InvoicesTable.selectAll().sumOf { it[InvoicesTable.totalAmount].toDouble() } / totalInvoices
+            else 0.0
 
             DashboardStats(
                 totalLeadsThisMonth = totalLeadsThisMonth,
                 totalBookingsThisMonth = totalBookingsThisMonth,
                 totalRevenueThisMonth = totalRevenueThisMonth,
                 averageOrderValue = avgOrderValue,
-                conversionRate = conversionRate,
-                revenueTrend = listOf(0.2, 0.4, 0.35, 0.6, 0.55, 0.85, 0.75, 0.95), // Mock trend for now
+                conversionRate = 0.0,
+                revenueTrend = listOf(0.2, 0.4, 0.35, 0.6, 0.55, 0.85, 0.75, 0.95),
                 pendingPayments = pendingPayments,
                 openLeads = openLeads,
                 pendingDeliveries = pendingDeliveries,

@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -45,9 +47,12 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -239,6 +244,48 @@ fun AddLeadScreen(
                             Icon(Icons.Default.LocationOn, null)
                         }
                     )
+                }
+
+                // Priority stars
+                SectionHeader(
+                    icon = Icons.Default.Star,
+                    title = "Priority"
+                )
+                var hoveredStar by remember { mutableIntStateOf(0) }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    (1..5).forEach { starIndex ->
+                        val isFilled = starIndex <= if (hoveredStar > 0) hoveredStar else state.priority
+                        Icon(
+                            imageVector = if (isFilled) Icons.Default.Star else Icons.Default.StarBorder,
+                            contentDescription = "Priority $starIndex",
+                            tint = if (isFilled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .pointerInput(starIndex) {
+                                    awaitPointerEventScope {
+                                        while (true) {
+                                            val event = awaitPointerEvent()
+                                            when (event.type) {
+                                                PointerEventType.Enter -> hoveredStar = starIndex
+                                                PointerEventType.Exit -> if (hoveredStar == starIndex) hoveredStar = 0
+                                                PointerEventType.Press -> viewModel.onAction(AddLeadAction.OnPriorityChange(starIndex))
+                                            }
+                                        }
+                                    }
+                                }
+                        )
+                    }
+                    if (state.priority > 0) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Priority ${state.priority}/5",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 // Section: Assignment

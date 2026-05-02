@@ -776,7 +776,7 @@ fun PremiumLeadCard(
             }
             
             Column(horizontalAlignment = Alignment.End) {
-                LeadStatusBadge(status = lead.status)
+                LeadStatusBadge(statusName = lead.statusName, color = lead.customStatus?.color)
                 Spacer(Modifier.height(4.dp))
                 LeadSourceBadge(source = lead.source)
             }

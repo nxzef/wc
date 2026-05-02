@@ -2,24 +2,34 @@ package com.nxzef.wc.presentation.screens.quotes
 
 import com.nxzef.wc.shared.model.Quote
 import com.nxzef.wc.shared.model.QuoteStatus
-import com.nxzef.wc.shared.model.CreateQuoteItemRequest
 
 class QuoteContract {
     data class State(
         val quotes: List<Quote> = emptyList(),
         val isLoading: Boolean = false,
+        val isSending: Boolean = false,
         val error: String? = null,
-        val leadId: String = ""
+        val leadId: String = "",
+        val clientName: String = "",
+        val clientEmail: String = "",
+        val selectedFilePath: String? = null,
+        val selectedFileName: String? = null,
+        val selectedFileBytes: ByteArray? = null
     )
 
     sealed class Action {
-        data class LoadQuotes(val leadId: String) : Action()
+        data class LoadQuotes(
+            val leadId: String,
+            val clientName: String,
+            val clientEmail: String
+        ) : Action()
+        data class AttachPdf(val path: String, val name: String, val bytes: ByteArray) : Action()
+        object SendQuote : Action()
         data class UpdateStatus(val id: String, val status: QuoteStatus) : Action()
-        data class CreateQuote(val notes: String, val items: List<CreateQuoteItemRequest>) : Action()
     }
 
     sealed class UiEvent {
         data class ShowError(val message: String) : UiEvent()
-        object QuoteCreated : UiEvent()
+        data class QuoteSent(val email: String) : UiEvent()
     }
 }

@@ -10,6 +10,14 @@ class TaskRepositoryImpl(
     private val service: TaskService
 ) : TaskRepository {
 
+    override suspend fun getActiveCountByLeadId(leadId: String): AppResult<Int> {
+        return try {
+            AppResult.Success(service.getActiveCountByLeadId(leadId))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
+
     override suspend fun getByLeadId(leadId: String): AppResult<List<Task>> {
         return try {
             AppResult.Success(service.getByLeadId(leadId))

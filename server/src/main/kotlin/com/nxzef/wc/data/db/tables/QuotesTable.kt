@@ -11,6 +11,7 @@ object QuotesTable : Table("quotes") {
     val validUntil = date("valid_until").nullable()
     val notes = text("notes").nullable()
     val status = varchar("status", 50).default("DRAFT")
+    val fileName = varchar("file_name", 500).nullable()
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)
