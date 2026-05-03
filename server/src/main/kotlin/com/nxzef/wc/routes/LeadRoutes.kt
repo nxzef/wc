@@ -1,7 +1,6 @@
 package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.LeadRepository
-import com.nxzef.wc.data.repository.TaskRepository
 import com.nxzef.wc.domain.service.NotificationService
 import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.CreateLeadRequest
@@ -19,7 +18,6 @@ import io.ktor.server.routing.route
 
 fun Route.leadRoutes(
     leadRepository: LeadRepository,
-    taskRepository: TaskRepository,
     notificationService: NotificationService
 ) {
     route("/leads") {
@@ -43,12 +41,6 @@ fun Route.leadRoutes(
                 ?: return@post call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
             val request = call.receive<CreateLeadRequest>()
             val lead = leadRepository.create(request, addedBy)
-
-            taskRepository.createDefaultLeadTasks(
-                leadId = lead.id,
-                assignedTo = request.assignedTo,
-                createdBy = addedBy
-            )
 
             notificationService.notify(
                 userId = request.assignedTo,

@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.repository.NotificationRepository
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
+import com.nxzef.wc.util.RefreshManager
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,44 +25,63 @@ class NotificationViewModel(
     private val _uiEvent = Channel<NotificationUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
+    private var hasLoadedOnce = false
+    private var previousUnreadCount = -1
+
     init {
         load()
+        startAutoRefresh()
+        collectRefreshTrigger()
     }
 
     fun onAction(action: NotificationAction) {
         when (action) {
-            NotificationAction.Load -> load()
-            NotificationAction.Show ->
-                _state.update { it.copy(isVisible = true) }
-
-            NotificationAction.Hide ->
-                _state.update { it.copy(isVisible = false) }
-
-            is NotificationAction.MarkRead ->
-                markRead(action.id)
-
-            NotificationAction.MarkAllRead ->
-                markAllRead()
+            NotificationAction.Load -> load(silent = false)
+            NotificationAction.Show -> _state.update { it.copy(isVisible = true) }
+            NotificationAction.Hide -> _state.update { it.copy(isVisible = false) }
+            is NotificationAction.MarkRead -> markRead(action.id)
+            NotificationAction.MarkAllRead -> markAllRead()
         }
     }
 
-    private fun load() {
+    private fun startAutoRefresh() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            while (true) {
+                delay(15_000)
+                load(silent = true)
+            }
+        }
+    }
+
+    private fun collectRefreshTrigger() {
+        viewModelScope.launch {
+            RefreshManager.refreshTrigger.collect {
+                load(silent = true)
+            }
+        }
+    }
+
+    private fun load(silent: Boolean = false) {
+        viewModelScope.launch {
+            if (!silent) _state.update { it.copy(isLoading = true, error = null) }
             val notifResult = repository.getMyNotifications()
             val countResult = repository.getUnreadCount()
 
             notifResult.onSuccess { notifications ->
-                _state.update {
-                    it.copy(notifications = notifications)
-                }
+                _state.update { it.copy(notifications = notifications) }
             }.onFailure { e ->
-                _state.update { it.copy(error = e.message) }
+                if (!silent) _state.update { it.copy(error = e.message) }
             }
             countResult.onSuccess { count ->
+                val oldCount = previousUnreadCount
+                if (hasLoadedOnce && silent && count != oldCount) {
+                    _uiEvent.send(NotificationUiEvent.ShowSnackbar("New notification"))
+                }
+                previousUnreadCount = count
+                hasLoadedOnce = true
                 _state.update { it.copy(unreadCount = count) }
             }
-            _state.update { it.copy(isLoading = false) }
+            if (!silent) _state.update { it.copy(isLoading = false) }
         }
     }
 

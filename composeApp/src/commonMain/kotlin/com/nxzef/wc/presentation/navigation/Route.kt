@@ -25,4 +25,5 @@ sealed interface Route {
     @Serializable data object Bookings : Route
     @Serializable data class Quotes(val leadId: String, val clientName: String, val clientEmail: String) : Route
     @Serializable data object Tasks : Route
+    @Serializable data class ProjectExpenses(val bookingId: String) : Route
 }

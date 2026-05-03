@@ -11,35 +11,42 @@ import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.util.ByteArrayDataSource
 import java.util.Properties
 
-class EmailService {
+data class SmtpConfig(
+    val host: String,
+    val port: String,
+    val username: String,
+    val password: String,
+    val from: String
+)
 
-    private val host = System.getenv("SMTP_HOST") ?: ""
-    private val port = System.getenv("SMTP_PORT") ?: "587"
-    private val username = System.getenv("SMTP_USERNAME") ?: ""
-    private val password = System.getenv("SMTP_PASSWORD") ?: ""
-    private val from = System.getenv("SMTP_FROM") ?: username
+class EmailService(private val config: SmtpConfig) {
+
+    private val isConfigured get() = config.host.isNotBlank() && config.username.isNotBlank() && config.password.isNotBlank()
+
+    private fun createSession(): Session {
+        val props = Properties().apply {
+            put("mail.smtp.auth", "true")
+            put("mail.smtp.starttls.enable", "true")
+            put("mail.smtp.host", config.host)
+            put("mail.smtp.port", config.port)
+        }
+        return Session.getInstance(props, object : jakarta.mail.Authenticator() {
+            override fun getPasswordAuthentication() =
+                jakarta.mail.PasswordAuthentication(config.username, config.password)
+        })
+    }
 
     fun sendQuoteEmail(to: String, fileName: String, pdfBytes: ByteArray) {
-        if (host.isBlank() || username.isBlank() || password.isBlank()) {
+        if (!isConfigured) {
             println("EmailService: SMTP not configured, skipping email to $to")
             return
         }
 
-        val props = Properties().apply {
-            put("mail.smtp.auth", "true")
-            put("mail.smtp.starttls.enable", "true")
-            put("mail.smtp.host", host)
-            put("mail.smtp.port", port)
-        }
-
-        val session = Session.getInstance(props, object : jakarta.mail.Authenticator() {
-            override fun getPasswordAuthentication() =
-                jakarta.mail.PasswordAuthentication(username, password)
-        })
-
+        val senderAddress = config.from.ifBlank { config.username }
+        val session = createSession()
         val message = MimeMessage(session).apply {
-            setFrom(InternetAddress(from))
-            setRecipients(Message.RecipientType.TO, InternetAddress.parse(to))
+            setFrom(InternetAddress(senderAddress))
+            setRecipients(Message.RecipientType.TO, to)
             subject = "Your Wedding Quote"
         }
 
@@ -59,5 +66,28 @@ class EmailService {
 
         Transport.send(message)
         println("EmailService: quote sent to $to")
+    }
+
+    fun sendTestEmail(to: String) {
+        if (!isConfigured) {
+            throw IllegalStateException("SMTP not configured. Set SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD in environment.")
+        }
+
+        val senderAddress = config.from.ifBlank { config.username }
+        val session = createSession()
+        val message = MimeMessage(session).apply {
+            setFrom(InternetAddress(senderAddress))
+            setRecipients(Message.RecipientType.TO, to)
+            subject = "Wedding Clouds — SMTP Test"
+        }
+
+        message.setContent(MimeMultipart().apply {
+            addBodyPart(MimeBodyPart().apply {
+                setText("SMTP is configured correctly. Wedding Clouds email delivery is working.")
+            })
+        })
+
+        Transport.send(message)
+        println("EmailService: test email sent to $to")
     }
 }

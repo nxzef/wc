@@ -40,6 +40,7 @@ import com.nxzef.wc.presentation.screens.marketing.MarketingScreen
 import com.nxzef.wc.presentation.screens.photographer.PhotographerScreen
 import com.nxzef.wc.presentation.screens.quotes.QuoteScreen
 import com.nxzef.wc.presentation.screens.settings.SettingsScreen
+import com.nxzef.wc.presentation.screens.expenses.ProjectExpensesScreen
 import com.nxzef.wc.presentation.screens.tasks.TasksScreen
 import com.nxzef.wc.presentation.screens.team.TeamScreen
 import com.nxzef.wc.presentation.theme.WCTheme
@@ -260,7 +261,12 @@ fun AppNavHost(
         }
 
         composable<Route.Bookings> {
-            BookingScreen(onBack = { navController.popBackStack() })
+            BookingScreen(
+                onBack = { navController.popBackStack() },
+                onExpenses = { bookingId ->
+                    navController.navigate(Route.ProjectExpenses(bookingId))
+                }
+            )
         }
 
         composable<Route.Settings> {
@@ -280,6 +286,14 @@ fun AppNavHost(
         composable<Route.Tasks> {
             TasksScreen(onBack = { navController.popBackStack() })
         }
+
+        composable<Route.ProjectExpenses> { backStackEntry ->
+            val route: Route.ProjectExpenses = backStackEntry.toRoute()
+            ProjectExpensesScreen(
+                bookingId = route.bookingId,
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }
 
@@ -298,9 +312,13 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
         destination.hasRoute<Route.Bookings>() -> Route.Bookings
         destination.hasRoute<Route.Settings>() -> Route.Settings
         destination.hasRoute<Route.Tasks>() -> Route.Tasks
+        destination.hasRoute<Route.ProjectExpenses>() -> {
+            val bookingId = backStackEntry.toRoute<Route.ProjectExpenses>().bookingId
+            Route.ProjectExpenses(bookingId)
+        }
         destination.hasRoute<Route.Quotes>() -> {
-            val leadId = backStackEntry.toRoute<Route.Quotes>().leadId
-            Route.Quotes(leadId)
+            val q = backStackEntry.toRoute<Route.Quotes>()
+            Route.Quotes(q.leadId, q.clientName, q.clientEmail)
         }
 
         else -> Route.Login

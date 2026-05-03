@@ -43,4 +43,5 @@ sealed interface LeadPipelineAction {
 
 sealed interface LeadPipelineUiEvent {
     data class ShowError(val message: String) : LeadPipelineUiEvent
+    data class ShowSnackbar(val message: String) : LeadPipelineUiEvent
 }

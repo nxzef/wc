@@ -4,7 +4,6 @@ import com.nxzef.wc.data.repository.BookingRepository
 import com.nxzef.wc.data.repository.InvoiceRepository
 import com.nxzef.wc.data.repository.LeadRepository
 import com.nxzef.wc.data.repository.QuoteRepository
-import com.nxzef.wc.data.repository.TaskRepository
 import com.nxzef.wc.domain.service.EmailService
 import com.nxzef.wc.domain.service.NotificationService
 import com.nxzef.wc.shared.dto.toDto
@@ -29,7 +28,6 @@ fun Route.quoteRoutes(
     quoteRepository: QuoteRepository,
     leadRepository: LeadRepository,
     bookingRepository: BookingRepository,
-    taskRepository: TaskRepository,
     invoiceRepository: InvoiceRepository,
     notificationService: NotificationService,
     emailService: EmailService
@@ -186,13 +184,6 @@ fun Route.quoteRoutes(
                                 depositAmount = quote.totalAmount * 0.5,
                                 notes = "Automatically generated from accepted quote"
                             )
-                        )
-
-                        // 3. Create default tasks for the new booking, assigned to the person who accepted it
-                        taskRepository.createDefaultBookingTasks(
-                            bookingId = booking.id,
-                            assignedTo = userId,
-                            createdBy = userId
                         )
 
                     }

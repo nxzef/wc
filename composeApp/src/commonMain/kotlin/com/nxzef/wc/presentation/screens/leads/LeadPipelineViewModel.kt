@@ -8,15 +8,17 @@ import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.domain.usecase.leads.UpdateLeadStatusUseCase
 import com.nxzef.wc.domain.usecase.tasks.CreateTaskUseCase
 import com.nxzef.wc.domain.usecase.tasks.DeleteTaskUseCase
-import com.nxzef.wc.domain.usecase.tasks.GetTasksByLeadUseCase
+import com.nxzef.wc.domain.usecase.tasks.GetMyTasksByLeadUseCase
 import com.nxzef.wc.domain.usecase.tasks.MarkTaskDoneUseCase
 import com.nxzef.wc.shared.model.CreateTaskRequest
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
+import com.nxzef.wc.util.RefreshManager
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,7 +29,7 @@ import kotlinx.coroutines.launch
 class LeadPipelineViewModel(
     private val getAllLeadsUseCase: GetAllLeadsUseCase,
     private val updateLeadStatusUseCase: UpdateLeadStatusUseCase,
-    private val getTasksByLeadUseCase: GetTasksByLeadUseCase,
+    private val getMyTasksByLeadUseCase: GetMyTasksByLeadUseCase,
     private val markTaskDoneUseCase: MarkTaskDoneUseCase,
     private val createTaskUseCase: CreateTaskUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
@@ -41,14 +43,19 @@ class LeadPipelineViewModel(
     private val _uiEvent = Channel<LeadPipelineUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
+    private var hasLoadedOnce = false
+    private var previousLeadCount = -1
+
     init {
         loadStatuses()
-        onAction(LeadPipelineAction.LoadLeads)
+        loadLeads()
+        startAutoRefresh()
+        collectRefreshTrigger()
     }
 
     fun onAction(action: LeadPipelineAction) {
         when (action) {
-            is LeadPipelineAction.LoadLeads -> loadLeads()
+            is LeadPipelineAction.LoadLeads -> loadLeads(silent = false)
             is LeadPipelineAction.SelectLead -> {
                 _state.update { it.copy(selectedLead = action.lead) }
                 loadTasks(action.lead.id)
@@ -67,6 +74,23 @@ class LeadPipelineViewModel(
             LeadPipelineAction.ShowCreateStatusDialog -> _state.update { it.copy(showCreateStatusDialog = true) }
             LeadPipelineAction.HideCreateStatusDialog -> _state.update { it.copy(showCreateStatusDialog = false) }
             is LeadPipelineAction.CreateStatus -> createStatus(action.name, action.color)
+        }
+    }
+
+    private fun startAutoRefresh() {
+        viewModelScope.launch {
+            while (true) {
+                delay(30_000)
+                loadLeads(silent = true)
+            }
+        }
+    }
+
+    private fun collectRefreshTrigger() {
+        viewModelScope.launch {
+            RefreshManager.refreshTrigger.collect {
+                loadLeads(silent = true)
+            }
         }
     }
 
@@ -96,11 +120,12 @@ class LeadPipelineViewModel(
     private fun addTask() {
         val s = _state.value
         val leadId = s.selectedLead?.id ?: return
+        val stageName = s.selectedLead.statusName
         if (s.newTaskTitle.isBlank()) return
 
         viewModelScope.launch {
             createTaskUseCase(
-                CreateTaskRequest(leadId = leadId, title = s.newTaskTitle, assignedTo = "")
+                CreateTaskRequest(leadId = leadId, title = s.newTaskTitle, stageName = stageName)
             ).onSuccess {
                 _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
                 loadTasks(leadId)
@@ -135,22 +160,31 @@ class LeadPipelineViewModel(
     private fun loadTasks(leadId: String) {
         viewModelScope.launch {
             _state.update { it.copy(isTasksLoading = true) }
-            getTasksByLeadUseCase(leadId)
+            getMyTasksByLeadUseCase(leadId)
                 .onSuccess { tasks -> _state.update { it.copy(tasks = tasks, isTasksLoading = false) } }
                 .onFailure { _state.update { it.copy(isTasksLoading = false) } }
         }
     }
 
-    private fun loadLeads() {
+    private fun loadLeads(silent: Boolean = false) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            if (!silent) _state.update { it.copy(isLoading = true, error = null) }
+            val oldCount = previousLeadCount
             getAllLeadsUseCase()
                 .onSuccess { leads ->
+                    val newCount = leads.size
+                    if (hasLoadedOnce && silent && newCount != oldCount) {
+                        _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Updated"))
+                    }
+                    previousLeadCount = newCount
+                    hasLoadedOnce = true
                     _state.update { it.copy(leads = leads, isLoading = false) }
                     loadTaskCounts(leads)
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(error = error.message ?: "Failed to load leads", isLoading = false) }
+                    if (!silent) {
+                        _state.update { it.copy(error = error.message ?: "Failed to load leads", isLoading = false) }
+                    }
                 }
         }
     }

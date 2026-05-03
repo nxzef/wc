@@ -10,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,13 +31,16 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.components.LeadStatusBadge
+import com.nxzef.wc.presentation.components.RefreshButton
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.components.TaskCheckItem
-import com.nxzef.wc.presentation.components.AddTaskDialog
 import com.nxzef.wc.presentation.components.toComposeColor
+import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.Task
+import com.nxzef.wc.shared.model.UserRole
+import com.nxzef.wc.util.RefreshManager
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
 
@@ -54,18 +59,35 @@ fun LeadPipelineScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var draggingLeadId by remember { mutableStateOf<String?>(null) }
+    val snackbarState = remember { SnackbarHostState() }
+    val isMainScreen = remember { SessionManager.getRole() == UserRole.LEAD_MANAGER }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is LeadPipelineUiEvent.ShowSnackbar -> snackbarState.showSnackbar(event.message)
+                is LeadPipelineUiEvent.ShowError -> snackbarState.showSnackbar(event.message)
+            }
+        }
+    }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenWidth = maxWidth
         val isCompact = screenWidth < 600.dp
 
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbarState) },
             topBar = {
                 WCTopBar(
                     title = if (isCompact) "Pipeline" else "Lead Pipeline",
                     subtitle = "${state.leads.size} leads",
-                    onBack = onBack,
+                    onBack = if (isMainScreen) null else onBack,
+                    showNotificationIcon = isMainScreen,
                     actions = {
+                        RefreshButton(
+                            isLoading = state.isLoading,
+                            onClick = { RefreshManager.triggerRefresh() }
+                        )
                         Button(
                             onClick = onAddLead,
                             shape = MaterialTheme.shapes.medium,
@@ -194,6 +216,9 @@ fun LeadPipelineScreen(
             lead = lead,
             tasks = state.tasks,
             isTasksLoading = state.isTasksLoading,
+            newTaskTitle = state.newTaskTitle,
+            onTaskTitleChange = { viewModel.onAction(LeadPipelineAction.OnNewTaskTitleChange(it)) },
+            onAddTask = { viewModel.onAction(LeadPipelineAction.OnAddTask) },
             availableStatuses = state.statuses,
             onDismiss = { viewModel.onAction(LeadPipelineAction.DismissDetail) },
             onUpdateStatus = { customStatusId, notes ->
@@ -211,18 +236,7 @@ fun LeadPipelineScreen(
             onTaskToggle = { taskId, done ->
                 viewModel.onAction(LeadPipelineAction.MarkTaskDone(taskId, done))
             },
-            onAddTaskClick = { viewModel.onAction(LeadPipelineAction.ShowAddTaskDialog) },
             onDeleteTask = { taskId -> viewModel.onAction(LeadPipelineAction.OnDeleteTask(taskId)) }
-        )
-    }
-
-    if (state.showAddTaskDialog) {
-        AddTaskDialog(
-            onDismiss = { viewModel.onAction(LeadPipelineAction.HideAddTaskDialog) },
-            onConfirm = {
-                viewModel.onAction(LeadPipelineAction.OnNewTaskTitleChange(it))
-                viewModel.onAction(LeadPipelineAction.OnAddTask)
-            }
         )
     }
 
@@ -551,13 +565,15 @@ fun LeadDetailDialog(
     lead: Lead,
     tasks: List<Task>,
     isTasksLoading: Boolean,
+    newTaskTitle: String,
+    onTaskTitleChange: (String) -> Unit,
+    onAddTask: () -> Unit,
     availableStatuses: List<LeadStatus>,
     onDismiss: () -> Unit,
     onUpdateStatus: (customStatusId: String, notes: String?) -> Unit,
     onViewQuotes: () -> Unit,
     onViewBooking: () -> Unit,
     onTaskToggle: (String, Boolean) -> Unit,
-    onAddTaskClick: () -> Unit,
     onDeleteTask: (String) -> Unit
 ) {
     var notes by remember { mutableStateOf(lead.notes ?: "") }
@@ -703,37 +719,24 @@ fun LeadDetailDialog(
 
                 VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                // Right: Tasks
+                // Right: My Tasks
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Follow-up Tasks",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        IconButton(onClick = onAddTaskClick) {
-                            Icon(
-                                Icons.Default.AddCircleOutline,
-                                contentDescription = "Add Task",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
+                    Text(
+                        text = "My Tasks",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
 
                     Box(modifier = Modifier.weight(1f)) {
                         if (isTasksLoading) {
                             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                         } else if (tasks.isEmpty()) {
                             Text(
-                                "No tasks for this lead",
+                                "No tasks yet",
                                 modifier = Modifier.align(Alignment.Center),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -741,7 +744,7 @@ fun LeadDetailDialog(
                         } else {
                             LazyColumn(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(bottom = 16.dp)
+                                contentPadding = PaddingValues(bottom = 8.dp)
                             ) {
                                 items(tasks) { task ->
                                     TaskCheckItem(
@@ -752,6 +755,27 @@ fun LeadDetailDialog(
                                 }
                             }
                         }
+                    }
+
+                    // Inline add task
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = newTaskTitle,
+                            onValueChange = onTaskTitleChange,
+                            placeholder = { Text("New task…", style = MaterialTheme.typography.bodySmall) },
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            singleLine = true
+                        )
+                        Button(
+                            onClick = onAddTask,
+                            enabled = newTaskTitle.isNotBlank(),
+                            shape = MaterialTheme.shapes.medium,
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) { Text("Add") }
                     }
                 }
             }

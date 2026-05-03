@@ -45,10 +45,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.LeadStatusBadge
+import com.nxzef.wc.presentation.components.RefreshButton
 import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.util.RefreshManager
 import com.nxzef.wc.presentation.theme.WCTheme
+import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadSource
+import com.nxzef.wc.shared.model.UserRole
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +65,7 @@ fun MarketingScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val filteredLeads by viewModel.filteredLeads.collectAsStateWithLifecycle()
     val snackbarState = remember { SnackbarHostState() }
+    val isMainScreen = remember { SessionManager.getRole() == UserRole.MARKETING }
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -77,8 +82,13 @@ fun MarketingScreen(
             WCTopBar(
                 title = "Marketing",
                 subtitle = "Dashboard overview",
-                onBack = onBack,
+                onBack = if (isMainScreen) null else onBack,
+                showNotificationIcon = isMainScreen,
                 actions = {
+                    RefreshButton(
+                        isLoading = state.isLoading,
+                        onClick = { RefreshManager.triggerRefresh() }
+                    )
                     Button(
                         onClick = onAddLead,
                         modifier = Modifier.padding(end = 16.dp),

@@ -10,6 +10,7 @@ import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
@@ -26,13 +27,33 @@ fun Route.taskRoutes(taskRepository: TaskRepository) {
             call.respond(mapOf("count" to count))
         }
 
-        // GET tasks by lead
+        // GET my tasks on a specific lead
+        get("/my/lead/{leadId}") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.getClaim("userId")?.asString()
+                ?: return@get call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+            val leadId = call.parameters["leadId"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing leadId")
+            call.respond(taskRepository.getByMyLeadId(userId, leadId).map { it.toDto() })
+        }
+
+        // GET all tasks on a lead (oversight)
         get("/lead/{leadId}") {
             val leadId = call.parameters["leadId"]
                 ?: return@get call.respond(
                     HttpStatusCode.BadRequest, "Missing leadId"
                 )
             call.respond(taskRepository.getByLeadId(leadId).map { it.toDto() })
+        }
+
+        // GET my tasks on a specific booking
+        get("/my/booking/{bookingId}") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.getClaim("userId")?.asString()
+                ?: return@get call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+            val bookingId = call.parameters["bookingId"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing bookingId")
+            call.respond(taskRepository.getByMyBookingId(userId, bookingId).map { it.toDto() })
         }
 
         // GET tasks by booking
@@ -75,6 +96,14 @@ fun Route.taskRoutes(taskRepository: TaskRepository) {
             val request = call.receive<CreateTaskRequest>()
             val task = taskRepository.create(request, createdBy)
             call.respond(HttpStatusCode.Created, task.toDto())
+        }
+
+        // DELETE task
+        delete("/{id}") {
+            val id = call.parameters["id"]
+                ?: return@delete call.respond(HttpStatusCode.BadRequest, "Missing id")
+            taskRepository.delete(id)
+            call.respond(HttpStatusCode.NoContent)
         }
 
         // PUT mark done/undone

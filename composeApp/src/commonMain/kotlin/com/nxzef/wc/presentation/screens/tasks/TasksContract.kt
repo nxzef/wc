@@ -1,9 +1,13 @@
 package com.nxzef.wc.presentation.screens.tasks
 
+import com.nxzef.wc.shared.model.Booking
+import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.Task
 
 data class TasksState(
     val pendingTasks: List<Task> = emptyList(),
+    val leads: List<Lead> = emptyList(),
+    val bookings: List<Booking> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -15,4 +19,5 @@ sealed interface TasksAction {
 
 sealed interface TasksUiEvent {
     data class ShowError(val message: String) : TasksUiEvent
+    data class ShowSnackbar(val message: String) : TasksUiEvent
 }

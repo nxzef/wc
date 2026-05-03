@@ -53,6 +53,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.AddTaskDialog
+import com.nxzef.wc.presentation.components.RefreshButton
+import com.nxzef.wc.shared.util.DateUtils
+import com.nxzef.wc.util.RefreshManager
 import com.nxzef.wc.presentation.components.BookingStatusBadge
 import com.nxzef.wc.presentation.components.TaskCheckItem
 import com.nxzef.wc.presentation.components.WCTopBar
@@ -68,6 +71,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun BookingScreen(
     onBack: () -> Unit,
+    onExpenses: (bookingId: String) -> Unit = {},
     viewModel: BookingViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -91,7 +95,13 @@ fun BookingScreen(
             WCTopBar(
                 title = "Bookings",
                 subtitle = "${state.bookings.size} total bookings",
-                onBack = onBack
+                onBack = onBack,
+                actions = {
+                    RefreshButton(
+                        isLoading = state.isLoading,
+                        onClick = { RefreshManager.triggerRefresh() }
+                    )
+                }
             )
         }
     ) { padding ->
@@ -237,7 +247,8 @@ fun BookingScreen(
             },
             onDeleteTask = { taskId ->
                 viewModel.onAction(BookingAction.OnDeleteTask(taskId))
-            }
+            },
+            onExpenses = { onExpenses(booking.id) }
         )
     }
 
@@ -314,7 +325,7 @@ fun BookingCard(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = booking.eventDate,
+                        text = DateUtils.formatDisplayDate(booking.eventDate),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -340,7 +351,8 @@ fun BookingDetailDialog(
     onAssignEditor: (String?) -> Unit,
     onTaskToggle: (String, Boolean) -> Unit,
     onAddTaskClick: () -> Unit,
-    onDeleteTask: (String) -> Unit
+    onDeleteTask: (String) -> Unit,
+    onExpenses: () -> Unit = {}
 ) {
     val lead = leads.find { it.id == booking.leadId }
     val leadName = lead?.fullName ?: "Unknown Lead"
@@ -362,7 +374,7 @@ fun BookingDetailDialog(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${booking.eventType} — ${booking.eventDate}",
+                        text = "${booking.eventType} — ${DateUtils.formatDisplayDate(booking.eventDate)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -393,7 +405,7 @@ fun BookingDetailDialog(
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         DetailItem("📍 Location", booking.location)
-                        DetailItem("📅 Date", booking.eventDate)
+                        DetailItem("📅 Date", DateUtils.formatDisplayDate(booking.eventDate))
                         DetailItem("📱 Phone", lead?.phone ?: "N/A")
                         booking.notes?.takeIf { it.isNotBlank() }?.let {
                             DetailItem("📝 Notes", it)
@@ -526,7 +538,10 @@ fun BookingDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onExpenses) { Text("Expenses & P&L") }
+                TextButton(onClick = onDismiss) { Text("Close") }
+            }
         }
     )
 }

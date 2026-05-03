@@ -7,7 +7,9 @@ import com.nxzef.wc.shared.util.AppResult
 interface TaskRepository {
     suspend fun getActiveCountByLeadId(leadId: String): AppResult<Int>
     suspend fun getByLeadId(leadId: String): AppResult<List<Task>>
+    suspend fun getMyByLeadId(leadId: String): AppResult<List<Task>>
     suspend fun getByBookingId(bookingId: String): AppResult<List<Task>>
+    suspend fun getMyByBookingId(bookingId: String): AppResult<List<Task>>
     suspend fun getMyPending(): AppResult<List<Task>>
     suspend fun getByAssignedUser(userId: String): AppResult<List<Task>>
     suspend fun create(request: CreateTaskRequest): AppResult<Task>

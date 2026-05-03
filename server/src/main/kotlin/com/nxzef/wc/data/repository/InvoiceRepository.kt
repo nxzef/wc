@@ -42,6 +42,16 @@ class InvoiceRepository {
         )
     }
 
+    fun getById(id: String): Invoice? {
+        return transaction {
+            InvoicesTable
+                .selectAll()
+                .where { InvoicesTable.id eq java.util.UUID.fromString(id) }
+                .singleOrNull()
+                ?.let { rowToInvoice(it) }
+        }
+    }
+
     fun getByBookingId(bookingId: String): Invoice? {
         return transaction {
             InvoicesTable

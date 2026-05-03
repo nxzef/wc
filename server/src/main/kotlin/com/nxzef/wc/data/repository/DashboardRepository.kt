@@ -4,6 +4,9 @@ import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.InvoicesTable
 import com.nxzef.wc.data.db.tables.LeadStatusesTable
 import com.nxzef.wc.data.db.tables.LeadsTable
+import com.nxzef.wc.data.db.tables.MonthlyGoalsTable
+import com.nxzef.wc.data.db.tables.ProjectExpensesTable
+import com.nxzef.wc.data.db.tables.ReceiptsTable
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.DashboardStats
@@ -11,6 +14,8 @@ import com.nxzef.wc.shared.model.EventType
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadSource
 import com.nxzef.wc.shared.model.LeadStatus
+import com.nxzef.wc.shared.model.MonthlyGoal
+import com.nxzef.wc.shared.model.ProjectPnL
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
@@ -148,9 +153,65 @@ class DashboardRepository {
                 }
 
             val totalInvoices = InvoicesTable.selectAll().count()
-            val avgOrderValue = if (totalInvoices > 0)
-                InvoicesTable.selectAll().sumOf { it[InvoicesTable.totalAmount].toDouble() } / totalInvoices
-            else 0.0
+            val totalRevenue = InvoicesTable.selectAll()
+                .sumOf { it[InvoicesTable.totalAmount].toDouble() }
+            val avgOrderValue = if (totalInvoices > 0) totalRevenue / totalInvoices else 0.0
+            val totalCollected = ReceiptsTable.selectAll()
+                .sumOf { it[ReceiptsTable.amount].toDouble() }
+            val totalPending = totalRevenue - totalCollected
+
+            // Per-booking P&L
+            val allBookings = BookingsTable.selectAll().toList()
+            val invoiceByBooking = InvoicesTable.selectAll()
+                .associate { it[InvoicesTable.bookingId].toString() to it[InvoicesTable.totalAmount].toDouble() }
+            val expenseSumByBooking = ProjectExpensesTable.selectAll()
+                .groupBy { it[ProjectExpensesTable.bookingId].toString() }
+                .mapValues { (_, rows) -> rows.sumOf { it[ProjectExpensesTable.actualAmount].toDouble() } }
+
+            val projectPnLList = allBookings.mapNotNull { row ->
+                val bid = row[BookingsTable.id].toString()
+                val revenue = invoiceByBooking[bid] ?: return@mapNotNull null
+                val expenses = expenseSumByBooking[bid] ?: 0.0
+                val netProfit = revenue - expenses
+                val margin = if (revenue > 0) (netProfit / revenue) * 100 else 0.0
+                ProjectPnL(
+                    bookingId = bid,
+                    eventType = row[BookingsTable.eventType],
+                    eventDate = row[BookingsTable.eventDate].toString(),
+                    revenue = revenue,
+                    totalExpenses = expenses,
+                    netProfit = netProfit,
+                    marginPercent = margin
+                )
+            }
+
+            // Monthly goal tracking
+            val currentMonth = now.monthValue
+            val currentYear  = now.year
+            val currentMonthGoal = MonthlyGoalsTable.selectAll()
+                .where { (MonthlyGoalsTable.month eq currentMonth) and (MonthlyGoalsTable.year eq currentYear) }
+                .singleOrNull()
+                ?.let { r ->
+                    MonthlyGoal(
+                        id = r[MonthlyGoalsTable.id].toString(),
+                        year = r[MonthlyGoalsTable.year],
+                        month = r[MonthlyGoalsTable.month],
+                        targetRevenue = r[MonthlyGoalsTable.targetRevenue].toDouble(),
+                        targetProfit = r[MonthlyGoalsTable.targetProfit].toDouble()
+                    )
+                }
+
+            val currentMonthActualProfit = projectPnLList
+                .filter {
+                    try {
+                        val date = java.time.LocalDate.parse(it.eventDate)
+                        date.monthValue == currentMonth && date.year == currentYear
+                    } catch (e: Exception) { false }
+                }
+                .sumOf { it.netProfit }
+
+            val isMonthBelowTarget = currentMonthGoal != null &&
+                currentMonthActualProfit < currentMonthGoal.targetProfit
 
             DashboardStats(
                 totalLeadsThisMonth = totalLeadsThisMonth,
@@ -164,7 +225,14 @@ class DashboardRepository {
                 pendingDeliveries = pendingDeliveries,
                 leadsBySource = leadsBySource,
                 recentLeads = recentLeads,
-                upcomingBookings = upcomingBookings
+                upcomingBookings = upcomingBookings,
+                totalRevenue = totalRevenue,
+                totalCollected = totalCollected,
+                totalPending = totalPending,
+                projectPnLList = projectPnLList,
+                currentMonthGoal = currentMonthGoal,
+                currentMonthActualProfit = currentMonthActualProfit,
+                isMonthBelowTarget = isMonthBelowTarget
             )
         }
     }

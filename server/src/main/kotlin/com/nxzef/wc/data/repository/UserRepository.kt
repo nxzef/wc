@@ -100,15 +100,25 @@ class UserRepository {
         transaction {
             val exists = UsersTable.selectAll().count() > 0
             if (!exists) {
+                val ownerEmail = System.getenv("OWNER_EMAIL")
+                val ownerPassword = System.getenv("OWNER_PASSWORD")
+                val ownerName = System.getenv("OWNER_NAME") ?: "Owner"
+
+                if (ownerEmail.isNullOrBlank() || ownerPassword.isNullOrBlank()) {
+                    println("⚠️  WARNING: OWNER_EMAIL or OWNER_PASSWORD not set — owner account NOT seeded.")
+                    println("⚠️  Set OWNER_EMAIL and OWNER_PASSWORD in .env before first run.")
+                    return@transaction
+                }
+
                 UsersTable.insert {
-                    it[name] = "Niyas"
-                    it[email] = "niyas@weddingclouds.com"
-                    it[passwordHash] = BCrypt.hashpw("changeme123", BCrypt.gensalt())
+                    it[name] = ownerName
+                    it[email] = ownerEmail
+                    it[passwordHash] = BCrypt.hashpw(ownerPassword, BCrypt.gensalt())
                     it[role] = UserRole.OWNER.name
                     it[isActive] = true
                     it[createdAt] = Instant.now()
                 }
-                println("✅ Owner account seeded")
+                println("✅ Owner account seeded: $ownerEmail")
             }
         }
     }

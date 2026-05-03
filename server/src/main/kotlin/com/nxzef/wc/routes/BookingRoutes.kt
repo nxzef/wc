@@ -2,7 +2,6 @@ package com.nxzef.wc.routes
 
 import com.nxzef.wc.data.repository.BookingRepository
 import com.nxzef.wc.data.repository.LeadRepository
-import com.nxzef.wc.data.repository.TaskRepository
 import com.nxzef.wc.domain.service.NotificationService
 import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.BookingStatus
@@ -21,7 +20,6 @@ import io.ktor.server.routing.route
 
 fun Route.bookingRoutes(
     bookingRepository: BookingRepository,
-    taskRepository: TaskRepository,
     leadRepository: LeadRepository,
     notificationService: NotificationService
 ) {
@@ -81,13 +79,6 @@ fun Route.bookingRoutes(
                 )
             val request = call.receive<CreateBookingRequest>()
             val booking = bookingRepository.create(request)
-
-            // Auto create default tasks for this booking
-            taskRepository.createDefaultBookingTasks(
-                bookingId = booking.id,
-                assignedTo = createdBy,
-                createdBy = createdBy
-            )
 
             call.respond(HttpStatusCode.Created, booking.toDto())
         }
@@ -170,15 +161,6 @@ fun Route.bookingRoutes(
                     }
                     else -> {}
                 }
-            }
-
-            // Reassign tasks if photographer or editor was updated
-            if (request.photographerId != null || request.editorId != null) {
-                taskRepository.reassignBookingTasks(
-                    bookingId = id,
-                    photographerId = request.photographerId,
-                    editorId = request.editorId
-                )
             }
 
             call.respond(booking.toDto())

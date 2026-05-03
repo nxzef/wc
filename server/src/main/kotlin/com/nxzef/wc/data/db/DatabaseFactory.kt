@@ -7,6 +7,9 @@ import com.nxzef.wc.data.db.tables.NotificationsTable
 import com.nxzef.wc.data.db.tables.LeadStatusesTable
 import com.nxzef.wc.data.db.tables.QuoteItemsTable
 import com.nxzef.wc.data.db.tables.QuotesTable
+import com.nxzef.wc.data.db.tables.MonthlyGoalsTable
+import com.nxzef.wc.data.db.tables.ProjectExpensesTable
+import com.nxzef.wc.data.db.tables.ReceiptsTable
 import com.nxzef.wc.data.db.tables.TasksTable
 import com.nxzef.wc.data.db.tables.UsersTable
 import com.zaxxer.hikari.HikariConfig
@@ -46,6 +49,9 @@ object DatabaseFactory {
                 QuoteItemsTable,
                 BookingsTable,
                 InvoicesTable,
+                ReceiptsTable,
+                ProjectExpensesTable,
+                MonthlyGoalsTable,
                 TasksTable,
                 NotificationsTable
             )

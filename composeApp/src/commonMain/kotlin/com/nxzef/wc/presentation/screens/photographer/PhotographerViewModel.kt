@@ -86,7 +86,7 @@ class PhotographerViewModel(
 
     private fun loadTasksForShoot(bookingId: String) {
         viewModelScope.launch {
-            taskRepository.getByBookingId(bookingId)
+            taskRepository.getMyByBookingId(bookingId)
                 .onSuccess { tasks ->
                     _state.update { it.copy(tasks = tasks) }
                 }

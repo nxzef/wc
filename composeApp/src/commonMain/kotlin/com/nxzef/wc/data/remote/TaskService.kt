@@ -28,6 +28,15 @@ class TaskService(private val client: HttpClient) {
         return result["count"] ?: 0
     }
 
+    suspend fun getMyByLeadId(leadId: String): List<Task> {
+        val dtos: List<TaskDto> = client.get(
+            "${ApiClient.BASE_URL}/tasks/my/lead/$leadId"
+        ) {
+            header("Authorization", "Bearer ${SessionManager.getToken()}")
+        }.body()
+        return dtos.map { it.toDomain() }
+    }
+
     suspend fun getByLeadId(leadId: String): List<Task> {
         val dtos: List<TaskDto> = client.get(
             "${ApiClient.BASE_URL}/tasks/lead/$leadId"
@@ -40,6 +49,15 @@ class TaskService(private val client: HttpClient) {
     suspend fun getByBookingId(bookingId: String): List<Task> {
         val dtos: List<TaskDto> = client.get(
             "${ApiClient.BASE_URL}/tasks/booking/$bookingId"
+        ) {
+            header("Authorization", "Bearer ${SessionManager.getToken()}")
+        }.body()
+        return dtos.map { it.toDomain() }
+    }
+
+    suspend fun getMyByBookingId(bookingId: String): List<Task> {
+        val dtos: List<TaskDto> = client.get(
+            "${ApiClient.BASE_URL}/tasks/my/booking/$bookingId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()

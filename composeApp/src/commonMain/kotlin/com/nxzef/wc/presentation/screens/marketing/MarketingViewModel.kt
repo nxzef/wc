@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
+import com.nxzef.wc.util.RefreshManager
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,47 +34,63 @@ class MarketingViewModel(
         else s.leads.filter { it.source == s.sourceFilter }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private var hasLoadedOnce = false
+    private var previousLeadCount = -1
+
     init {
         val currentUser = sessionManager.getUser()
         _state.update { it.copy(userName = currentUser?.name ?: "User") }
         load()
+        startAutoRefresh()
+        collectRefreshTrigger()
     }
 
     fun onAction(action: MarketingAction) {
         when (action) {
-            MarketingAction.Load ->
-                load()
-
-            is MarketingAction.FilterBySource ->
-                _state.update { it.copy(sourceFilter = action.source) }
+            MarketingAction.Load -> load(silent = false)
+            is MarketingAction.FilterBySource -> _state.update { it.copy(sourceFilter = action.source) }
         }
     }
 
-    private fun load() {
+    private fun startAutoRefresh() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            while (true) {
+                delay(30_000)
+                load(silent = true)
+            }
+        }
+    }
+
+    private fun collectRefreshTrigger() {
+        viewModelScope.launch {
+            RefreshManager.refreshTrigger.collect {
+                load(silent = true)
+            }
+        }
+    }
+
+    private fun load(silent: Boolean = false) {
+        viewModelScope.launch {
+            if (!silent) _state.update { it.copy(isLoading = true, error = null) }
+            val oldCount = previousLeadCount
             getAllLeadsUseCase()
                 .onSuccess { leads ->
+                    val newCount = leads.size
+                    if (hasLoadedOnce && silent && newCount != oldCount) {
+                        _uiEvent.send(MarketingUiEvent.ShowSnackbar("Updated"))
+                    }
+                    previousLeadCount = newCount
+                    hasLoadedOnce = true
                     val stats = leads.groupingBy { it.source }
                         .eachCount()
                         .toList()
                         .sortedByDescending { it.second }
                         .toMap()
-
-                    _state.update {
-                        it.copy(
-                            leads = leads,
-                            sourceStats = stats,
-                            isLoading = false
-                        )
-                    }
+                    _state.update { it.copy(leads = leads, sourceStats = stats, isLoading = false) }
                 }
                 .onFailure { e ->
-                    _state.update {
-                        it.copy(
-                            error = e.message ?: "Failed",
-                            isLoading = false
-                        )
+                    if (!silent) {
+                        _state.update { it.copy(error = e.message ?: "Failed", isLoading = false) }
                     }
                 }
         }
