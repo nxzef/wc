@@ -55,6 +55,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.unit.dp
@@ -261,7 +262,7 @@ fun AddLeadScreen(
                         Icon(
                             imageVector = if (isFilled) Icons.Default.Star else Icons.Default.StarBorder,
                             contentDescription = "Priority $starIndex",
-                            tint = if (isFilled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (isFilled) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .size(36.dp)
                                 .pointerInput(starIndex) {

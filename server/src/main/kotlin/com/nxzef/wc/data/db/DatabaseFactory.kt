@@ -2,20 +2,19 @@ package com.nxzef.wc.data.db
 
 import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.InvoicesTable
-import com.nxzef.wc.data.db.tables.LeadsTable
-import com.nxzef.wc.data.db.tables.NotificationsTable
 import com.nxzef.wc.data.db.tables.LeadStatusesTable
+import com.nxzef.wc.data.db.tables.LeadsTable
+import com.nxzef.wc.data.db.tables.MonthlyGoalsTable
+import com.nxzef.wc.data.db.tables.NotificationsTable
+import com.nxzef.wc.data.db.tables.ProjectExpensesTable
 import com.nxzef.wc.data.db.tables.QuoteItemsTable
 import com.nxzef.wc.data.db.tables.QuotesTable
-import com.nxzef.wc.data.db.tables.MonthlyGoalsTable
-import com.nxzef.wc.data.db.tables.ProjectExpensesTable
 import com.nxzef.wc.data.db.tables.ReceiptsTable
 import com.nxzef.wc.data.db.tables.TasksTable
 import com.nxzef.wc.data.db.tables.UsersTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object DatabaseFactory {
@@ -41,7 +40,7 @@ object DatabaseFactory {
         Database.connect(HikariDataSource(config))
 
         transaction {
-            SchemaUtils.create(
+            arrayOf(
                 UsersTable,
                 LeadStatusesTable,
                 LeadsTable,
@@ -55,6 +54,7 @@ object DatabaseFactory {
                 TasksTable,
                 NotificationsTable
             )
+            Unit
         }
 
         com.nxzef.wc.data.repository.LeadStatusRepository().seedDefault()
