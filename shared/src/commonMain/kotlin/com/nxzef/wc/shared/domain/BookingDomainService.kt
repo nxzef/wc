@@ -3,7 +3,6 @@ package com.nxzef.wc.shared.domain
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.CreateBookingRequest
-import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 
 class BookingDomainService {
@@ -29,11 +28,6 @@ class BookingDomainService {
      * Determines the initial status for a new booking
      */
     fun getInitialBookingStatus(): BookingStatus = BookingStatus.BOOKED
-
-    /**
-     * Determines the lead status after booking creation
-     */
-    fun getLeadStatusAfterBooking(): LeadStatus = LeadStatus.WON
 
     /**
      * Validates booking update request

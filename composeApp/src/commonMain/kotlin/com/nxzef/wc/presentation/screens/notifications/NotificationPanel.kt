@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.NotificationsNone
+import com.nxzef.wc.presentation.components.RefreshButton
+import com.nxzef.wc.util.RefreshManager
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -90,6 +92,10 @@ fun NotificationPanel(
                                 )
                             }
                         }
+                        RefreshButton(
+                            isLoading = state.isLoading,
+                            onClick = { RefreshManager.triggerRefresh() }
+                        )
                         IconButton(
                             onClick = { onAction(NotificationAction.Hide) }
                         ) {

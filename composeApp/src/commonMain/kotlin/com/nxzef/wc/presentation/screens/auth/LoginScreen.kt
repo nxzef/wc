@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +45,8 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun LoginScreen(
     onLoginSuccess: (UserRole) -> Unit,
+    onCreateCompany: () -> Unit,
+    onJoinTeam: () -> Unit,
     viewModel: LoginViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -170,6 +173,20 @@ fun LoginScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                    }
+
+                    TextButton(onClick = onCreateCompany) {
+                        Text(
+                            text = "New company? Create Account",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    TextButton(onClick = onJoinTeam) {
+                        Text(
+                            text = "Join existing team? Join Team",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }

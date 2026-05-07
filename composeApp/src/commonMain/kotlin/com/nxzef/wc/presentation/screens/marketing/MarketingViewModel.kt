@@ -3,9 +3,12 @@ package com.nxzef.wc.presentation.screens.marketing
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
+import com.nxzef.wc.shared.util.ErrorMessages
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
+import com.nxzef.wc.util.RefreshManager
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -36,21 +39,37 @@ class MarketingViewModel(
         val currentUser = sessionManager.getUser()
         _state.update { it.copy(userName = currentUser?.name ?: "User") }
         load()
+        startAutoRefresh()
+        collectRefreshTrigger()
     }
 
     fun onAction(action: MarketingAction) {
         when (action) {
-            MarketingAction.Load ->
-                load()
-
-            is MarketingAction.FilterBySource ->
-                _state.update { it.copy(sourceFilter = action.source) }
+            MarketingAction.Load -> load(silent = false)
+            is MarketingAction.FilterBySource -> _state.update { it.copy(sourceFilter = action.source) }
         }
     }
 
-    private fun load() {
+    private fun startAutoRefresh() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            while (true) {
+                delay(30_000)
+                load(silent = true)
+            }
+        }
+    }
+
+    private fun collectRefreshTrigger() {
+        viewModelScope.launch {
+            RefreshManager.refreshTrigger.collect {
+                load(silent = true)
+            }
+        }
+    }
+
+    private fun load(silent: Boolean = false) {
+        viewModelScope.launch {
+            if (!silent) _state.update { it.copy(isLoading = true, error = null) }
             getAllLeadsUseCase()
                 .onSuccess { leads ->
                     val stats = leads.groupingBy { it.source }
@@ -58,21 +77,11 @@ class MarketingViewModel(
                         .toList()
                         .sortedByDescending { it.second }
                         .toMap()
-
-                    _state.update {
-                        it.copy(
-                            leads = leads,
-                            sourceStats = stats,
-                            isLoading = false
-                        )
-                    }
+                    _state.update { it.copy(leads = leads, sourceStats = stats, isLoading = false) }
                 }
                 .onFailure { e ->
-                    _state.update {
-                        it.copy(
-                            error = e.message ?: "Failed",
-                            isLoading = false
-                        )
+                    if (!silent) {
+                        _state.update { it.copy(error = ErrorMessages.forGeneric(e.message), isLoading = false) }
                     }
                 }
         }

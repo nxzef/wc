@@ -14,7 +14,8 @@ data class Task(
     val isDone      : Boolean,
     val doneAt      : String?  = null,
     val createdBy   : String,
-    val createdAt   : String
+    val createdAt   : String,
+    val stageName   : String?  = null
 )
 
 @Serializable
@@ -23,8 +24,8 @@ data class CreateTaskRequest(
     val bookingId   : String?  = null,
     val title       : String,
     val description : String?  = null,
-    val assignedTo  : String,
-    val dueDate     : String?  = null
+    val dueDate     : String?  = null,
+    val stageName   : String?  = null
 )
 
 @Serializable

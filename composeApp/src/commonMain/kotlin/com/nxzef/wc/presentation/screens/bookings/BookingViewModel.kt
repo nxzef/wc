@@ -15,7 +15,9 @@ import com.nxzef.wc.shared.model.CreateTaskRequest
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
+import com.nxzef.wc.util.RefreshManager
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,20 +42,52 @@ class BookingViewModel(
     private val _uiEvent = Channel<BookingUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
+    private var hasLoadedOnce = false
+    private var previousBookingCount = -1
+
     init {
         load()
+        startAutoRefresh()
+        collectRefreshTrigger()
     }
 
-    private fun load() {
+    private fun startAutoRefresh() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            // Load bookings, leads and team in parallel
+            while (true) {
+                delay(30_000)
+                load(silent = true)
+            }
+        }
+    }
+
+    private fun collectRefreshTrigger() {
+        viewModelScope.launch {
+            RefreshManager.refreshTrigger.collect {
+                load(silent = true)
+            }
+        }
+    }
+
+    private fun load(silent: Boolean = false) {
+        viewModelScope.launch {
+            if (!silent) _state.update { it.copy(isLoading = true) }
+            val oldCount = previousBookingCount
             val bookingsResult = getAllBookingsUseCase()
             val leadsResult = getAllLeadsUseCase()
             val teamResult = userRepository.getTeam()
 
             bookingsResult.onSuccess { bookings ->
+                val newCount = bookings.size
+                if (hasLoadedOnce && silent && newCount != oldCount) {
+                    _uiEvent.send(BookingUiEvent.ShowSnackbar("Updated"))
+                }
+                previousBookingCount = newCount
+                hasLoadedOnce = true
                 _state.update { it.copy(bookings = bookings) }
+            }.onFailure {
+                if (!silent) {
+                    _uiEvent.send(BookingUiEvent.ShowSnackbar("Failed to load bookings."))
+                }
             }
             leadsResult.onSuccess { leads ->
                 _state.update { it.copy(leads = leads) }
@@ -61,32 +95,25 @@ class BookingViewModel(
             teamResult.onSuccess { team ->
                 _state.update { it.copy(team = team) }
             }
-            _state.update { it.copy(isLoading = false) }
+            if (!silent) _state.update { it.copy(isLoading = false) }
         }
     }
 
     fun onAction(action: BookingAction) {
         when (action) {
-            BookingAction.LoadBookings -> load()
+            BookingAction.LoadBookings -> load(silent = false)
             is BookingAction.SelectBooking -> {
-                _state.update {
-                    it.copy(selectedBooking = action.booking)
-                }
+                _state.update { it.copy(selectedBooking = action.booking) }
                 loadTasks(action.booking.id)
             }
-
             BookingAction.DismissDetail ->
                 _state.update { it.copy(selectedBooking = null, tasks = emptyList()) }
-
             is BookingAction.OnUpdateStatus ->
                 updateStatus(action.bookingId, action.status)
-
             is BookingAction.OnFilterStatus ->
                 _state.update { it.copy(filterStatus = action.status) }
-
             is BookingAction.AssignPhotographer -> assignPhotographer(action.bookingId, action.userId)
             is BookingAction.AssignEditor -> assignEditor(action.bookingId, action.userId)
-
             is BookingAction.OnTaskToggle -> toggleTask(action.taskId, action.isDone)
             BookingAction.ShowAddTaskDialog -> _state.update { it.copy(showAddTaskDialog = true) }
             BookingAction.HideAddTaskDialog -> _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
@@ -103,14 +130,11 @@ class BookingViewModel(
                 request = UpdateBookingRequest(photographerId = userId)
             ).onSuccess {
                 load()
-                // Update selected booking in state if it's the one being modified
                 if (_state.value.selectedBooking?.id == bookingId) {
-                    _state.update { s ->
-                        s.copy(selectedBooking = s.bookings.find { it.id == bookingId })
-                    }
+                    _state.update { s -> s.copy(selectedBooking = s.bookings.find { it.id == bookingId }) }
                 }
-            }.onFailure { e ->
-                _uiEvent.send(BookingUiEvent.ShowSnackbar(e.message ?: "Failed to assign photographer"))
+            }.onFailure {
+                _uiEvent.send(BookingUiEvent.ShowSnackbar("Failed to update booking."))
             }
         }
     }
@@ -122,14 +146,11 @@ class BookingViewModel(
                 request = UpdateBookingRequest(editorId = userId)
             ).onSuccess {
                 load()
-                // Update selected booking in state if it's the one being modified
                 if (_state.value.selectedBooking?.id == bookingId) {
-                    _state.update { s ->
-                        s.copy(selectedBooking = s.bookings.find { it.id == bookingId })
-                    }
+                    _state.update { s -> s.copy(selectedBooking = s.bookings.find { it.id == bookingId }) }
                 }
-            }.onFailure { e ->
-                _uiEvent.send(BookingUiEvent.ShowSnackbar(e.message ?: "Failed to assign editor"))
+            }.onFailure {
+                _uiEvent.send(BookingUiEvent.ShowSnackbar("Failed to update booking."))
             }
         }
     }
@@ -161,11 +182,7 @@ class BookingViewModel(
 
         viewModelScope.launch {
             createTaskUseCase(
-                CreateTaskRequest(
-                    bookingId = bookingId,
-                    title = s.newTaskTitle,
-                    assignedTo = "" // Default to self or handle on server
-                )
+                CreateTaskRequest(bookingId = bookingId, title = s.newTaskTitle)
             ).onSuccess {
                 _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
                 loadTasks(bookingId)
@@ -189,18 +206,11 @@ class BookingViewModel(
                 request = UpdateBookingRequest(status = status)
             ).onSuccess {
                 load()
-                // Update selected booking in state if it's the one being modified
                 if (_state.value.selectedBooking?.id == bookingId) {
-                    _state.update { s ->
-                        s.copy(selectedBooking = s.bookings.find { it.id == bookingId })
-                    }
+                    _state.update { s -> s.copy(selectedBooking = s.bookings.find { it.id == bookingId }) }
                 }
-            }.onFailure { e ->
-                _uiEvent.send(
-                    BookingUiEvent.ShowSnackbar(
-                        e.message ?: "Failed to update"
-                    )
-                )
+            }.onFailure {
+                _uiEvent.send(BookingUiEvent.ShowSnackbar("Failed to update booking."))
             }
         }
     }

@@ -17,6 +17,7 @@ object BookingsTable : Table("bookings") {
     val location = varchar("location", 200)
     val status = varchar("status", 50).default("BOOKED")
     val notes = text("notes").nullable()
+    val teamId = uuid("team_id").references(TeamsTable.id).nullable()
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

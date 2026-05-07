@@ -1,58 +1,60 @@
 #!/bin/bash
 
-# --- CONFIGURATION ---
-PORT=8080
-# The URL to check. If your server has a specific health path, use that.
-HEALTH_URL="http://localhost:$PORT/health"
+# Load .env file if it exists
+if [ -f .env ]; then
+    # shellcheck disable=SC2046
+    export $(grep -v '^#' .env | grep -v '^$' | xargs)
+fi
 
-# --- CLEANUP LOGIC ---
+PORT=8080
+HEALTH_URL="http://localhost:$PORT/health"
+MAX_WAIT=60   # seconds before giving up on server startup
+
 cleanup() {
-    echo -e "\n\e[31mStopping all processes...\e[0m"
-    # Kill the server process group
-    if [ -n "$SERVER_PID" ]; then
-        kill $SERVER_PID 2>/dev/null
-    fi
-    # Force kill anything remaining on the port
-    fuser -k $PORT/tcp 2>/dev/null
-    echo "Cleaned up. See you later!"
-    exit
+    echo ""
+    echo "Stopping all processes..."
+    [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null
+    fuser -k "${PORT}/tcp" 2>/dev/null
+    echo "Done. See you later!"
+    exit 0
 }
 
-# Catch stop signals (Android Studio Stop button or Ctrl+C)
 trap cleanup SIGINT SIGTERM
 
-# --- EXECUTION ---
+# Kill any zombie from a previous run
+echo "Checking port $PORT..."
+fuser -k "${PORT}/tcp" 2>/dev/null
 
-# 1. Kill any zombie processes from previous failed runs
-echo "Pre-run cleanup on port $PORT..."
-fuser -k $PORT/tcp 2>/dev/null
-
-# 2. Start the Server
-echo -e "\e[32mStarting Ktor Server...\e[0m"
-./gradlew :server:run &
+# Start the server — plain console so Gradle progress bars don't pollute the terminal.
+# Output is tee'd to server.log so you can inspect it at any time.
+echo "Starting Ktor server (output -> server.log)..."
+./gradlew :server:run --console=plain > server.log 2>&1 &
 SERVER_PID=$!
 
-# 3. Intelligent Wait (The Claude + Safety Method)
-echo "Waiting for server to respond at $HEALTH_URL..."
-MAX_RETRIES=30
+# Wait for the health endpoint to respond
+echo "Waiting for server at $HEALTH_URL (timeout: ${MAX_WAIT}s)..."
 COUNT=0
-
-while ! curl -s --connect-timeout 2 $HEALTH_URL > /dev/null 2>&1; do
-    if [ $COUNT -ge $MAX_RETRIES ]; then
-        echo -e "\e[31mError: Server took too long to start. Check your logs.\e[0m"
+while ! curl -s --connect-timeout 2 "$HEALTH_URL" > /dev/null 2>&1; do
+    if [ "$COUNT" -ge "$MAX_WAIT" ]; then
+        echo ""
+        echo "ERROR: Server did not start within ${MAX_WAIT}s."
+        echo "--- Last 30 lines of server.log ---"
+        tail -30 server.log
+        echo "-----------------------------------"
         cleanup
+        exit 1
     fi
-    echo -n "."
-    sleep 1
     ((COUNT++))
+    printf "\r  Waiting... %02d / %02d s" "$COUNT" "$MAX_WAIT"
+    sleep 1
 done
 
-echo -e "\n\e[32m✅ Server is active!\e[0m"
+echo ""
+echo "Server is up and running!"
+echo ""
 
-# 4. Start the Desktop App
-echo -e "\e[34mStarting Desktop App...\e[0m"
-# Note: Using :composeApp:run as it's the standard for Desktop
-./gradlew :composeApp:run
+# Start the desktop app (plain console, output goes straight to terminal)
+echo "Starting desktop app..."
+./gradlew :composeApp:run --console=plain
 
-# 5. Final cleanup when the app is closed
 cleanup

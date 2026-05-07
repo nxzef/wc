@@ -10,7 +10,8 @@ import io.ktor.server.routing.route
 fun Route.dashboardRoutes(dashboardRepository: DashboardRepository) {
     route("/dashboard") {
         get("/stats") {
-            val stats = dashboardRepository.getStats()
+            val teamId = call.requireTeamId() ?: return@get
+            val stats = dashboardRepository.getStats(teamId)
             call.respond(stats.toDto())
         }
     }

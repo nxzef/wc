@@ -8,10 +8,14 @@ import com.nxzef.wc.data.remote.AuthService
 import com.nxzef.wc.data.remote.BookingService
 import com.nxzef.wc.data.remote.DashboardService
 import com.nxzef.wc.data.remote.InvoiceService
+import com.nxzef.wc.data.remote.ReceiptService
 import com.nxzef.wc.data.remote.LeadService
 import com.nxzef.wc.data.remote.NotificationService
+import com.nxzef.wc.data.remote.LeadStatusService
 import com.nxzef.wc.data.remote.QuoteService
 import com.nxzef.wc.data.remote.TaskService
+import com.nxzef.wc.data.remote.MonthlyGoalService
+import com.nxzef.wc.data.remote.ProjectExpenseService
 import com.nxzef.wc.data.remote.UserService
 import com.nxzef.wc.data.session.SessionManager
 import org.koin.dsl.module
@@ -32,7 +36,11 @@ val serviceModule = module {
     single { NotificationService(get()) }
     single { UserService(get()) }
     single { InvoiceService(get()) }
+    single { ReceiptService(get()) }
+    single { ProjectExpenseService(get()) }
+    single { MonthlyGoalService(get()) }
     single { QuoteService(get()) }
+    single { LeadStatusService(get()) }
     single { ApiService(get()) }
     single { createDataStore() }
     single { TokenStorage(get()) }

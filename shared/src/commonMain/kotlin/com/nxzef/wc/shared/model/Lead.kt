@@ -14,11 +14,6 @@ enum class EventType {
 }
 
 @Serializable
-enum class LeadStatus {
-    NEW, CONTACTED, NEGOTIATING, WON, LOST
-}
-
-@Serializable
 data class Lead(
     val id: String,
     val fullName: String,
@@ -28,7 +23,9 @@ data class Lead(
     val eventType: EventType,
     val eventDate: String? = null,
     val location: String? = null,
-    val status: LeadStatus,
+    val statusName: String,
+    val customStatus: LeadStatus? = null,
+    val priority: Int = 0,
     val lostReason: String? = null,
     val notes: String? = null,
     val addedBy: String,
@@ -45,13 +42,14 @@ data class CreateLeadRequest(
     val eventType: EventType,
     val eventDate: String? = null,
     val location: String? = null,
+    val priority: Int = 0,
     val notes: String? = null,
     val assignedTo: String
 )
 
 @Serializable
 data class UpdateLeadStatusRequest(
-    val status: LeadStatus,
+    val customStatusId: String,
     val lostReason: String? = null,
     val notes: String? = null
 )

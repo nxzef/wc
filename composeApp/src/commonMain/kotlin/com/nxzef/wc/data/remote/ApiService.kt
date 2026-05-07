@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -11,7 +12,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 
 class ApiService(private val client: HttpClient) {
-    private val baseUrl = ApiClient.BASE_URL
+    private val baseUrl = AppConfig.BASE_URL
 
     suspend fun checkHealth(): Boolean {
         return try {

@@ -20,11 +20,10 @@ class UserRepositoryImpl(
     override suspend fun createMember(
         name: String,
         email: String,
-        password: String,
         role: String
     ): AppResult<User> {
         return try {
-            AppResult.Success(service.createMember(name, email, password, role))
+            AppResult.Success(service.createMember(name, email, role))
         } catch (e: Exception) {
             AppResult.Failure(e)
         }

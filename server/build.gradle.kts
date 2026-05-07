@@ -37,6 +37,11 @@ dependencies {
     implementation(libs.postgresql)
     implementation(libs.hikari)
 
+    // Email (Resend HTTP API via Ktor client)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+
     // Security
     implementation(libs.bcrypt)
 
@@ -49,4 +54,16 @@ dependencies {
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
     testImplementation("com.h2database:h2:2.2.224")
+}
+
+// Fat JAR — produced by the Ktor plugin via Shadow. Override naming so the artifact lands
+// at server/build/libs/server-all.jar to match the Dockerfile's COPY path.
+tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+    archiveBaseName.set("server")
+    archiveClassifier.set("all")
+    archiveVersion.set("")
+    mergeServiceFiles()
+    manifest {
+        attributes["Main-Class"] = "com.nxzef.wc.ApplicationKt"
+    }
 }

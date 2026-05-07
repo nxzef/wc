@@ -12,6 +12,7 @@ data class AddLeadState(
     val eventType: EventType = EventType.WEDDING,
     val eventDate: String = "",
     val location: String = "",
+    val priority: Int = 0,
     val notes: String = "",
     val assignedTo: String = "",
     val teamMembers: List<User> = emptyList(),
@@ -27,6 +28,7 @@ sealed interface AddLeadAction {
     data class OnEventTypeChange(val value: EventType) : AddLeadAction
     data class OnEventDateChange(val value: String) : AddLeadAction
     data class OnLocationChange(val value: String) : AddLeadAction
+    data class OnPriorityChange(val value: Int) : AddLeadAction
     data class OnNotesChange(val value: String) : AddLeadAction
     data class OnAssignedToChange(val value: String) : AddLeadAction
     data object OnSubmit : AddLeadAction

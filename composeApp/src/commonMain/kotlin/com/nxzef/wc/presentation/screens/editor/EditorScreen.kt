@@ -43,9 +43,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.components.BookingStatusBadge
 import com.nxzef.wc.presentation.components.TaskCheckItem
 import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.shared.model.UserRole
 import com.nxzef.wc.presentation.screens.photographer.ShootCard
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.BookingStatus
@@ -59,6 +61,7 @@ fun EditorScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarState = remember { SnackbarHostState() }
+    val isMainScreen = remember { SessionManager.getRole() == UserRole.EDITOR }
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -78,7 +81,8 @@ fun EditorScreen(
             WCTopBar(
                 title = "Editing Queue",
                 subtitle = "Welcome, ${state.userName}",
-                onBack = onBack
+                onBack = if (isMainScreen) null else onBack,
+                showNotificationIcon = isMainScreen
             )
         }
     ) { padding ->

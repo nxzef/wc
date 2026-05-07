@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.NotificationDto
 import io.ktor.client.HttpClient
@@ -12,7 +13,7 @@ class NotificationService(private val client: HttpClient) {
 
     suspend fun getMyNotifications(): List<NotificationDto> {
         return client.get(
-            "${ApiClient.BASE_URL}/notifications"
+            "${AppConfig.BASE_URL}/notifications"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -20,7 +21,7 @@ class NotificationService(private val client: HttpClient) {
 
     suspend fun getUnreadCount(): Int {
         val response = client.get(
-            "${ApiClient.BASE_URL}/notifications/unread/count"
+            "${AppConfig.BASE_URL}/notifications/unread/count"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body<Map<String, Int>>()
@@ -29,14 +30,14 @@ class NotificationService(private val client: HttpClient) {
 
     suspend fun markAsRead(id: String): Boolean =
         client.put(
-            "${ApiClient.BASE_URL}/notifications/$id/read"
+            "${AppConfig.BASE_URL}/notifications/$id/read"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body<Map<String, Boolean>>()["success"] ?: false
 
     suspend fun markAllAsRead(): Int =
         client.put(
-            "${ApiClient.BASE_URL}/notifications/read/all"
+            "${AppConfig.BASE_URL}/notifications/read/all"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body<Map<String, Int>>()["marked"] ?: 0

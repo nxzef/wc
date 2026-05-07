@@ -8,7 +8,6 @@ interface UserRepository {
     suspend fun createMember(
         name: String,
         email: String,
-        password: String,
         role: String
     ): AppResult<User>
     suspend fun removeMember(id: String): AppResult<Unit>

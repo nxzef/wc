@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.BookingDto
 import com.nxzef.wc.shared.dto.toDomain
@@ -19,14 +20,14 @@ import io.ktor.http.contentType
 class BookingService(private val client: HttpClient) {
 
     suspend fun getAll(): List<Booking> {
-        val dtos: List<BookingDto> = client.get("${ApiClient.BASE_URL}/bookings") {
+        val dtos: List<BookingDto> = client.get("${AppConfig.BASE_URL}/bookings") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
         return dtos.map { it.toDomain() }
     }
 
     suspend fun getById(id: String): Booking {
-        val dto: BookingDto = client.get("${ApiClient.BASE_URL}/bookings/$id") {
+        val dto: BookingDto = client.get("${AppConfig.BASE_URL}/bookings/$id") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
         return dto.toDomain()
@@ -34,7 +35,7 @@ class BookingService(private val client: HttpClient) {
 
     suspend fun getByPhotographer(id: String): List<Booking> {
         val dtos: List<BookingDto> = client.get(
-            "${ApiClient.BASE_URL}/bookings/photographer/$id"
+            "${AppConfig.BASE_URL}/bookings/photographer/$id"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -43,7 +44,7 @@ class BookingService(private val client: HttpClient) {
 
     suspend fun getByEditor(id: String): List<Booking> {
         val dtos: List<BookingDto> = client.get(
-            "${ApiClient.BASE_URL}/bookings/editor/$id"
+            "${AppConfig.BASE_URL}/bookings/editor/$id"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -51,7 +52,7 @@ class BookingService(private val client: HttpClient) {
     }
 
     suspend fun create(request: CreateBookingRequest): Booking {
-        val dto: BookingDto = client.post("${ApiClient.BASE_URL}/bookings") {
+        val dto: BookingDto = client.post("${AppConfig.BASE_URL}/bookings") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)
@@ -63,7 +64,7 @@ class BookingService(private val client: HttpClient) {
         id: String,
         request: UpdateBookingRequest
     ): Booking {
-        val dto: BookingDto = client.put("${ApiClient.BASE_URL}/bookings/$id") {
+        val dto: BookingDto = client.put("${AppConfig.BASE_URL}/bookings/$id") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)

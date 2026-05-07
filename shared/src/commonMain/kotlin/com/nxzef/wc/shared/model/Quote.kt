@@ -26,21 +26,17 @@ data class Quote(
     val status: QuoteStatus,
     val items: List<QuoteItem> = emptyList(),
     val totalAmount: Double = 0.0,
+    val fileName: String? = null,
     val createdAt: String
 )
 
 @Serializable
-data class CreateQuoteItemRequest(
-    val description: String,
-    val price: Double
-)
-
-@Serializable
-data class CreateQuoteRequest(
+data class SendQuoteRequest(
     val leadId: String,
-    val validUntil: String? = null,
-    val notes: String? = null,
-    val items: List<CreateQuoteItemRequest>
+    val clientEmail: String,
+    val fileBase64: String,
+    val fileName: String,
+    val totalAmount: Double
 )
 
 @Serializable

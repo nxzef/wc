@@ -1,11 +1,11 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.LeadDto
 import com.nxzef.wc.shared.dto.toDomain
 import com.nxzef.wc.shared.model.CreateLeadRequest
 import com.nxzef.wc.shared.model.Lead
-import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.UpdateLeadStatusRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -21,7 +21,7 @@ class LeadService(
     private val client: HttpClient,
     private val sessionManager: SessionManager
 ) {
-    private val baseUrl = ApiClient.BASE_URL
+    private val baseUrl = AppConfig.BASE_URL
 
     suspend fun getAllLeads(): List<Lead> {
         val dtos: List<LeadDto> = client.get("$baseUrl/leads") {
@@ -32,24 +32,19 @@ class LeadService(
 
     suspend fun updateLeadStatus(
         id: String,
-        status: LeadStatus,
+        customStatusId: String,
         notes: String? = null
     ): Lead {
         val dto: LeadDto = client.put("$baseUrl/leads/$id/status") {
             header("Authorization", "Bearer ${sessionManager.getToken()}")
             contentType(ContentType.Application.Json)
-            setBody(
-                UpdateLeadStatusRequest(
-                    status = status,
-                    notes = notes
-                )
-            )
+            setBody(UpdateLeadStatusRequest(customStatusId = customStatusId, notes = notes))
         }.body()
         return dto.toDomain()
     }
 
     suspend fun create(request: CreateLeadRequest): Lead {
-        val dto: LeadDto = client.post("${ApiClient.BASE_URL}/leads") {
+        val dto: LeadDto = client.post("$baseUrl/leads") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)

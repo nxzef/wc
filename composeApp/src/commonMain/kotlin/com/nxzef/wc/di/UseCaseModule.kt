@@ -1,6 +1,8 @@
 package com.nxzef.wc.di
 
+import com.nxzef.wc.domain.usecase.auth.JoinTeamUseCase
 import com.nxzef.wc.domain.usecase.auth.LoginUseCase
+import com.nxzef.wc.domain.usecase.auth.RegisterUseCase
 import com.nxzef.wc.domain.usecase.bookings.CreateBookingUseCase
 import com.nxzef.wc.domain.usecase.bookings.GetAllBookingsUseCase
 import com.nxzef.wc.domain.usecase.bookings.GetMyEditingQueueUseCase
@@ -13,12 +15,13 @@ import com.nxzef.wc.domain.usecase.invoices.UpdatePaymentUseCase
 import com.nxzef.wc.domain.usecase.leads.CreateLeadUseCase
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.domain.usecase.leads.UpdateLeadStatusUseCase
-import com.nxzef.wc.domain.usecase.quotes.CreateQuoteUseCase
+import com.nxzef.wc.domain.usecase.quotes.SendQuoteUseCase
 import com.nxzef.wc.domain.usecase.quotes.GetQuotesByLeadIdUseCase
 import com.nxzef.wc.domain.usecase.quotes.UpdateQuoteStatusUseCase
 import com.nxzef.wc.domain.usecase.tasks.CreateTaskUseCase
 import com.nxzef.wc.domain.usecase.tasks.DeleteTaskUseCase
 import com.nxzef.wc.domain.usecase.tasks.GetMyPendingTasksUseCase
+import com.nxzef.wc.domain.usecase.tasks.GetMyTasksByLeadUseCase
 import com.nxzef.wc.domain.usecase.tasks.GetTasksByBookingUseCase
 import com.nxzef.wc.domain.usecase.tasks.GetTasksByLeadUseCase
 import com.nxzef.wc.domain.usecase.tasks.MarkTaskDoneUseCase
@@ -29,6 +32,8 @@ import org.koin.dsl.module
 
 val useCaseModule = module {
     factory { LoginUseCase(get()) }
+    factory { RegisterUseCase(get()) }
+    factory { JoinTeamUseCase(get()) }
     factory { GetDashboardStatsUseCase(get()) }
     factory { GetAllLeadsUseCase(get()) }
     factory { UpdateLeadStatusUseCase(get()) }
@@ -44,9 +49,10 @@ val useCaseModule = module {
     factory { GetMyShootsUseCase(get()) }
     factory { GetMyEditingQueueUseCase(get()) }
     factory { GetQuotesByLeadIdUseCase(get()) }
-    factory { CreateQuoteUseCase(get()) }
+    factory { SendQuoteUseCase(get()) }
     factory { UpdateQuoteStatusUseCase(get()) }
     factory { GetMyPendingTasksUseCase(get()) }
+    factory { GetMyTasksByLeadUseCase(get()) }
     factory { GetTasksByLeadUseCase(get()) }
     factory { GetTasksByBookingUseCase(get()) }
     factory { CreateTaskUseCase(get()) }

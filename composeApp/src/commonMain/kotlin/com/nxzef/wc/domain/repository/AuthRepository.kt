@@ -10,5 +10,12 @@ interface AuthRepository {
     val isLoggedIn: StateFlow<Boolean>
     
     suspend fun login(email: String, password: String): AppResult<LoginResponse>
+    suspend fun register(name: String, email: String, password: String, teamName: String): AppResult<LoginResponse>
+    suspend fun joinTeam(
+        email: String,
+        inviteCode: String,
+        newPassword: String,
+        confirmPassword: String
+    ): AppResult<LoginResponse>
     suspend fun logout()
 }

@@ -8,6 +8,7 @@ import com.nxzef.wc.domain.usecase.bookings.GetMyEditingQueueUseCase
 import com.nxzef.wc.domain.usecase.bookings.UpdateBookingUseCase
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.UpdateBookingRequest
+import com.nxzef.wc.shared.util.ErrorMessages
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
@@ -74,7 +75,7 @@ class EditorViewModel(
                 .onFailure { e ->
                     _state.update {
                         it.copy(
-                            error = e.message ?: "Failed to load",
+                            error = ErrorMessages.forGeneric(e.message),
                             isLoading = false
                         )
                     }
@@ -84,7 +85,7 @@ class EditorViewModel(
 
     private fun loadTasks(bookingId: String) {
         viewModelScope.launch {
-            taskRepository.getByBookingId(bookingId)
+            taskRepository.getMyByBookingId(bookingId)
                 .onSuccess { tasks ->
                     _state.update { it.copy(tasks = tasks) }
                 }
@@ -105,7 +106,7 @@ class EditorViewModel(
             }.onFailure { e ->
                 _uiEvent.send(
                     EditorUiEvent.ShowSnackbar(
-                        e.message ?: "Failed to update"
+                        ErrorMessages.forGeneric(e.message)
                     )
                 )
             }

@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -45,7 +46,10 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -71,12 +75,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.components.LeadStatusBadge
+import com.nxzef.wc.presentation.components.RefreshButton
 import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.util.RefreshManager
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.DashboardStats
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadSource
+import com.nxzef.wc.shared.model.ProjectPnL
+import com.nxzef.wc.shared.util.CurrencyUtils
+import com.nxzef.wc.shared.util.DateUtils
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -93,14 +102,31 @@ fun DashboardScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val user by sessionManager.currentUser.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is DashboardUiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                is DashboardUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
+            }
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             WCTopBar(
                 title = "Executive Overview",
                 subtitle = "Welcome, ${user?.name ?: "User"}",
                 showNotificationIcon = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                actions = {
+                    RefreshButton(
+                        isLoading = state.isLoading || state.isRefreshing,
+                        onClick = { RefreshManager.triggerRefresh() }
+                    )
+                }
             )
         }
     ) { padding ->
@@ -151,11 +177,24 @@ fun DashboardScreen(
                         onNavigateToAddLead = onNavigateToAddLead,
                         onNavigateToBookings = onNavigateToBookings,
                         onViewLeads = onViewLeads,
+                        onSetGoalClick = { viewModel.onAction(DashboardAction.ShowGoalDialog) },
                         modifier = Modifier.widthIn(max = 1000.dp).fillMaxWidth()
                     )
                 }
             }
         }
+    }
+
+    if (state.showGoalDialog) {
+        MonthlyGoalDialog(
+            revenue = state.goalRevenue,
+            profit = state.goalProfit,
+            isSaving = state.isSavingGoal,
+            onRevenueChange = { viewModel.onAction(DashboardAction.OnGoalRevenueChange(it)) },
+            onProfitChange = { viewModel.onAction(DashboardAction.OnGoalProfitChange(it)) },
+            onConfirm = { viewModel.onAction(DashboardAction.SetMonthlyGoal) },
+            onDismiss = { viewModel.onAction(DashboardAction.HideGoalDialog) }
+        )
     }
 }
 
@@ -168,6 +207,7 @@ fun DashboardContent(
     onNavigateToAddLead: () -> Unit,
     onNavigateToBookings: () -> Unit,
     onViewLeads: () -> Unit,
+    onSetGoalClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -241,7 +281,7 @@ fun DashboardContent(
                         SummaryStatCard(
                             modifier = Modifier.weight(1f),
                             title = "Revenue (MTD)",
-                            value = "₹${formatCurrency(stats.totalRevenueThisMonth)}",
+                            value = CurrencyUtils.formatINR(stats.totalRevenueThisMonth),
                             icon = Icons.Default.AccountBalanceWallet,
                             color = MaterialTheme.colorScheme.primary,
                             trend = "+12.5%",
@@ -259,7 +299,7 @@ fun DashboardContent(
                         SummaryStatCard(
                             modifier = Modifier.weight(1f),
                             title = "Avg. Order Value",
-                            value = "₹${formatCurrency(stats.averageOrderValue)}",
+                            value = CurrencyUtils.formatINR(stats.averageOrderValue),
                             icon = Icons.Default.Analytics,
                             color = MaterialTheme.colorScheme.tertiary,
                             trend = "-2.1%",
@@ -274,7 +314,7 @@ fun DashboardContent(
                         SummaryStatCard(
                             modifier = Modifier.fillMaxWidth(),
                             title = "Revenue (MTD)",
-                            value = "₹${formatCurrency(stats.totalRevenueThisMonth)}",
+                            value = CurrencyUtils.formatINR(stats.totalRevenueThisMonth),
                             icon = Icons.Default.AccountBalanceWallet,
                             color = MaterialTheme.colorScheme.primary,
                             trend = "+12.5%",
@@ -292,7 +332,7 @@ fun DashboardContent(
                         SummaryStatCard(
                             modifier = Modifier.fillMaxWidth(),
                             title = "Avg. Order Value",
-                            value = "₹${formatCurrency(stats.averageOrderValue)}",
+                            value = CurrencyUtils.formatINR(stats.averageOrderValue),
                             icon = Icons.Default.Analytics,
                             color = MaterialTheme.colorScheme.tertiary,
                             trend = "-2.1%",
@@ -443,7 +483,7 @@ fun DashboardContent(
                             color = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            text = "₹${formatCurrency(stats.pendingPayments)}",
+                            text = CurrencyUtils.formatINR(stats.pendingPayments),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.error
@@ -520,7 +560,194 @@ fun DashboardContent(
                 }
             }
         }
+
+        // Monthly P&L Section
+        if (stats.projectPnLList.isNotEmpty() || stats.currentMonthGoal != null) {
+            item {
+                MonthlyPnLSection(
+                    stats = stats,
+                    onSetGoalClick = onSetGoalClick
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun MonthlyPnLSection(
+    stats: DashboardStats,
+    onSetGoalClick: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Monthly P&L",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            TextButton(onClick = onSetGoalClick) {
+                Text("Set Goal")
+            }
+        }
+
+        if (stats.isMonthBelowTarget) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Warning,
+                        null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Column {
+                        Text(
+                            "Below Monthly Target",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            "Actual ${CurrencyUtils.formatINR(stats.currentMonthActualProfit)} vs target ${CurrencyUtils.formatINR((stats.currentMonthGoal?.targetProfit ?: 0.0))}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        stats.currentMonthGoal?.let { goal ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                KpiMetricCard(
+                    modifier = Modifier.weight(1f),
+                    label = "Target Revenue",
+                    value = CurrencyUtils.formatINR(goal.targetRevenue),
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                KpiMetricCard(
+                    modifier = Modifier.weight(1f),
+                    label = "Actual Profit",
+                    value = CurrencyUtils.formatINR(stats.currentMonthActualProfit),
+                    icon = Icons.Default.AccountBalanceWallet,
+                    color = if (stats.isMonthBelowTarget) MaterialTheme.colorScheme.error else WCTheme.colors.statusWon
+                )
+                KpiMetricCard(
+                    modifier = Modifier.weight(1f),
+                    label = "Target Profit",
+                    value = CurrencyUtils.formatINR(goal.targetProfit),
+                    icon = Icons.Default.Analytics,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+        }
+
+        val topProjects = stats.projectPnLList.sortedByDescending { it.netProfit }.take(3)
+        if (topProjects.isNotEmpty()) {
+            Text("Top Projects", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            topProjects.forEach { pnl ->
+                ProjectPnLRow(pnl = pnl)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProjectPnLRow(pnl: ProjectPnL) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(pnl.eventType, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(DateUtils.formatDisplayDate(pnl.eventDate), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    CurrencyUtils.formatINR(pnl.netProfit),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (pnl.netProfit >= 0) WCTheme.colors.statusWon else MaterialTheme.colorScheme.error
+                )
+                Text(
+                    "${pnl.marginPercent.toInt()}% margin",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthlyGoalDialog(
+    revenue: String,
+    profit: String,
+    isSaving: Boolean,
+    onRevenueChange: (String) -> Unit,
+    onProfitChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.widthIn(max = 420.dp),
+        title = { Text("Set Monthly Goal") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = revenue,
+                    onValueChange = onRevenueChange,
+                    label = { Text("Target Revenue (₹)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = profit,
+                    onValueChange = onProfitChange,
+                    label = { Text("Target Profit (₹)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                if (isSaving) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = !isSaving) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
@@ -776,7 +1003,7 @@ fun PremiumLeadCard(
             }
             
             Column(horizontalAlignment = Alignment.End) {
-                LeadStatusBadge(status = lead.status)
+                LeadStatusBadge(statusName = lead.statusName, color = lead.customStatus?.color)
                 Spacer(Modifier.height(4.dp))
                 LeadSourceBadge(source = lead.source)
             }

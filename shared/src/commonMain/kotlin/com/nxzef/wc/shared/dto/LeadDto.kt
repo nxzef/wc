@@ -16,7 +16,10 @@ data class LeadDto(
     val eventType: String,
     val eventDate: String? = null,
     val location: String? = null,
-    val status: String,
+    val statusName: String,
+    val customStatusId: String? = null,
+    val customStatusColor: String? = null,
+    val priority: Int = 0,
     val lostReason: String? = null,
     val notes: String? = null,
     val addedBy: String,
@@ -25,6 +28,15 @@ data class LeadDto(
 )
 
 fun LeadDto.toDomain(): Lead {
+    val customStatus = if (customStatusId != null) {
+        LeadStatus(
+            id = customStatusId,
+            name = statusName,
+            color = customStatusColor ?: "#2196F3",
+            isDefault = false
+        )
+    } else null
+
     return Lead(
         id = id,
         fullName = fullName,
@@ -34,7 +46,9 @@ fun LeadDto.toDomain(): Lead {
         eventType = try { EventType.valueOf(eventType) } catch (e: Exception) { EventType.EVENT },
         eventDate = eventDate,
         location = location,
-        status = try { LeadStatus.valueOf(status) } catch (e: Exception) { LeadStatus.NEW },
+        statusName = statusName,
+        customStatus = customStatus,
+        priority = priority,
         lostReason = lostReason,
         notes = notes,
         addedBy = addedBy,
@@ -53,7 +67,10 @@ fun Lead.toDto(): LeadDto {
         eventType = eventType.name,
         eventDate = eventDate,
         location = location,
-        status = status.name,
+        statusName = statusName,
+        customStatusId = customStatus?.id,
+        customStatusColor = customStatus?.color,
+        priority = priority,
         lostReason = lostReason,
         notes = notes,
         addedBy = addedBy,

@@ -28,9 +28,11 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,10 +46,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.InvoiceStatusBadge
+import com.nxzef.wc.presentation.components.RefreshButton
 import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.util.RefreshManager
+import com.nxzef.wc.shared.util.CurrencyUtils
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.Invoice
+import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.model.Receipt
+import com.nxzef.wc.shared.model.ReceiptType
 import com.nxzef.wc.shared.util.DateUtils
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -63,14 +71,9 @@ fun InvoiceScreen(
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is InvoiceUiEvent.ShowSnackbar ->
-                    snackbarState.showSnackbar(event.message)
-
-                InvoiceUiEvent.PaymentUpdated ->
-                    snackbarState.showSnackbar("Payment updated!")
-
-                InvoiceUiEvent.InvoiceCreated ->
-                    snackbarState.showSnackbar("Invoice created!")
+                is InvoiceUiEvent.ShowSnackbar -> snackbarState.showSnackbar(event.message)
+                InvoiceUiEvent.PaymentUpdated  -> snackbarState.showSnackbar("Payment updated!")
+                InvoiceUiEvent.InvoiceCreated  -> snackbarState.showSnackbar("Invoice created!")
             }
         }
     }
@@ -81,7 +84,13 @@ fun InvoiceScreen(
             WCTopBar(
                 title = "Invoices",
                 subtitle = "${state.invoices.size} total",
-                onBack = onBack
+                onBack = onBack,
+                actions = {
+                    RefreshButton(
+                        isLoading = state.isLoading,
+                        onClick = { RefreshManager.triggerRefresh() }
+                    )
+                }
             )
         }
     ) { padding ->
@@ -92,11 +101,7 @@ fun InvoiceScreen(
                 .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.TopCenter
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .widthIn(max = 1000.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxSize().widthIn(max = 1000.dp)) {
                 when {
                     state.isLoading -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -136,14 +141,12 @@ fun InvoiceScreen(
                             }
                             items(state.invoices) { invoice ->
                                 val booking = state.bookings.find { it.id == invoice.bookingId }
+                                val lead = booking?.let { b -> state.leads.find { it.id == b.leadId } }
                                 InvoiceCard(
                                     invoice = invoice,
                                     booking = booking,
-                                    onClick = {
-                                        viewModel.onAction(
-                                            InvoiceAction.SelectInvoice(invoice)
-                                        )
-                                    }
+                                    lead = lead,
+                                    onClick = { viewModel.onAction(InvoiceAction.SelectInvoice(invoice)) }
                                 )
                             }
                         }
@@ -153,31 +156,30 @@ fun InvoiceScreen(
         }
     }
 
-    // Invoice detail
     state.selectedInvoice?.let { invoice ->
+        val booking = state.bookings.find { it.id == invoice.bookingId }
         InvoiceDetailDialog(
             invoice = invoice,
-            onDismiss = {
-                viewModel.onAction(InvoiceAction.DismissDetail)
-            },
+            booking = booking,
+            receipts = state.receipts,
+            isLoadingReceipts = state.isLoadingReceipts,
+            onDismiss = { viewModel.onAction(InvoiceAction.DismissDetail) },
             onMarkDeposit = {
-                viewModel.onAction(
-                    InvoiceAction.OnMarkDepositPaid(
-                        invoice.id,
-                        DateUtils.getCurrentDateIso()
-                    )
-                )
-                viewModel.onAction(InvoiceAction.DismissDetail)
+                viewModel.onAction(InvoiceAction.OnMarkDepositPaid(invoice.id, DateUtils.getCurrentDateIso()))
             },
             onMarkFinal = {
-                viewModel.onAction(
-                    InvoiceAction.OnMarkFinalPaid(
-                        invoice.id,
-                        DateUtils.getCurrentDateIso()
-                    )
-                )
-                viewModel.onAction(InvoiceAction.DismissDetail)
-            }
+                viewModel.onAction(InvoiceAction.OnMarkFinalPaid(invoice.id, DateUtils.getCurrentDateIso()))
+            },
+            onViewReceipt = { receipt -> viewModel.onAction(InvoiceAction.ViewReceipt(receipt)) }
+        )
+    }
+
+    state.viewingReceipt?.let { receipt ->
+        val booking = state.bookings.find { it.id == receipt.bookingId }
+        ReceiptViewerDialog(
+            receipt = receipt,
+            booking = booking,
+            onDismiss = { viewModel.onAction(InvoiceAction.DismissReceipt) }
         )
     }
 }
@@ -198,93 +200,56 @@ fun InvoiceSummaryRow(invoices: List<Invoice>) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        SummaryCard(
-            modifier = Modifier.weight(1f),
-            label = "Total Revenue",
-            value = "₹${totalRevenue.toLong()}",
-            color = MaterialTheme.colorScheme.primary
-        )
-        SummaryCard(
-            modifier = Modifier.weight(1f),
-            label = "Collected",
-            value = "₹${collected.toLong()}",
-            color = WCTheme.colors.statusWon
-        )
-        SummaryCard(
-            modifier = Modifier.weight(1f),
-            label = "Pending",
-            value = "₹${pending.toLong()}",
-            color = WCTheme.colors.statusLost
-        )
+        SummaryCard(Modifier.weight(1f), "Total Revenue", CurrencyUtils.formatINR(totalRevenue), MaterialTheme.colorScheme.primary)
+        SummaryCard(Modifier.weight(1f), "Collected", CurrencyUtils.formatINR(collected), WCTheme.colors.statusWon)
+        SummaryCard(Modifier.weight(1f), "Pending", CurrencyUtils.formatINR(pending), WCTheme.colors.statusLost)
     }
 }
 
 @Composable
-fun SummaryCard(
-    modifier: Modifier = Modifier,
-    label: String,
-    value: String,
-    color: Color
-) {
+fun SummaryCard(modifier: Modifier = Modifier, label: String, value: String, color: Color) {
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = color
-            )
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = color)
         }
     }
 }
 
 @Composable
-fun InvoiceCard(
-    invoice: Invoice,
-    booking: Booking?,
-    onClick: () -> Unit
-) {
+fun InvoiceCard(invoice: Invoice, booking: Booking?, lead: Lead?, onClick: () -> Unit) {
     val paymentStatus = when {
         invoice.finalPaid -> "FULLY PAID"
         invoice.depositPaid -> "DEPOSIT PAID"
         else -> "UNPAID"
     }
-
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
+                lead?.let {
+                    Text(
+                        text = it.fullName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 booking?.let {
                     Text(
                         text = "${it.eventType} • ${it.eventDate}",
@@ -294,27 +259,14 @@ fun InvoiceCard(
                     )
                     Spacer(Modifier.height(4.dp))
                 }
+                Text(CurrencyUtils.formatINR(invoice.totalAmount), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Deposit: ${CurrencyUtils.formatINR(invoice.depositAmount)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    text = "₹${invoice.totalAmount.toLong()}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Deposit: ₹${invoice.depositAmount.toLong()}",
+                    text = "Remaining: ${CurrencyUtils.formatINR(invoice.remainingAmount)}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Remaining: ₹${invoice.remainingAmount.toLong()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (invoice.remainingAmount > 0)
-                        MaterialTheme.colorScheme.error
-                    else
-                        WCTheme.colors.statusWon
+                    color = if (invoice.remainingAmount > 0) MaterialTheme.colorScheme.error else WCTheme.colors.statusWon
                 )
             }
-
             InvoiceStatusBadge(status = paymentStatus)
         }
     }
@@ -323,146 +275,220 @@ fun InvoiceCard(
 @Composable
 fun InvoiceDetailDialog(
     invoice: Invoice,
+    booking: Booking?,
+    receipts: List<Receipt>,
+    isLoadingReceipts: Boolean,
     onDismiss: () -> Unit,
     onMarkDeposit: () -> Unit,
-    onMarkFinal: () -> Unit
+    onMarkFinal: () -> Unit,
+    onViewReceipt: (Receipt) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = MaterialTheme.shapes.large,
-        title = {
-            Text(
-                text = "Invoice Details",
-                fontWeight = FontWeight.Bold
-            )
-        },
+        title = { Text("Invoice Details", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier = Modifier.widthIn(max = 400.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                DetailInvoiceRow(
-                    "Total Amount",
-                    "₹${invoice.totalAmount.toLong()}"
-                )
-                DetailInvoiceRow(
-                    "Deposit",
-                    "₹${invoice.depositAmount.toLong()}"
-                )
-                DetailInvoiceRow(
-                    "Remaining",
-                    "₹${invoice.remainingAmount.toLong()}"
-                )
+                booking?.let {
+                    Text(
+                        text = "${it.eventType} · ${it.eventDate}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                DetailInvoiceRow("Total Amount", CurrencyUtils.formatINR(invoice.totalAmount))
+                DetailInvoiceRow("Deposit", CurrencyUtils.formatINR(invoice.depositAmount))
+                DetailInvoiceRow("Remaining", CurrencyUtils.formatINR(invoice.remainingAmount))
 
                 HorizontalDivider()
 
-                // Deposit payment
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            "Deposit",
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                        Text(
-                            text = if (invoice.depositPaid)
-                                "Paid ${invoice.depositPaidDate ?: ""}"
-                            else "Pending",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (invoice.depositPaid)
-                                WCTheme.colors.statusWon
-                            else MaterialTheme.colorScheme.error
-                        )
-                    }
-                    if (!invoice.depositPaid) {
-                        FilledTonalButton(
-                            onClick = onMarkDeposit,
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Text("Mark Paid")
-                        }
-                    } else {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = WCTheme.colors.statusWon
-                        )
-                    }
-                }
+                // Deposit payment row
+                PaymentRow(
+                    label = "Deposit",
+                    isPaid = invoice.depositPaid,
+                    paidDate = invoice.depositPaidDate,
+                    canMark = !invoice.depositPaid,
+                    onMark = onMarkDeposit
+                )
 
-                // Final payment
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            "Final Payment",
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                        Text(
-                            text = if (invoice.finalPaid)
-                                "Paid ${invoice.finalPaidDate ?: ""}"
-                            else "Pending",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (invoice.finalPaid)
-                                WCTheme.colors.statusWon
-                            else MaterialTheme.colorScheme.error
-                        )
-                    }
-                    if (!invoice.finalPaid && invoice.depositPaid) {
-                        FilledTonalButton(
-                            onClick = onMarkFinal,
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Text("Mark Paid")
-                        }
-                    } else if (invoice.finalPaid) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = WCTheme.colors.statusWon
-                        )
-                    }
-                }
+                // Final payment row
+                PaymentRow(
+                    label = "Final Payment",
+                    isPaid = invoice.finalPaid,
+                    paidDate = invoice.finalPaidDate,
+                    canMark = !invoice.finalPaid && invoice.depositPaid,
+                    onMark = onMarkFinal
+                )
 
                 invoice.notes?.let {
                     HorizontalDivider()
+                    Text(text = " $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                // Payment History section
+                if (isLoadingReceipts) {
+                    HorizontalDivider()
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                    }
+                } else if (receipts.isNotEmpty()) {
+                    HorizontalDivider()
                     Text(
-                        text = " $it",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Payment History",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
                     )
+                    receipts.forEach { receipt ->
+                        ReceiptHistoryRow(receipt = receipt, onView = { onViewReceipt(receipt) })
+                    }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
-            }
+            TextButton(onClick = onDismiss) { Text("Close") }
         }
     )
 }
 
 @Composable
-fun DetailInvoiceRow(label: String, value: String) {
+private fun PaymentRow(
+    label: String,
+    isPaid: Boolean,
+    paidDate: String?,
+    canMark: Boolean,
+    onMark: () -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
-        )
+        Column {
+            Text(label, style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = if (isPaid) "Paid ${paidDate ?: ""}" else "Pending",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isPaid) WCTheme.colors.statusWon else MaterialTheme.colorScheme.error
+            )
+        }
+        if (canMark) {
+            FilledTonalButton(onClick = onMark, shape = MaterialTheme.shapes.medium) {
+                Text("Mark Paid")
+            }
+        } else if (isPaid) {
+            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = WCTheme.colors.statusWon)
+        }
+    }
+}
+
+@Composable
+private fun ReceiptHistoryRow(receipt: Receipt, onView: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                text = if (receipt.receiptType == ReceiptType.ADVANCE) "Advance Receipt" else "Final Receipt",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "${CurrencyUtils.formatINR(receipt.amount)} · ${receipt.paidDate}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        OutlinedButton(
+            onClick = onView,
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(16.dp))
+            Text(" View", style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+@Composable
+fun ReceiptViewerDialog(
+    receipt: Receipt,
+    booking: Booking?,
+    onDismiss: () -> Unit
+) {
+    val typeLabel = if (receipt.receiptType == ReceiptType.ADVANCE) "Advance Payment" else "Final Payment"
+    val shortId = receipt.id.take(8).uppercase()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.large,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Receipt, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text("Receipt", fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.widthIn(max = 380.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "The Wedding Clouds",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+
+                        ReceiptLine("Receipt #", shortId)
+                        booking?.let { ReceiptLine("Client", it.eventType) }
+                        ReceiptLine("Date", receipt.paidDate)
+                        ReceiptLine("Type", typeLabel)
+                        ReceiptLine("Amount", CurrencyUtils.formatINR(receipt.amount))
+                    }
+                }
+
+                Text(
+                    text = "Thank you for choosing The Wedding Clouds for your special day!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        }
+    )
+}
+
+@Composable
+private fun ReceiptLine(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+fun DetailInvoiceRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
     }
 }

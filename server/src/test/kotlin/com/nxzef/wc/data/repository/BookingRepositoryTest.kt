@@ -7,7 +7,6 @@ import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.CreateBookingRequest
 import com.nxzef.wc.shared.model.EventType
 import com.nxzef.wc.shared.model.LeadSource
-import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import com.nxzef.wc.shared.model.UserRole
 import org.jetbrains.exposed.sql.insert
@@ -57,7 +56,7 @@ class BookingRepositoryTest {
                 it[eventType] = EventType.WEDDING.name
                 it[eventDate] = LocalDate.parse("2024-12-25")
                 it[location] = "Test Location"
-                it[status] = LeadStatus.NEW.name
+                it[status] = "NEW"
                 it[addedBy] = userId
                 it[assignedTo] = userId
                 it[createdAt] = Instant.now()
@@ -90,11 +89,11 @@ class BookingRepositoryTest {
         assertEquals(request.location, booking.location)
         assertEquals(request.notes, booking.notes)
 
-        // Verify lead status updated to WON
+        // Lead status is managed separately via custom statuses, not auto-updated on booking
         val leadStatus = transaction {
             LeadsTable.selectAll().single()[LeadsTable.status]
         }
-        assertEquals(LeadStatus.WON.name, leadStatus)
+        assertEquals("NEW", leadStatus)
     }
 
     @Test
@@ -172,7 +171,7 @@ class BookingRepositoryTest {
                 it[phone] = "0987654321"
                 it[leadSource] = LeadSource.FACEBOOK.name
                 it[eventType] = EventType.PORTRAIT.name
-                it[status] = LeadStatus.NEW.name
+                it[status] = "NEW"
                 it[addedBy] = UUID.fromString(UsersTable.selectAll().single()[UsersTable.id].toString())
                 it[assignedTo] = UUID.fromString(UsersTable.selectAll().single()[UsersTable.id].toString())
                 it[createdAt] = Instant.now()

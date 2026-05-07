@@ -1,7 +1,6 @@
 package com.nxzef.wc.presentation.components
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -14,7 +13,6 @@ import androidx.compose.ui.unit.sp
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.LeadSource
-import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.QuoteStatus
 
 @Composable
@@ -38,6 +36,26 @@ fun StatusBadge(
     }
 }
 
+fun String.toComposeColor(): Color {
+    val hex = removePrefix("#")
+    return try {
+        val value = hex.toLong(16)
+        when (hex.length) {
+            6 -> Color((0xFF000000L or value).toInt())
+            8 -> Color(value.toInt())
+            else -> Color(0xFF2196F3.toInt())
+        }
+    } catch (e: Exception) {
+        Color(0xFF2196F3.toInt())
+    }
+}
+
+@Composable
+fun LeadStatusBadge(statusName: String, color: String? = null, modifier: Modifier = Modifier) {
+    val badgeColor = color?.toComposeColor() ?: WCTheme.colors.statusNew
+    StatusBadge(text = statusName, color = badgeColor, modifier = modifier)
+}
+
 @Composable
 fun QuoteStatusBadge(status: QuoteStatus, modifier: Modifier = Modifier) {
     val color = when (status) {
@@ -59,18 +77,6 @@ fun BookingStatusBadge(status: BookingStatus, modifier: Modifier = Modifier) {
         BookingStatus.CLOSED -> WCTheme.colors.statusClosed
     }
     StatusBadge(text = status.name.replace("_", " "), color = color, modifier = modifier)
-}
-
-@Composable
-fun LeadStatusBadge(status: LeadStatus, modifier: Modifier = Modifier) {
-    val color = when (status) {
-        LeadStatus.NEW -> WCTheme.colors.statusNew
-        LeadStatus.CONTACTED -> WCTheme.colors.statusContacted
-        LeadStatus.NEGOTIATING -> WCTheme.colors.statusNegotiating
-        LeadStatus.WON -> WCTheme.colors.statusWon
-        LeadStatus.LOST -> WCTheme.colors.statusLost
-    }
-    StatusBadge(text = status.name, color = color, modifier = modifier)
 }
 
 @Composable

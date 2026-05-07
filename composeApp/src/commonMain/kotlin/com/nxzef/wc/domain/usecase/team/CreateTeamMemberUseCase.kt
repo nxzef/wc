@@ -8,7 +8,6 @@ class CreateTeamMemberUseCase(
     suspend operator fun invoke(
         name: String,
         email: String,
-        password: String,
         role: String
-    ) = repository.createMember(name, email, password, role)
+    ) = repository.createMember(name, email, role)
 }

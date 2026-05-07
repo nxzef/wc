@@ -2,9 +2,11 @@ package com.nxzef.wc.presentation.screens.team
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.domain.usecase.team.CreateTeamMemberUseCase
 import com.nxzef.wc.domain.usecase.team.DeleteTeamMemberUseCase
 import com.nxzef.wc.domain.usecase.team.GetTeamUseCase
+import com.nxzef.wc.shared.util.ErrorMessages
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
@@ -46,9 +48,6 @@ class TeamViewModel(
             is TeamAction.OnEmailChange ->
                 _state.update { it.copy(newEmail = action.value) }
 
-            is TeamAction.OnPasswordChange ->
-                _state.update { it.copy(newPassword = action.value) }
-
             is TeamAction.OnRoleChange ->
                 _state.update { it.copy(newRole = action.value) }
 
@@ -61,6 +60,9 @@ class TeamViewModel(
                 _state.update { it.copy(showDeleteDialog = null) }
 
             is TeamAction.OnDeleteMember -> deleteMember(action.id)
+
+            TeamAction.DismissInviteDialog ->
+                _state.update { it.copy(showInviteDialog = null) }
         }
     }
 
@@ -82,7 +84,7 @@ class TeamViewModel(
                     _state.update { it.copy(isDeleting = false) }
                     _uiEvent.send(
                         TeamUiEvent.ShowSnackbar(
-                            e.message ?: "Failed to remove member"
+                            ErrorMessages.forGeneric(e.message)
                         )
                     )
                 }
@@ -102,7 +104,7 @@ class TeamViewModel(
                     _state.update { it.copy(isLoading = false) }
                     _uiEvent.send(
                         TeamUiEvent.ShowSnackbar(
-                            e.message ?: "Failed to load team"
+                            ErrorMessages.forGeneric(e.message)
                         )
                     )
                 }
@@ -111,9 +113,7 @@ class TeamViewModel(
 
     private fun createMember() {
         val s = _state.value
-        if (s.newName.isBlank() || s.newEmail.isBlank() ||
-            s.newPassword.isBlank()
-        ) {
+        if (s.newName.isBlank() || s.newEmail.isBlank()) {
             viewModelScope.launch {
                 _uiEvent.send(
                     TeamUiEvent.ShowSnackbar("All fields are required")
@@ -127,17 +127,24 @@ class TeamViewModel(
             createTeamMemberUseCase(
                 name = s.newName.trim(),
                 email = s.newEmail.trim(),
-                password = s.newPassword.trim(),
                 role = s.newRole.name
-            ).onSuccess {
+            ).onSuccess { user ->
+                val team = SessionManager.getTeam()
+                val invited = team?.let {
+                    InvitedMember(
+                        name = user.name,
+                        email = user.email,
+                        inviteCode = it.inviteCode
+                    )
+                }
                 _state.update {
                     it.copy(
                         isCreating = false,
                         showAddDialog = false,
                         newName = "",
                         newEmail = "",
-                        newPassword = "",
-                        newRole = com.nxzef.wc.shared.model.UserRole.LEAD_MANAGER
+                        newRole = com.nxzef.wc.shared.model.UserRole.LEAD_MANAGER,
+                        showInviteDialog = invited
                     )
                 }
                 _uiEvent.send(TeamUiEvent.MemberCreated)
@@ -146,7 +153,7 @@ class TeamViewModel(
                 _state.update { it.copy(isCreating = false) }
                 _uiEvent.send(
                     TeamUiEvent.ShowSnackbar(
-                        e.message ?: "Failed to create member"
+                        ErrorMessages.forGeneric(e.message)
                     )
                 )
             }

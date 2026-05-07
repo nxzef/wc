@@ -16,7 +16,14 @@ data class DashboardStatsDto(
     val pendingDeliveries: Int,
     val leadsBySource: Map<String, Int>,
     val recentLeads: List<LeadDto>,
-    val upcomingBookings: List<BookingDto>
+    val upcomingBookings: List<BookingDto>,
+    val totalRevenue: Double = 0.0,
+    val totalCollected: Double = 0.0,
+    val totalPending: Double = 0.0,
+    val projectPnLList: List<ProjectPnLDto> = emptyList(),
+    val currentMonthGoal: MonthlyGoalDto? = null,
+    val currentMonthActualProfit: Double = 0.0,
+    val isMonthBelowTarget: Boolean = false
 )
 
 fun DashboardStatsDto.toDomain(): DashboardStats {
@@ -32,7 +39,14 @@ fun DashboardStatsDto.toDomain(): DashboardStats {
         pendingDeliveries = pendingDeliveries,
         leadsBySource = leadsBySource,
         recentLeads = recentLeads.map { it.toDomain() },
-        upcomingBookings = upcomingBookings.map { it.toDomain() }
+        upcomingBookings = upcomingBookings.map { it.toDomain() },
+        totalRevenue = totalRevenue,
+        totalCollected = totalCollected,
+        totalPending = totalPending,
+        projectPnLList = projectPnLList.map { it.toDomain() },
+        currentMonthGoal = currentMonthGoal?.toDomain(),
+        currentMonthActualProfit = currentMonthActualProfit,
+        isMonthBelowTarget = isMonthBelowTarget
     )
 }
 
@@ -49,6 +63,13 @@ fun DashboardStats.toDto(): DashboardStatsDto {
         pendingDeliveries = pendingDeliveries,
         leadsBySource = leadsBySource,
         recentLeads = recentLeads.map { it.toDto() },
-        upcomingBookings = upcomingBookings.map { it.toDto() }
+        upcomingBookings = upcomingBookings.map { it.toDto() },
+        totalRevenue = totalRevenue,
+        totalCollected = totalCollected,
+        totalPending = totalPending,
+        projectPnLList = projectPnLList.map { it.toDto() },
+        currentMonthGoal = currentMonthGoal?.toDto(),
+        currentMonthActualProfit = currentMonthActualProfit,
+        isMonthBelowTarget = isMonthBelowTarget
     )
 }

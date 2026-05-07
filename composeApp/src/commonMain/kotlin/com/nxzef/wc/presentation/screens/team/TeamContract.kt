@@ -9,11 +9,17 @@ data class TeamState(
     val showAddDialog: Boolean = false,
     val newName: String = "",
     val newEmail: String = "",
-    val newPassword: String = "",
     val newRole: UserRole = UserRole.LEAD_MANAGER,
     val isCreating: Boolean = false,
     val showDeleteDialog: User? = null,
-    val isDeleting: Boolean = false
+    val isDeleting: Boolean = false,
+    val showInviteDialog: InvitedMember? = null
+)
+
+data class InvitedMember(
+    val name: String,
+    val email: String,
+    val inviteCode: String
 )
 
 sealed interface TeamAction {
@@ -24,10 +30,10 @@ sealed interface TeamAction {
     data object HideDeleteDialog : TeamAction
     data class OnNameChange(val value: String) : TeamAction
     data class OnEmailChange(val value: String) : TeamAction
-    data class OnPasswordChange(val value: String) : TeamAction
     data class OnRoleChange(val value: UserRole) : TeamAction
     data object OnCreateMember : TeamAction
     data class OnDeleteMember(val id: String) : TeamAction
+    data object DismissInviteDialog : TeamAction
 }
 
 sealed interface TeamUiEvent {

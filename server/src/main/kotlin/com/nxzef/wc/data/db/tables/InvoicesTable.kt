@@ -14,6 +14,7 @@ object InvoicesTable : Table("invoices") {
     val finalPaid = bool("final_paid").default(false)
     val finalPaidDate = date("final_paid_date").nullable()
     val notes = text("notes").nullable()
+    val teamId = uuid("team_id").references(TeamsTable.id).nullable()
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

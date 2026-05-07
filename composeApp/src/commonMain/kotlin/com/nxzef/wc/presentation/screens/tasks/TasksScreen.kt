@@ -35,12 +35,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nxzef.wc.presentation.components.RefreshButton
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.shared.model.Task
+import com.nxzef.wc.util.RefreshManager
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -55,6 +56,7 @@ fun TasksScreen(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is TasksUiEvent.ShowError -> snackbarState.showSnackbar(event.message)
+                is TasksUiEvent.ShowSnackbar -> snackbarState.showSnackbar(event.message)
             }
         }
     }
@@ -65,7 +67,13 @@ fun TasksScreen(
             WCTopBar(
                 title = "Tasks",
                 showNotificationIcon = true,
-                onBack = onBack
+                onBack = onBack,
+                actions = {
+                    RefreshButton(
+                        isLoading = state.isLoading,
+                        onClick = { RefreshManager.triggerRefresh() }
+                    )
+                }
             )
         }
     ) { padding ->
@@ -78,9 +86,7 @@ fun TasksScreen(
         ) {
             when {
                 state.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
                 state.error != null -> {
@@ -138,8 +144,16 @@ fun TasksScreen(
                 }
 
                 else -> {
-                    val leadTasks = state.pendingTasks.filter { it.leadId != null }
-                    val bookingTasks = state.pendingTasks.filter { it.bookingId != null }
+                    val leadNameById  = state.leads.associate { it.id to it.fullName }
+                    val bookingTitleById = state.bookings.associate { it.id to it.eventType }
+
+                    val leadTaskGroups    = state.pendingTasks
+                        .filter { it.leadId != null }
+                        .groupBy { it.leadId!! }
+
+                    val bookingTaskGroups = state.pendingTasks
+                        .filter { it.bookingId != null }
+                        .groupBy { it.bookingId!! }
 
                     LazyColumn(
                         modifier = Modifier
@@ -148,87 +162,31 @@ fun TasksScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // From Leads section
-                        if (leadTasks.isNotEmpty()) {
-                            item {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "From Leads",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        shape = MaterialTheme.shapes.extraSmall
-                                    ) {
-                                        Text(
-                                            text = "${leadTasks.size} tasks",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
+                        leadTaskGroups.forEach { (leadId, tasks) ->
+                            val leadName = leadNameById[leadId] ?: "Lead"
+                            item(key = "lead-header-$leadId") {
+                                TaskGroupHeader(title = leadName, count = tasks.size)
                             }
-                            items(
-                                items = leadTasks,
-                                key = { it.id }
-                            ) { task ->
+                            items(items = tasks, key = { it.id }) { task ->
                                 TaskCard(
                                     task = task,
                                     onToggle = { done ->
-                                        viewModel.onAction(
-                                            TasksAction.MarkDone(task.id, done)
-                                        )
+                                        viewModel.onAction(TasksAction.MarkDone(task.id, done))
                                     }
                                 )
                             }
                         }
 
-                        // From Bookings section
-                        if (bookingTasks.isNotEmpty()) {
-                            item {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "From Bookings",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        shape = MaterialTheme.shapes.extraSmall
-                                    ) {
-                                        Text(
-                                            text = "${bookingTasks.size} tasks",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
+                        bookingTaskGroups.forEach { (bookingId, tasks) ->
+                            val title = bookingTitleById[bookingId] ?: "Booking"
+                            item(key = "booking-header-$bookingId") {
+                                TaskGroupHeader(title = title, count = tasks.size)
                             }
-                            items(
-                                items = bookingTasks,
-                                key = { it.id }
-                            ) { task ->
+                            items(items = tasks, key = { it.id }) { task ->
                                 TaskCard(
                                     task = task,
                                     onToggle = { done ->
-                                        viewModel.onAction(
-                                            TasksAction.MarkDone(task.id, done)
-                                        )
+                                        viewModel.onAction(TasksAction.MarkDone(task.id, done))
                                     }
                                 )
                             }
@@ -236,6 +194,34 @@ fun TasksScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TaskGroupHeader(title: String, count: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Surface(
+            color = MaterialTheme.colorScheme.primaryContainer,
+            shape = MaterialTheme.shapes.extraSmall
+        ) {
+            Text(
+                text = "$count tasks",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -291,9 +277,23 @@ fun TaskCard(
                         maxLines = 2
                     )
                 }
+                task.stageName?.let { stage ->
+                    Surface(
+                        modifier = Modifier.padding(top = 4.dp),
+                        shape = MaterialTheme.shapes.extraSmall,
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = stage,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
                 task.dueDate?.let {
                     Surface(
-                        modifier = Modifier.padding(top = 8.dp),
+                        modifier = Modifier.padding(top = 4.dp),
                         shape = MaterialTheme.shapes.extraSmall,
                         color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
                     ) {

@@ -4,7 +4,6 @@ import com.nxzef.wc.data.remote.LeadService
 import com.nxzef.wc.domain.repository.LeadRepository
 import com.nxzef.wc.shared.model.CreateLeadRequest
 import com.nxzef.wc.shared.model.Lead
-import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.util.AppResult
 
 class LeadRepositoryImpl(
@@ -20,11 +19,11 @@ class LeadRepositoryImpl(
 
     override suspend fun updateLeadStatus(
         id: String,
-        status: LeadStatus,
+        customStatusId: String,
         notes: String?
     ): AppResult<Lead> {
         return try {
-            AppResult.Success(leadService.updateLeadStatus(id, status, notes))
+            AppResult.Success(leadService.updateLeadStatus(id, customStatusId, notes))
         } catch (e: Exception) {
             AppResult.Failure(e)
         }

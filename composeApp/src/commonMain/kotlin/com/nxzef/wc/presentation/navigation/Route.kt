@@ -5,6 +5,12 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface Route {
     @Serializable
+    data object Welcome : Route
+    @Serializable
+    data object Register : Route
+    @Serializable
+    data object JoinTeam : Route
+    @Serializable
     data object Login : Route
     @Serializable
     data object OwnerDashboard : Route
@@ -23,6 +29,7 @@ sealed interface Route {
     @Serializable data object Settings : Route
     @Serializable data object AddLead : Route
     @Serializable data object Bookings : Route
-    @Serializable data class Quotes(val leadId: String) : Route
+    @Serializable data class Quotes(val leadId: String, val clientName: String, val clientEmail: String) : Route
     @Serializable data object Tasks : Route
+    @Serializable data class ProjectExpenses(val bookingId: String) : Route
 }

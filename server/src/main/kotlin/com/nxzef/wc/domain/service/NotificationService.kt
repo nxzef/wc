@@ -13,6 +13,7 @@ class NotificationService(
         userId: String,
         title: String,
         message: String,
+        teamId: String,
         bookingId: String? = null,
         taskId: String? = null
     ) {
@@ -23,16 +24,17 @@ class NotificationService(
                 message = message,
                 bookingId = bookingId,
                 taskId = taskId
-            )
+            ),
+            teamId = teamId
         )
     }
 
-    fun getOwnerId(): String? {
-        return userRepository.getAllUsers().find { it.role == UserRole.OWNER }?.id
+    fun getOwnerId(teamId: String): String? {
+        return userRepository.getTeamMembers(teamId).find { it.role == UserRole.OWNER }?.id
     }
 
-    fun getEditors(): List<String> {
-        return userRepository.getAllUsers()
+    fun getEditors(teamId: String): List<String> {
+        return userRepository.getTeamMembers(teamId)
             .filter { it.role == UserRole.EDITOR }
             .map { it.id }
     }
