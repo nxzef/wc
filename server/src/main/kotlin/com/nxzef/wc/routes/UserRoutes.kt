@@ -1,20 +1,19 @@
 package com.nxzef.wc.routes
 
+import com.nxzef.wc.data.repository.TeamRepository
 import com.nxzef.wc.data.repository.UserRepository
+import com.nxzef.wc.domain.service.EmailService
 import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.UserRole
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
-import io.ktor.server.routing.route
-import io.ktor.server.application.call
 import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 import kotlinx.serialization.Serializable
 import org.mindrot.jbcrypt.BCrypt
 
@@ -22,7 +21,6 @@ import org.mindrot.jbcrypt.BCrypt
 data class CreateUserRequest(
     val name: String,
     val email: String,
-    val password: String,
     val role: String
 )
 
@@ -32,95 +30,82 @@ data class UpdatePasswordRequest(
     val newPassword: String
 )
 
-fun Route.userRoutes(userRepository: UserRepository) {
+fun Route.userRoutes(
+    userRepository: UserRepository,
+    teamRepository: TeamRepository,
+    emailService: EmailService
+) {
     route("/users") {
 
-        // GET team members (all users)
         get("/team") {
-            val principal = call.principal<JWTPrincipal>()
-            val role = principal?.payload
-                ?.getClaim("role")?.asString()
+            val teamId = call.requireTeamId() ?: return@get
+            val role = call.role()
 
-            // Allow OWNER, LEAD_MANAGER, and MARKETING to see the team list (e.g. for assigning leads)
-            if (role != UserRole.OWNER.name && 
+            if (role != UserRole.OWNER.name &&
                 role != UserRole.LEAD_MANAGER.name &&
                 role != UserRole.MARKETING.name) {
-                call.respond(
-                    HttpStatusCode.Forbidden,
-                    "Insufficient permissions to view team"
-                )
+                call.respond(HttpStatusCode.Forbidden, "Insufficient permissions to view team")
                 return@get
             }
-            val team = userRepository.getAllUsers()
+            val team = userRepository.getTeamMembers(teamId)
             call.respond(team.map { it.toDto() })
         }
 
-        // POST create team member (owner only)
         post {
-            val principal = call.principal<JWTPrincipal>()
-            val role = principal?.payload
-                ?.getClaim("role")?.asString()
-
-            if (role != UserRole.OWNER.name) {
-                call.respond(
-                    HttpStatusCode.Forbidden,
-                    "Only owner can create users"
-                )
+            val teamId = call.requireTeamId() ?: return@post
+            if (call.role() != UserRole.OWNER.name) {
+                call.respond(HttpStatusCode.Forbidden, "Only owner can create users")
                 return@post
             }
 
             val request = call.receive<CreateUserRequest>()
+
+            if (userRepository.emailExists(request.email)) {
+                call.respond(HttpStatusCode.Conflict, "Email already registered")
+                return@post
+            }
+
             val user = userRepository.createUser(
                 name = request.name,
                 email = request.email,
-                passwordHash = BCrypt.hashpw(
-                    request.password,
-                    BCrypt.gensalt()
-                ),
-                role = request.role
+                passwordHash = null,
+                role = request.role,
+                teamId = teamId
             )
+
+            val team = teamRepository.getById(teamId)
+            if (team != null) {
+                emailService.sendTeamInvitationEmail(
+                    to = user.email,
+                    inviteeName = user.name,
+                    teamName = team.name,
+                    inviteCode = team.inviteCode
+                )
+            }
+
             call.respond(HttpStatusCode.Created, user.toDto())
         }
 
-        // DELETE team member (owner only)
         delete("/{id}") {
-            val principal = call.principal<JWTPrincipal>()
-            val role = principal?.payload
-                ?.getClaim("role")?.asString()
-
-            if (role != UserRole.OWNER.name) {
-                call.respond(
-                    HttpStatusCode.Forbidden,
-                    "Only owner can remove users"
-                )
+            val teamId = call.requireTeamId() ?: return@delete
+            if (call.role() != UserRole.OWNER.name) {
+                call.respond(HttpStatusCode.Forbidden, "Only owner can remove users")
                 return@delete
             }
 
             val id = call.parameters["id"]
-                ?: return@delete call.respond(
-                    HttpStatusCode.BadRequest,
-                    "Missing user id"
-                )
+                ?: return@delete call.respond(HttpStatusCode.BadRequest, "Missing user id")
 
-            val success = userRepository.deleteUser(id)
+            val success = userRepository.deleteUser(id, teamId)
             if (success) {
                 call.respond(HttpStatusCode.NoContent)
             } else {
-                call.respond(
-                    HttpStatusCode.NotFound,
-                    "User not found"
-                )
+                call.respond(HttpStatusCode.NotFound, "User not found")
             }
         }
 
-        // PUT update current user password
         put("/me/password") {
-            val principal = call.principal<JWTPrincipal>()
-            val userId = principal?.payload
-                ?.getClaim("userId")?.asString()
-                ?: return@put call.respond(
-                    HttpStatusCode.Unauthorized, "Unauthorized"
-                )
+            val userId = call.requireUserId() ?: return@put
 
             val request = call.receive<UpdatePasswordRequest>()
             val currentHash = userRepository.getPasswordHash(userId)

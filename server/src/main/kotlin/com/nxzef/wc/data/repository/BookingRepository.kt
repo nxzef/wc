@@ -1,19 +1,20 @@
 package com.nxzef.wc.data.repository
 
 import com.nxzef.wc.data.db.tables.BookingsTable
-import com.nxzef.wc.data.db.tables.LeadsTable
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.CreateBookingRequest
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 
 class BookingRepository {
 
@@ -33,99 +34,99 @@ class BookingRepository {
         )
     }
 
-    fun getAll(): List<Booking> {
+    fun getAll(teamId: String): List<Booking> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             BookingsTable
                 .selectAll()
+                .where { BookingsTable.teamId eq tUuid }
                 .orderBy(BookingsTable.eventDate, SortOrder.ASC)
                 .map { rowToBooking(it) }
         }
     }
 
-    fun getById(id: String): Booking? {
+    fun getById(id: String, teamId: String): Booking? {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return null }
         return transaction {
             BookingsTable
                 .selectAll()
-                .where {
-                    BookingsTable.id eq
-                            java.util.UUID.fromString(id)
-                }
+                .where { (BookingsTable.id eq UUID.fromString(id)) and (BookingsTable.teamId eq tUuid) }
                 .singleOrNull()
                 ?.let { rowToBooking(it) }
         }
     }
 
-    fun getByPhotographer(photographerId: String): List<Booking> {
+    fun getByPhotographer(photographerId: String, teamId: String): List<Booking> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             BookingsTable
                 .selectAll()
                 .where {
-                    BookingsTable.photographerId eq
-                            java.util.UUID.fromString(photographerId)
+                    (BookingsTable.photographerId eq UUID.fromString(photographerId)) and
+                            (BookingsTable.teamId eq tUuid)
                 }
                 .orderBy(BookingsTable.eventDate, SortOrder.ASC)
                 .map { rowToBooking(it) }
         }
     }
 
-    fun getByEditor(editorId: String): List<Booking> {
+    fun getByEditor(editorId: String, teamId: String): List<Booking> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             BookingsTable
                 .selectAll()
                 .where {
-                    BookingsTable.editorId eq
-                            java.util.UUID.fromString(editorId)
+                    (BookingsTable.editorId eq UUID.fromString(editorId)) and
+                            (BookingsTable.teamId eq tUuid)
                 }
                 .orderBy(BookingsTable.eventDate, SortOrder.ASC)
                 .map { rowToBooking(it) }
         }
     }
 
-    fun create(request: CreateBookingRequest): Booking {
+    fun create(request: CreateBookingRequest, teamId: String): Booking {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
-            val newId = java.util.UUID.randomUUID()
+            val newId = UUID.randomUUID()
             BookingsTable.insert { statement ->
                 statement[id] = newId
-                statement[leadId] = java.util.UUID.fromString(request.leadId)
-                // Only set quoteId if not null or blank
+                statement[leadId] = UUID.fromString(request.leadId)
                 statement[quoteId] = request.quoteId
                     ?.takeIf { it.isNotBlank() && it != "null" }
-                    ?.let { java.util.UUID.fromString(it) }
+                    ?.let { UUID.fromString(it) }
                 statement[eventDate] = LocalDate.parse(request.eventDate)
                 statement[eventType] = request.eventType
                 statement[location] = request.location
                 statement[status] = BookingStatus.BOOKED.name
                 statement[notes] = request.notes
+                statement[BookingsTable.teamId] = tUuid
                 statement[createdAt] = Instant.now()
             }
 
-            getById(newId.toString())!!
+            getById(newId.toString(), teamId)!!
         }
     }
 
-    fun update(id: String, request: UpdateBookingRequest): Booking? {
+    fun update(id: String, request: UpdateBookingRequest, teamId: String): Booking? {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
             BookingsTable.update(
-                { BookingsTable.id eq java.util.UUID.fromString(id) }
+                { (BookingsTable.id eq UUID.fromString(id)) and (BookingsTable.teamId eq tUuid) }
             ) {
                 if (request.status != null) {
                     it[status] = request.status!!.name
                 }
                 if (request.photographerId != null) {
-                    it[photographerId] = java.util.UUID.fromString(
-                        request.photographerId
-                    )
+                    it[photographerId] = UUID.fromString(request.photographerId)
                 }
                 if (request.editorId != null) {
-                    it[editorId] = java.util.UUID.fromString(
-                        request.editorId
-                    )
+                    it[editorId] = UUID.fromString(request.editorId)
                 }
                 if (request.notes != null) {
                     it[notes] = request.notes
                 }
             }
-            getById(id)
+            getById(id, teamId)
         }
     }
 }

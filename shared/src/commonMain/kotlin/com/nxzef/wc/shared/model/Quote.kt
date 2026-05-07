@@ -35,7 +35,8 @@ data class SendQuoteRequest(
     val leadId: String,
     val clientEmail: String,
     val fileBase64: String,
-    val fileName: String
+    val fileName: String,
+    val totalAmount: Double
 )
 
 @Serializable

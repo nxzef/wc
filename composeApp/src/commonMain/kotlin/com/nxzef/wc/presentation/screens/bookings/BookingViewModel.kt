@@ -84,6 +84,10 @@ class BookingViewModel(
                 previousBookingCount = newCount
                 hasLoadedOnce = true
                 _state.update { it.copy(bookings = bookings) }
+            }.onFailure {
+                if (!silent) {
+                    _uiEvent.send(BookingUiEvent.ShowSnackbar("Failed to load bookings."))
+                }
             }
             leadsResult.onSuccess { leads ->
                 _state.update { it.copy(leads = leads) }
@@ -129,8 +133,8 @@ class BookingViewModel(
                 if (_state.value.selectedBooking?.id == bookingId) {
                     _state.update { s -> s.copy(selectedBooking = s.bookings.find { it.id == bookingId }) }
                 }
-            }.onFailure { e ->
-                _uiEvent.send(BookingUiEvent.ShowSnackbar(e.message ?: "Failed to assign photographer"))
+            }.onFailure {
+                _uiEvent.send(BookingUiEvent.ShowSnackbar("Failed to update booking."))
             }
         }
     }
@@ -145,8 +149,8 @@ class BookingViewModel(
                 if (_state.value.selectedBooking?.id == bookingId) {
                     _state.update { s -> s.copy(selectedBooking = s.bookings.find { it.id == bookingId }) }
                 }
-            }.onFailure { e ->
-                _uiEvent.send(BookingUiEvent.ShowSnackbar(e.message ?: "Failed to assign editor"))
+            }.onFailure {
+                _uiEvent.send(BookingUiEvent.ShowSnackbar("Failed to update booking."))
             }
         }
     }
@@ -205,8 +209,8 @@ class BookingViewModel(
                 if (_state.value.selectedBooking?.id == bookingId) {
                     _state.update { s -> s.copy(selectedBooking = s.bookings.find { it.id == bookingId }) }
                 }
-            }.onFailure { e ->
-                _uiEvent.send(BookingUiEvent.ShowSnackbar(e.message ?: "Failed to update"))
+            }.onFailure {
+                _uiEvent.send(BookingUiEvent.ShowSnackbar("Failed to update booking."))
             }
         }
     }

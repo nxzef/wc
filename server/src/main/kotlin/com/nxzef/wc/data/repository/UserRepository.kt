@@ -4,37 +4,42 @@ import com.nxzef.wc.data.db.tables.UsersTable
 import com.nxzef.wc.shared.model.User
 import com.nxzef.wc.shared.model.UserRole
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
-import org.mindrot.jbcrypt.BCrypt
 import java.time.Instant
+import java.util.UUID
 
 class UserRepository {
 
-    fun getAllUsers(): List<User> {
+    private fun rowToUser(row: org.jetbrains.exposed.sql.ResultRow): User = User(
+        id = row[UsersTable.id].toString(),
+        name = row[UsersTable.name],
+        email = row[UsersTable.email],
+        role = UserRole.valueOf(row[UsersTable.role]),
+        isActive = row[UsersTable.isActive],
+        teamId = row[UsersTable.teamId]?.toString()
+    )
+
+    fun getTeamMembers(teamId: String): List<User> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             UsersTable
                 .selectAll()
-                .map { row ->
-                    User(
-                        id = row[UsersTable.id].toString(),
-                        name = row[UsersTable.name],
-                        email = row[UsersTable.email],
-                        role = UserRole.valueOf(row[UsersTable.role]),
-                        isActive = row[UsersTable.isActive]
-                    )
-                }
+                .where { UsersTable.teamId eq tUuid }
+                .map { rowToUser(it) }
         }
     }
 
     fun createUser(
         name: String,
         email: String,
-        passwordHash: String,
-        role: String
+        passwordHash: String?,
+        role: String,
+        teamId: String?
     ): User {
         return transaction {
             val id = UsersTable.insert {
@@ -43,6 +48,7 @@ class UserRepository {
                 it[UsersTable.passwordHash] = passwordHash
                 it[UsersTable.role] = role
                 it[UsersTable.isActive] = true
+                it[UsersTable.teamId] = teamId?.let { tid -> UUID.fromString(tid) }
                 it[UsersTable.createdAt] = Instant.now()
             } get UsersTable.id
 
@@ -51,74 +57,82 @@ class UserRepository {
                 name = name,
                 email = email,
                 role = UserRole.valueOf(role),
-                isActive = true
+                isActive = true,
+                teamId = teamId
             )
         }
     }
 
-    fun deleteUser(id: String): Boolean {
+    fun deleteUser(id: String, teamId: String? = null): Boolean {
         return transaction {
             val uuid = try {
-                java.util.UUID.fromString(id)
+                UUID.fromString(id)
             } catch (_: Exception) {
                 return@transaction false
             }
-            // Check if user exists
+            val condition = if (teamId != null) {
+                val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return@transaction false }
+                (UsersTable.id eq uuid) and (UsersTable.teamId eq tUuid)
+            } else {
+                UsersTable.id eq uuid
+            }
+
             val exists = UsersTable
                 .selectAll()
-                .where { UsersTable.id eq uuid }
+                .where { condition }
                 .count() > 0
 
             if (!exists) return@transaction false
 
-            // Correct way to delete in Exposed
-            UsersTable.deleteWhere { UsersTable.id eq uuid }
+            UsersTable.deleteWhere { condition }
             true
         }
     }
 
-    fun findByEmail(email: String): Pair<User, String>? {
+    fun findById(id: String): User? = transaction {
+        val uuid = try { UUID.fromString(id) } catch (_: Exception) { return@transaction null }
+        UsersTable
+            .selectAll()
+            .where { UsersTable.id eq uuid }
+            .singleOrNull()
+            ?.let { rowToUser(it) }
+    }
+
+    /** Login lookup — match by email regardless of team. Returned hash may be null when the user has not joined yet. */
+    fun findByEmail(email: String): Pair<User, String?>? {
         return transaction {
             UsersTable
                 .selectAll()
                 .where { UsersTable.email eq email }
                 .singleOrNull()
                 ?.let { row ->
-                    val user = User(
-                        id = row[UsersTable.id].toString(),
-                        name = row[UsersTable.name],
-                        email = row[UsersTable.email],
-                        role = UserRole.valueOf(row[UsersTable.role]),
-                        isActive = row[UsersTable.isActive]
-                    )
-                    Pair(user, row[UsersTable.passwordHash])
+                    Pair(rowToUser(row), row[UsersTable.passwordHash])
                 }
         }
     }
 
-    fun seedOwner() {
+    /** Join-team lookup — match by email AND a specific team. Hash may be null when the user hasn't joined yet. */
+    fun findByEmailInTeam(email: String, teamId: String): Pair<User, String?>? {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return null }
+        return transaction {
+            UsersTable
+                .selectAll()
+                .where { (UsersTable.email eq email) and (UsersTable.teamId eq tUuid) }
+                .singleOrNull()
+                ?.let { row ->
+                    Pair(rowToUser(row), row[UsersTable.passwordHash])
+                }
+        }
+    }
+
+    fun emailExists(email: String): Boolean = transaction {
+        UsersTable.selectAll().where { UsersTable.email eq email }.any()
+    }
+
+    fun assignTeam(userId: String, teamId: String) {
         transaction {
-            val exists = UsersTable.selectAll().count() > 0
-            if (!exists) {
-                val ownerEmail = System.getenv("OWNER_EMAIL")
-                val ownerPassword = System.getenv("OWNER_PASSWORD")
-                val ownerName = System.getenv("OWNER_NAME") ?: "Owner"
-
-                if (ownerEmail.isNullOrBlank() || ownerPassword.isNullOrBlank()) {
-                    println("⚠️  WARNING: OWNER_EMAIL or OWNER_PASSWORD not set — owner account NOT seeded.")
-                    println("⚠️  Set OWNER_EMAIL and OWNER_PASSWORD in .env before first run.")
-                    return@transaction
-                }
-
-                UsersTable.insert {
-                    it[name] = ownerName
-                    it[email] = ownerEmail
-                    it[passwordHash] = BCrypt.hashpw(ownerPassword, BCrypt.gensalt())
-                    it[role] = UserRole.OWNER.name
-                    it[isActive] = true
-                    it[createdAt] = Instant.now()
-                }
-                println("✅ Owner account seeded: $ownerEmail")
+            UsersTable.update({ UsersTable.id eq UUID.fromString(userId) }) {
+                it[UsersTable.teamId] = UUID.fromString(teamId)
             }
         }
     }
@@ -126,7 +140,7 @@ class UserRepository {
     fun updatePassword(userId: String, newPasswordHash: String): Boolean {
         return transaction {
             val uuid = try {
-                java.util.UUID.fromString(userId)
+                UUID.fromString(userId)
             } catch (_: Exception) {
                 return@transaction false
             }
@@ -139,7 +153,7 @@ class UserRepository {
     fun getPasswordHash(userId: String): String? {
         return transaction {
             val uuid = try {
-                java.util.UUID.fromString(userId)
+                UUID.fromString(userId)
             } catch (_: Exception) {
                 return@transaction null
             }

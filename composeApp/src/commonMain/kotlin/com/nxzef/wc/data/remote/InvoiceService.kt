@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.InvoiceDto
 import com.nxzef.wc.shared.dto.toDomain
@@ -19,7 +20,7 @@ import io.ktor.http.contentType
 class InvoiceService(private val client: HttpClient) {
 
     suspend fun getAll(): List<Invoice> {
-        val dtos: List<InvoiceDto> = client.get("${ApiClient.BASE_URL}/invoices") {
+        val dtos: List<InvoiceDto> = client.get("${AppConfig.BASE_URL}/invoices") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
         return dtos.map { it.toDomain() }
@@ -27,7 +28,7 @@ class InvoiceService(private val client: HttpClient) {
 
     suspend fun getByBookingId(bookingId: String): Invoice {
         val dto: InvoiceDto = client.get(
-            "${ApiClient.BASE_URL}/invoices/booking/$bookingId"
+            "${AppConfig.BASE_URL}/invoices/booking/$bookingId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -35,7 +36,7 @@ class InvoiceService(private val client: HttpClient) {
     }
 
     suspend fun create(request: CreateInvoiceRequest): Invoice {
-        val dto: InvoiceDto = client.post("${ApiClient.BASE_URL}/invoices") {
+        val dto: InvoiceDto = client.post("${AppConfig.BASE_URL}/invoices") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)
@@ -48,7 +49,7 @@ class InvoiceService(private val client: HttpClient) {
         request: UpdatePaymentRequest
     ): Invoice {
         val dto: InvoiceDto = client.put(
-            "${ApiClient.BASE_URL}/invoices/$id/payment"
+            "${AppConfig.BASE_URL}/invoices/$id/payment"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)

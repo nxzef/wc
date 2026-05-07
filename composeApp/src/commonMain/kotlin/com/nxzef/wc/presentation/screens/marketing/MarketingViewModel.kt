@@ -3,6 +3,7 @@ package com.nxzef.wc.presentation.screens.marketing
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
+import com.nxzef.wc.shared.util.ErrorMessages
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import com.nxzef.wc.util.RefreshManager
@@ -33,9 +34,6 @@ class MarketingViewModel(
         if (s.sourceFilter == null) s.leads
         else s.leads.filter { it.source == s.sourceFilter }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    private var hasLoadedOnce = false
-    private var previousLeadCount = -1
 
     init {
         val currentUser = sessionManager.getUser()
@@ -72,15 +70,8 @@ class MarketingViewModel(
     private fun load(silent: Boolean = false) {
         viewModelScope.launch {
             if (!silent) _state.update { it.copy(isLoading = true, error = null) }
-            val oldCount = previousLeadCount
             getAllLeadsUseCase()
                 .onSuccess { leads ->
-                    val newCount = leads.size
-                    if (hasLoadedOnce && silent && newCount != oldCount) {
-                        _uiEvent.send(MarketingUiEvent.ShowSnackbar("Updated"))
-                    }
-                    previousLeadCount = newCount
-                    hasLoadedOnce = true
                     val stats = leads.groupingBy { it.source }
                         .eachCount()
                         .toList()
@@ -90,7 +81,7 @@ class MarketingViewModel(
                 }
                 .onFailure { e ->
                     if (!silent) {
-                        _state.update { it.copy(error = e.message ?: "Failed", isLoading = false) }
+                        _state.update { it.copy(error = ErrorMessages.forGeneric(e.message), isLoading = false) }
                     }
                 }
         }

@@ -1,5 +1,6 @@
 package com.nxzef.wc
 
+import com.nxzef.wc.config.ServerConfig
 import com.nxzef.wc.data.db.DatabaseFactory
 import com.nxzef.wc.di.serverModule
 import com.nxzef.wc.plugins.configureRouting
@@ -23,7 +24,17 @@ fun Application.module() {
         modules(serverModule)
     }
     DatabaseFactory.init()
+    logEmailConfig()
     configureSerialization()
     configureSecurity()
     configureRouting()
+}
+
+private fun logEmailConfig() {
+    val apiKeyState = if (ServerConfig.resendApiKey.isBlank()) {
+        "NOT SET"
+    } else {
+        "SET (${ServerConfig.resendApiKey.length} chars)"
+    }
+    println("📧 Email config: apiKey=$apiKeyState, from=${ServerConfig.fromEmail}")
 }

@@ -5,6 +5,7 @@ import com.nxzef.wc.shared.model.Receipt
 import com.nxzef.wc.shared.model.ReceiptType
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -24,7 +25,15 @@ class ReceiptRepository {
         createdAt   = row[ReceiptsTable.createdAt].toString()
     )
 
-    fun create(invoiceId: String, bookingId: String, type: ReceiptType, amount: Double, paidDate: String): Receipt {
+    fun create(
+        invoiceId: String,
+        bookingId: String,
+        type: ReceiptType,
+        amount: Double,
+        paidDate: String,
+        teamId: String
+    ): Receipt {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
             val newId = ReceiptsTable.insert {
                 it[ReceiptsTable.invoiceId]   = UUID.fromString(invoiceId)
@@ -32,6 +41,7 @@ class ReceiptRepository {
                 it[ReceiptsTable.receiptType] = type.name
                 it[ReceiptsTable.amount]      = amount.toBigDecimal()
                 it[ReceiptsTable.paidDate]    = LocalDate.parse(paidDate)
+                it[ReceiptsTable.teamId]      = tUuid
                 it[ReceiptsTable.createdAt]   = Instant.now()
             } get ReceiptsTable.id
 
@@ -42,27 +52,37 @@ class ReceiptRepository {
         }
     }
 
-    fun getByInvoiceId(invoiceId: String): List<Receipt> {
+    fun getByInvoiceId(invoiceId: String, teamId: String): List<Receipt> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             ReceiptsTable.selectAll()
-                .where { ReceiptsTable.invoiceId eq UUID.fromString(invoiceId) }
+                .where {
+                    (ReceiptsTable.invoiceId eq UUID.fromString(invoiceId)) and
+                            (ReceiptsTable.teamId eq tUuid)
+                }
                 .orderBy(ReceiptsTable.createdAt, SortOrder.ASC)
                 .map { rowToReceipt(it) }
         }
     }
 
-    fun getByBookingId(bookingId: String): List<Receipt> {
+    fun getByBookingId(bookingId: String, teamId: String): List<Receipt> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             ReceiptsTable.selectAll()
-                .where { ReceiptsTable.bookingId eq UUID.fromString(bookingId) }
+                .where {
+                    (ReceiptsTable.bookingId eq UUID.fromString(bookingId)) and
+                            (ReceiptsTable.teamId eq tUuid)
+                }
                 .orderBy(ReceiptsTable.createdAt, SortOrder.ASC)
                 .map { rowToReceipt(it) }
         }
     }
 
-    fun getTotalCollected(): Double {
+    fun getTotalCollected(teamId: String): Double {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return 0.0 }
         return transaction {
             ReceiptsTable.selectAll()
+                .where { ReceiptsTable.teamId eq tUuid }
                 .sumOf { it[ReceiptsTable.amount].toDouble() }
         }
     }

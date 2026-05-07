@@ -5,6 +5,12 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface Route {
     @Serializable
+    data object Welcome : Route
+    @Serializable
+    data object Register : Route
+    @Serializable
+    data object JoinTeam : Route
+    @Serializable
     data object Login : Route
     @Serializable
     data object OwnerDashboard : Route

@@ -1,6 +1,8 @@
 package com.nxzef.wc.di
 
+import com.nxzef.wc.domain.usecase.auth.JoinTeamUseCase
 import com.nxzef.wc.domain.usecase.auth.LoginUseCase
+import com.nxzef.wc.domain.usecase.auth.RegisterUseCase
 import com.nxzef.wc.domain.usecase.bookings.CreateBookingUseCase
 import com.nxzef.wc.domain.usecase.bookings.GetAllBookingsUseCase
 import com.nxzef.wc.domain.usecase.bookings.GetMyEditingQueueUseCase
@@ -30,6 +32,8 @@ import org.koin.dsl.module
 
 val useCaseModule = module {
     factory { LoginUseCase(get()) }
+    factory { RegisterUseCase(get()) }
+    factory { JoinTeamUseCase(get()) }
     factory { GetDashboardStatsUseCase(get()) }
     factory { GetAllLeadsUseCase(get()) }
     factory { UpdateLeadStatusUseCase(get()) }

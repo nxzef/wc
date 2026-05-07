@@ -2,11 +2,13 @@ package com.nxzef.wc.presentation.screens.invoices
 
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.Invoice
+import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.Receipt
 
 data class InvoiceState(
     val invoices: List<Invoice> = emptyList(),
     val bookings: List<Booking> = emptyList(),
+    val leads: List<Lead> = emptyList(),
     val isLoading: Boolean = false,
     val selectedInvoice: Invoice? = null,
     val receipts: List<Receipt> = emptyList(),

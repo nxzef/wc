@@ -10,12 +10,14 @@ import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.UpdateLeadStatusRequest
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 
 class LeadRepository {
 
@@ -63,31 +65,42 @@ class LeadRepository {
         )
     }
 
-    fun getAll(): List<Lead> {
+    fun getAll(teamId: String): List<Lead> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             LeadsTable
                 .selectAll()
+                .where { LeadsTable.teamId eq tUuid }
                 .orderBy(LeadsTable.createdAt, SortOrder.DESC)
                 .map { rowToLead(it) }
         }
     }
 
-    fun getById(id: String): Lead? {
+    fun getById(id: String, teamId: String): Lead? {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return null }
         return transaction {
             LeadsTable
                 .selectAll()
-                .where { LeadsTable.id eq java.util.UUID.fromString(id) }
+                .where { (LeadsTable.id eq UUID.fromString(id)) and (LeadsTable.teamId eq tUuid) }
                 .singleOrNull()
                 ?.let { rowToLead(it) }
         }
     }
 
-    fun create(request: CreateLeadRequest, addedByUserId: String): Lead {
+    fun create(request: CreateLeadRequest, addedByUserId: String, teamId: String): Lead {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
-            val defaultStatus = LeadStatusesTable
+            val defaultStatusId = LeadStatusesTable
                 .selectAll()
-                .where { LeadStatusesTable.isDefault eq true }
+                .where { (LeadStatusesTable.isDefault eq true) and (LeadStatusesTable.teamId eq tUuid) }
                 .firstOrNull()
+                ?.get(LeadStatusesTable.id)
+                ?: LeadStatusesTable
+                    .selectAll()
+                    .where { LeadStatusesTable.isDefault eq true }
+                    .firstOrNull()
+                    ?.get(LeadStatusesTable.id)
+                ?: error("No default lead status found — seed lead_statuses before creating leads")
 
             val id = LeadsTable.insert {
                 it[fullName] = request.fullName
@@ -99,29 +112,32 @@ class LeadRepository {
                 it[location] = request.location
                 it[priority] = request.priority
                 it[status] = "New"
-                it[customStatusId] = defaultStatus?.get(LeadStatusesTable.id)
+                it[statusId] = defaultStatusId
+                it[customStatusId] = defaultStatusId
                 it[notes] = request.notes
-                it[addedBy] = java.util.UUID.fromString(addedByUserId)
-                it[assignedTo] = java.util.UUID.fromString(request.assignedTo)
+                it[addedBy] = UUID.fromString(addedByUserId)
+                it[assignedTo] = UUID.fromString(request.assignedTo)
+                it[LeadsTable.teamId] = tUuid
                 it[createdAt] = Instant.now()
             } get LeadsTable.id
 
-            getById(id.toString())!!
+            getById(id.toString(), teamId)!!
         }
     }
 
-    fun updateStatus(id: String, request: UpdateLeadStatusRequest): Lead? {
+    fun updateStatus(id: String, request: UpdateLeadStatusRequest, teamId: String): Lead? {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
             LeadsTable.update(
-                { LeadsTable.id eq java.util.UUID.fromString(id) }
+                { (LeadsTable.id eq UUID.fromString(id)) and (LeadsTable.teamId eq tUuid) }
             ) {
-                it[customStatusId] = java.util.UUID.fromString(request.customStatusId)
+                it[customStatusId] = UUID.fromString(request.customStatusId)
                 it[lostReason] = request.lostReason
                 if (request.notes != null) {
                     it[notes] = request.notes
                 }
             }
-            getById(id)
+            getById(id, teamId)
         }
     }
 }

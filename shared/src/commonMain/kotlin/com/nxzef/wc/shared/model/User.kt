@@ -17,7 +17,18 @@ data class User(
     val name: String,
     val email: String,
     val role: UserRole,
-    val isActive: Boolean
+    val isActive: Boolean,
+    val teamId: String? = null
+)
+
+@Serializable
+data class Team(
+    val id: String,
+    val name: String,
+    val ownerId: String,
+    val inviteCode: String,
+    val isActive: Boolean = true,
+    val createdAt: String? = null
 )
 
 @Serializable
@@ -29,5 +40,26 @@ data class LoginRequest(
 @Serializable
 data class LoginResponse(
     val token: String,
-    val user: User
+    val refreshToken: String,
+    val user: User,
+    val team: Team? = null
+)
+
+@Serializable
+data class RefreshRequest(val refreshToken: String)
+
+@Serializable
+data class RegisterRequest(
+    val name: String,
+    val email: String,
+    val password: String,
+    val teamName: String
+)
+
+@Serializable
+data class JoinTeamRequest(
+    val email: String,
+    val inviteCode: String,
+    val newPassword: String,
+    val confirmPassword: String
 )

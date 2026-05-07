@@ -4,17 +4,18 @@ import androidx.compose.animation.core.EaseOutQuart
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.navigation.NavBackStackEntry
@@ -27,9 +28,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.nxzef.wc.data.local.TokenStorage
 import com.nxzef.wc.data.session.SessionManager
+import com.nxzef.wc.domain.repository.AuthRepository
 import kotlinx.coroutines.launch
 import com.nxzef.wc.presentation.components.WCPermanentSidebar
+import com.nxzef.wc.presentation.screens.auth.JoinTeamScreen
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
+import com.nxzef.wc.presentation.screens.auth.RegisterScreen
+import com.nxzef.wc.presentation.screens.auth.WelcomeScreen
 import com.nxzef.wc.presentation.screens.bookings.BookingScreen
 import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
 import com.nxzef.wc.presentation.screens.editor.EditorScreen
@@ -46,66 +51,89 @@ import com.nxzef.wc.presentation.screens.team.TeamScreen
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.UserRole
 import org.koin.compose.koinInject
-import kotlinx.coroutines.launch
+
+private fun roleHome(role: UserRole): Route = when (role) {
+    UserRole.OWNER -> Route.OwnerDashboard
+    UserRole.LEAD_MANAGER -> Route.LeadPipeline
+    UserRole.MARKETING -> Route.Marketing
+    UserRole.PHOTOGRAPHER -> Route.MyShoots
+    UserRole.EDITOR -> Route.EditingQueue
+}
+
+private fun isAuthRoute(route: Route): Boolean = when (route) {
+    Route.Welcome, Route.Register, Route.JoinTeam, Route.Login -> true
+    else -> false
+}
 
 @Composable
-fun WCNavigation() {
+fun WCNavigation(isFreshInstall: Boolean = false) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = getCurrentRoute(navBackStackEntry)
-    val sessionManager: SessionManager = koinInject()
     val tokenStorage: TokenStorage = koinInject()
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val authRepository: AuthRepository = koinInject()
+    val scope = rememberCoroutineScope()
 
     val initialRoute = remember {
         val user = SessionManager.getUser()
-        if (user != null) {
-            when (user.role) {
-                UserRole.OWNER -> Route.OwnerDashboard
-                UserRole.LEAD_MANAGER -> Route.LeadPipeline
-                UserRole.MARKETING -> Route.Marketing
-                UserRole.PHOTOGRAPHER -> Route.MyShoots
-                UserRole.EDITOR -> Route.EditingQueue
-            }
-        } else {
-            Route.Login
+        when {
+            user != null -> roleHome(user.role)
+            isFreshInstall -> Route.Welcome
+            else -> Route.Login
         }
     }
 
     var isSidebarCollapsed by remember { mutableStateOf(false) }
 
+    val isLoggedIn by SessionManager.isLoggedIn.collectAsStateWithLifecycle()
+    LaunchedEffect(isLoggedIn) {
+        if (!isLoggedIn) {
+            val dest = navController.currentBackStackEntry?.destination
+            if (dest != null && !dest.hasRoute<Route.Welcome>() &&
+                !dest.hasRoute<Route.Login>() &&
+                !dest.hasRoute<Route.Register>() &&
+                !dest.hasRoute<Route.JoinTeam>()
+            ) {
+                tokenStorage.clearSession()
+                navController.navigate(Route.Login) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+    }
+
+    val navigateToTab: (Route) -> Unit = { route ->
+        navController.navigate(route) {
+            popUpTo(navController.graph.startDestinationId) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     WCTheme {
         Surface {
-            if (currentRoute == Route.Login) {
+            if (isAuthRoute(currentRoute)) {
                 AppNavHost(
                     navController = navController,
-                    startDestination = initialRoute
+                    startDestination = initialRoute,
+                    onNavigateToTab = navigateToTab
                 )
             } else {
                 WCPermanentSidebar(
                     currentRoute = currentRoute,
                     isCollapsed = isSidebarCollapsed,
                     onToggleCollapse = { isSidebarCollapsed = !isSidebarCollapsed },
-                    onNavigate = { route ->
-                        navController.navigate(route) {
-                            popUpTo<Route.OwnerDashboard> { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
+                    onNavigate = navigateToTab,
                     onLogout = {
                         scope.launch {
-                            tokenStorage.clearSession()
-                            sessionManager.clear()
-                            navController.navigate(Route.Login) {
-                                popUpTo(0) { inclusive = true }
-                            }
+                            authRepository.logout()
                         }
                     }
                 ) {
                     AppNavHost(
                         navController = navController,
                         startDestination = initialRoute,
+                        onNavigateToTab = navigateToTab,
                         modifier = Modifier
                             .fillMaxSize()
                             .clipToBounds()
@@ -119,9 +147,16 @@ fun WCNavigation() {
 @Composable
 fun AppNavHost(
     navController: NavHostController,
-    startDestination: Route = Route.Login,
+    startDestination: Route = Route.Welcome,
+    onNavigateToTab: (Route) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val onAuthSuccess: (UserRole) -> Unit = { role ->
+        navController.navigate(roleHome(role)) {
+            popUpTo(0) { inclusive = true }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -155,82 +190,62 @@ fun AppNavHost(
                     )
         }
     ) {
+        composable<Route.Welcome> {
+            WelcomeScreen(
+                onCreateCompany = { navController.navigate(Route.Register) },
+                onJoinTeam = { navController.navigate(Route.JoinTeam) },
+                onSignIn = { navController.navigate(Route.Login) }
+            )
+        }
+
+        composable<Route.Register> {
+            RegisterScreen(
+                onRegistered = onAuthSuccess,
+                onBack = { navController.popBackStack() },
+                onSignIn = { navController.navigate(Route.Login) }
+            )
+        }
+
+        composable<Route.JoinTeam> {
+            JoinTeamScreen(
+                onJoined = onAuthSuccess,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable<Route.Login> {
             LoginScreen(
-                onLoginSuccess = { role ->
-                    val destination: Route = when (role) {
-                        UserRole.OWNER -> Route.OwnerDashboard
-                        UserRole.LEAD_MANAGER -> Route.LeadPipeline
-                        UserRole.MARKETING -> Route.Marketing
-                        UserRole.PHOTOGRAPHER -> Route.MyShoots
-                        UserRole.EDITOR -> Route.EditingQueue
-                    }
-                    navController.navigate(destination) {
-                        popUpTo<Route.Login> { inclusive = true }
-                    }
-                }
+                onLoginSuccess = onAuthSuccess,
+                onCreateCompany = { navController.navigate(Route.Register) },
+                onJoinTeam = { navController.navigate(Route.JoinTeam) }
             )
         }
 
         composable<Route.OwnerDashboard> {
             DashboardScreen(
-                onNavigateToPipeline = {
-                    navController.navigate(Route.LeadPipeline) {
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToInvoices = {
-                    navController.navigate(Route.Invoices) {
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToTasks = {
-                    navController.navigate(Route.Tasks) {
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToAddLead = {
-                    navController.navigate(Route.AddLead) {
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToBookings = {
-                    navController.navigate(Route.Bookings) {
-                        launchSingleTop = true
-                    }
-                },
-                onViewLeads = {
-                    navController.navigate(Route.LeadPipeline) {
-                        launchSingleTop = true
-                    }
-                }
+                onNavigateToPipeline = { onNavigateToTab(Route.LeadPipeline) },
+                onNavigateToInvoices = { onNavigateToTab(Route.Invoices) },
+                onNavigateToTasks = { onNavigateToTab(Route.Tasks) },
+                onNavigateToBookings = { onNavigateToTab(Route.Bookings) },
+                onViewLeads = { onNavigateToTab(Route.LeadPipeline) },
+                onNavigateToAddLead = { navController.navigate(Route.AddLead) }
             )
         }
 
         composable<Route.LeadPipeline> {
             LeadPipelineScreen(
                 onBack = { navController.popBackStack() },
-                onAddLead = {
-                    navController.navigate(Route.AddLead)
-                },
+                onAddLead = { navController.navigate(Route.AddLead) },
                 onViewQuotes = { leadId, clientName, clientEmail ->
                     navController.navigate(Route.Quotes(leadId, clientName, clientEmail))
                 },
-                onViewBooking = {
-                    navController.navigate(Route.Bookings) {
-                        launchSingleTop = true
-                    }
-                }
+                onViewBooking = { onNavigateToTab(Route.Bookings) }
             )
         }
 
         composable<Route.AddLead> {
             AddLeadScreen(
-                onLeadCreated = {
-                    navController.navigate(Route.LeadPipeline) {
-                        popUpTo<Route.AddLead> { inclusive = true }
-                    }
-                },
+                onLeadCreated = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -238,9 +253,7 @@ fun AppNavHost(
         composable<Route.Marketing> {
             MarketingScreen(
                 onBack = { navController.popBackStack() },
-                onAddLead = {
-                    navController.navigate(Route.AddLead)
-                }
+                onAddLead = { navController.navigate(Route.AddLead) }
             )
         }
 
@@ -298,8 +311,11 @@ fun AppNavHost(
 }
 
 fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
-    val destination = backStackEntry?.destination ?: return Route.Login
+    val destination = backStackEntry?.destination ?: return Route.Welcome
     return when {
+        destination.hasRoute<Route.Welcome>() -> Route.Welcome
+        destination.hasRoute<Route.Register>() -> Route.Register
+        destination.hasRoute<Route.JoinTeam>() -> Route.JoinTeam
         destination.hasRoute<Route.Login>() -> Route.Login
         destination.hasRoute<Route.OwnerDashboard>() -> Route.OwnerDashboard
         destination.hasRoute<Route.LeadPipeline>() -> Route.LeadPipeline
@@ -321,6 +337,6 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
             Route.Quotes(q.leadId, q.clientName, q.clientEmail)
         }
 
-        else -> Route.Login
+        else -> Route.Welcome
     }
 }

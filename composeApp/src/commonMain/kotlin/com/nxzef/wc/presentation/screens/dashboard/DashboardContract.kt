@@ -4,6 +4,7 @@ import com.nxzef.wc.shared.model.DashboardStats
 
 data class DashboardState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val stats: DashboardStats? = null,
     val error: String? = null,
     val showGoalDialog: Boolean = false,

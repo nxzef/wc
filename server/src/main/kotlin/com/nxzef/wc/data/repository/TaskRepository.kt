@@ -33,81 +33,102 @@ class TaskRepository {
         stageName   = row[TasksTable.stageName]
     )
 
-    fun getActiveCountByLeadId(leadId: String): Int {
+    fun getActiveCountByLeadId(leadId: String, teamId: String): Int {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return 0 }
         return transaction {
             TasksTable.selectAll()
                 .where {
                     (TasksTable.leadId eq UUID.fromString(leadId)) and
-                    (TasksTable.isDone eq false)
+                    (TasksTable.isDone eq false) and
+                    (TasksTable.teamId eq tUuid)
                 }
                 .count().toInt()
         }
     }
 
-    fun getByLeadId(leadId: String): List<Task> {
-        return transaction {
-            TasksTable.selectAll()
-                .where { TasksTable.leadId eq UUID.fromString(leadId) }
-                .orderBy(TasksTable.createdAt, SortOrder.ASC)
-                .map { rowToTask(it) }
-        }
-    }
-
-    fun getByMyLeadId(userId: String, leadId: String): List<Task> {
+    fun getByLeadId(leadId: String, teamId: String): List<Task> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             TasksTable.selectAll()
                 .where {
                     (TasksTable.leadId eq UUID.fromString(leadId)) and
-                    (TasksTable.assignedTo eq UUID.fromString(userId))
+                    (TasksTable.teamId eq tUuid)
                 }
                 .orderBy(TasksTable.createdAt, SortOrder.ASC)
                 .map { rowToTask(it) }
         }
     }
 
-    fun getByBookingId(bookingId: String): List<Task> {
+    fun getByMyLeadId(userId: String, leadId: String, teamId: String): List<Task> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             TasksTable.selectAll()
-                .where { TasksTable.bookingId eq UUID.fromString(bookingId) }
+                .where {
+                    (TasksTable.leadId eq UUID.fromString(leadId)) and
+                    (TasksTable.assignedTo eq UUID.fromString(userId)) and
+                    (TasksTable.teamId eq tUuid)
+                }
                 .orderBy(TasksTable.createdAt, SortOrder.ASC)
                 .map { rowToTask(it) }
         }
     }
 
-    fun getByMyBookingId(userId: String, bookingId: String): List<Task> {
+    fun getByBookingId(bookingId: String, teamId: String): List<Task> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             TasksTable.selectAll()
                 .where {
                     (TasksTable.bookingId eq UUID.fromString(bookingId)) and
-                    (TasksTable.assignedTo eq UUID.fromString(userId))
+                    (TasksTable.teamId eq tUuid)
                 }
                 .orderBy(TasksTable.createdAt, SortOrder.ASC)
                 .map { rowToTask(it) }
         }
     }
 
-    fun getByAssignedUser(userId: String): List<Task> {
+    fun getByMyBookingId(userId: String, bookingId: String, teamId: String): List<Task> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             TasksTable.selectAll()
-                .where { TasksTable.assignedTo eq UUID.fromString(userId) }
-                .orderBy(TasksTable.dueDate, SortOrder.ASC)
+                .where {
+                    (TasksTable.bookingId eq UUID.fromString(bookingId)) and
+                    (TasksTable.assignedTo eq UUID.fromString(userId)) and
+                    (TasksTable.teamId eq tUuid)
+                }
+                .orderBy(TasksTable.createdAt, SortOrder.ASC)
                 .map { rowToTask(it) }
         }
     }
 
-    fun getPendingByUser(userId: String): List<Task> {
+    fun getByAssignedUser(userId: String, teamId: String): List<Task> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             TasksTable.selectAll()
                 .where {
                     (TasksTable.assignedTo eq UUID.fromString(userId)) and
-                    (TasksTable.isDone eq false)
+                    (TasksTable.teamId eq tUuid)
                 }
                 .orderBy(TasksTable.dueDate, SortOrder.ASC)
                 .map { rowToTask(it) }
         }
     }
 
-    fun create(request: CreateTaskRequest, createdByUserId: String): Task {
+    fun getPendingByUser(userId: String, teamId: String): List<Task> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
+        return transaction {
+            TasksTable.selectAll()
+                .where {
+                    (TasksTable.assignedTo eq UUID.fromString(userId)) and
+                    (TasksTable.isDone eq false) and
+                    (TasksTable.teamId eq tUuid)
+                }
+                .orderBy(TasksTable.dueDate, SortOrder.ASC)
+                .map { rowToTask(it) }
+        }
+    }
+
+    fun create(request: CreateTaskRequest, createdByUserId: String, teamId: String): Task {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
             val newId = TasksTable.insert {
                 it[leadId]      = request.leadId?.let { l -> UUID.fromString(l) }
@@ -118,8 +139,9 @@ class TaskRepository {
                 it[dueDate]     = request.dueDate?.let { d -> LocalDate.parse(d) }
                 it[isDone]      = false
                 it[createdBy]   = UUID.fromString(createdByUserId)
-                it[createdAt]   = Instant.now()
                 it[stageName]   = request.stageName
+                it[TasksTable.teamId] = tUuid
+                it[createdAt]   = Instant.now()
             } get TasksTable.id
 
             TasksTable.selectAll()
@@ -129,22 +151,28 @@ class TaskRepository {
         }
     }
 
-    fun markDone(id: String, done: Boolean): Task? {
+    fun markDone(id: String, done: Boolean, teamId: String): Task? {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
-            TasksTable.update({ TasksTable.id eq UUID.fromString(id) }) {
+            TasksTable.update({
+                (TasksTable.id eq UUID.fromString(id)) and (TasksTable.teamId eq tUuid)
+            }) {
                 it[isDone] = done
                 it[doneAt] = if (done) Instant.now() else null
             }
             TasksTable.selectAll()
-                .where { TasksTable.id eq UUID.fromString(id) }
+                .where { (TasksTable.id eq UUID.fromString(id)) and (TasksTable.teamId eq tUuid) }
                 .singleOrNull()
                 ?.let { rowToTask(it) }
         }
     }
 
-    fun delete(id: String) {
+    fun delete(id: String, teamId: String) {
+        val tUuid = UUID.fromString(teamId)
         transaction {
-            TasksTable.deleteWhere { TasksTable.id eq UUID.fromString(id) }
+            TasksTable.deleteWhere {
+                (TasksTable.id eq UUID.fromString(id)) and (TasksTable.teamId eq tUuid)
+            }
         }
     }
 }

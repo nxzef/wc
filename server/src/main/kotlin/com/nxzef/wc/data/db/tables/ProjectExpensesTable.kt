@@ -15,6 +15,7 @@ object ProjectExpensesTable : Table("project_expenses") {
     val addedBy       = uuid("added_by").references(UsersTable.id).nullable()
     val paymentMethod = varchar("payment_method", 50).nullable()
     val notes         = text("notes").nullable()
+    val teamId        = uuid("team_id").references(TeamsTable.id).nullable()
     val createdAt     = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

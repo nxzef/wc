@@ -12,6 +12,7 @@ import com.nxzef.wc.domain.usecase.tasks.GetMyTasksByLeadUseCase
 import com.nxzef.wc.domain.usecase.tasks.MarkTaskDoneUseCase
 import com.nxzef.wc.shared.model.CreateTaskRequest
 import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.util.ErrorMessages
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import com.nxzef.wc.util.RefreshManager
@@ -43,9 +44,6 @@ class LeadPipelineViewModel(
     private val _uiEvent = Channel<LeadPipelineUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
-    private var hasLoadedOnce = false
-    private var previousLeadCount = -1
-
     init {
         loadStatuses()
         loadLeads()
@@ -74,6 +72,9 @@ class LeadPipelineViewModel(
             LeadPipelineAction.ShowCreateStatusDialog -> _state.update { it.copy(showCreateStatusDialog = true) }
             LeadPipelineAction.HideCreateStatusDialog -> _state.update { it.copy(showCreateStatusDialog = false) }
             is LeadPipelineAction.CreateStatus -> createStatus(action.name, action.color)
+            is LeadPipelineAction.RequestDeleteStatus -> _state.update { it.copy(statusToDelete = action.status) }
+            LeadPipelineAction.DismissDeleteStatusDialog -> _state.update { it.copy(statusToDelete = null) }
+            LeadPipelineAction.ConfirmDeleteStatus -> deleteStatus()
         }
     }
 
@@ -112,7 +113,29 @@ class LeadPipelineViewModel(
                     ) }
                 }
                 .onFailure { error ->
-                    _uiEvent.send(LeadPipelineUiEvent.ShowError(error.message ?: "Failed to create status"))
+                    val raw = error.message.orEmpty()
+                    val msg = if (
+                        raw.contains("409") ||
+                        raw.contains("Conflict", ignoreCase = true) ||
+                        raw.contains("already exists", ignoreCase = true)
+                    ) "Status name already exists" else ErrorMessages.forGeneric(error.message)
+                    _uiEvent.send(LeadPipelineUiEvent.ShowError(msg))
+                }
+        }
+    }
+
+    private fun deleteStatus() {
+        val target = _state.value.statusToDelete ?: return
+        _state.update { it.copy(statusToDelete = null) }
+        viewModelScope.launch {
+            leadStatusRepository.delete(target.id)
+                .onSuccess {
+                    loadStatuses()
+                    loadLeads(silent = true)
+                    _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Deleted '${target.name}'"))
+                }
+                .onFailure { error ->
+                    _uiEvent.send(LeadPipelineUiEvent.ShowError(ErrorMessages.forGeneric(error.message)))
                 }
         }
     }
@@ -169,21 +192,14 @@ class LeadPipelineViewModel(
     private fun loadLeads(silent: Boolean = false) {
         viewModelScope.launch {
             if (!silent) _state.update { it.copy(isLoading = true, error = null) }
-            val oldCount = previousLeadCount
             getAllLeadsUseCase()
                 .onSuccess { leads ->
-                    val newCount = leads.size
-                    if (hasLoadedOnce && silent && newCount != oldCount) {
-                        _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Updated"))
-                    }
-                    previousLeadCount = newCount
-                    hasLoadedOnce = true
                     _state.update { it.copy(leads = leads, isLoading = false) }
                     loadTaskCounts(leads)
                 }
                 .onFailure { error ->
                     if (!silent) {
-                        _state.update { it.copy(error = error.message ?: "Failed to load leads", isLoading = false) }
+                        _state.update { it.copy(error = ErrorMessages.forGeneric(error.message), isLoading = false) }
                     }
                 }
         }
@@ -215,7 +231,7 @@ class LeadPipelineViewModel(
             updateLeadStatusUseCase(leadId, customStatusId, notes)
                 .onSuccess { loadLeads() }
                 .onFailure { error ->
-                    _state.update { it.copy(error = error.message ?: "Failed to update") }
+                    _state.update { it.copy(error = ErrorMessages.forGeneric(error.message)) }
                 }
         }
     }

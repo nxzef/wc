@@ -53,6 +53,7 @@ import com.nxzef.wc.shared.util.CurrencyUtils
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.Invoice
+import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.Receipt
 import com.nxzef.wc.shared.model.ReceiptType
 import com.nxzef.wc.shared.util.DateUtils
@@ -140,9 +141,11 @@ fun InvoiceScreen(
                             }
                             items(state.invoices) { invoice ->
                                 val booking = state.bookings.find { it.id == invoice.bookingId }
+                                val lead = booking?.let { b -> state.leads.find { it.id == b.leadId } }
                                 InvoiceCard(
                                     invoice = invoice,
                                     booking = booking,
+                                    lead = lead,
                                     onClick = { viewModel.onAction(InvoiceAction.SelectInvoice(invoice)) }
                                 )
                             }
@@ -220,7 +223,7 @@ fun SummaryCard(modifier: Modifier = Modifier, label: String, value: String, col
 }
 
 @Composable
-fun InvoiceCard(invoice: Invoice, booking: Booking?, onClick: () -> Unit) {
+fun InvoiceCard(invoice: Invoice, booking: Booking?, lead: Lead?, onClick: () -> Unit) {
     val paymentStatus = when {
         invoice.finalPaid -> "FULLY PAID"
         invoice.depositPaid -> "DEPOSIT PAID"
@@ -240,6 +243,13 @@ fun InvoiceCard(invoice: Invoice, booking: Booking?, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
+                lead?.let {
+                    Text(
+                        text = it.fullName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 booking?.let {
                     Text(
                         text = "${it.eventType} • ${it.eventDate}",

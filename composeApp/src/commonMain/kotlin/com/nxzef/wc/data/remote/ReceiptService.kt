@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.ReceiptDto
 import com.nxzef.wc.shared.dto.toDomain
@@ -13,7 +14,7 @@ class ReceiptService(private val client: HttpClient) {
 
     suspend fun getByInvoiceId(invoiceId: String): List<Receipt> {
         val dtos: List<ReceiptDto> = client.get(
-            "${ApiClient.BASE_URL}/receipts/invoice/$invoiceId"
+            "${AppConfig.BASE_URL}/receipts/invoice/$invoiceId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -22,7 +23,7 @@ class ReceiptService(private val client: HttpClient) {
 
     suspend fun getByBookingId(bookingId: String): List<Receipt> {
         val dtos: List<ReceiptDto> = client.get(
-            "${ApiClient.BASE_URL}/receipts/booking/$bookingId"
+            "${AppConfig.BASE_URL}/receipts/booking/$bookingId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()

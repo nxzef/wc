@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.auth.LoginUseCase
 import com.nxzef.wc.shared.util.AppResult
+import com.nxzef.wc.shared.util.ErrorMessages
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,7 +55,7 @@ class LoginViewModel(
                 is AppResult.Failure ->
                     _uiEvent.send(
                         LoginUiEvent.ShowSnackbar(
-                            result.exception.message ?: "Login failed"
+                            ErrorMessages.forLogin(result.exception.message)
                         )
                     )
 

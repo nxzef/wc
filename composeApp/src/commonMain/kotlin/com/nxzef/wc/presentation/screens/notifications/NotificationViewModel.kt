@@ -69,8 +69,11 @@ class NotificationViewModel(
 
             notifResult.onSuccess { notifications ->
                 _state.update { it.copy(notifications = notifications) }
-            }.onFailure { e ->
-                if (!silent) _state.update { it.copy(error = e.message) }
+            }.onFailure {
+                if (!silent) {
+                    _state.update { it.copy(error = "Failed to load notifications.") }
+                    _uiEvent.send(NotificationUiEvent.ShowSnackbar("Failed to load notifications."))
+                }
             }
             countResult.onSuccess { count ->
                 val oldCount = previousUnreadCount
@@ -89,8 +92,8 @@ class NotificationViewModel(
         viewModelScope.launch {
             repository.markAsRead(id)
                 .onSuccess { load() }
-                .onFailure { e ->
-                    _uiEvent.send(NotificationUiEvent.ShowSnackbar(e.message ?: "Failed to mark as read"))
+                .onFailure {
+                    _uiEvent.send(NotificationUiEvent.ShowSnackbar("Failed to load notifications."))
                 }
         }
     }
@@ -99,8 +102,8 @@ class NotificationViewModel(
         viewModelScope.launch {
             repository.markAllAsRead()
                 .onSuccess { load() }
-                .onFailure { e ->
-                    _uiEvent.send(NotificationUiEvent.ShowSnackbar(e.message ?: "Failed to mark all as read"))
+                .onFailure {
+                    _uiEvent.send(NotificationUiEvent.ShowSnackbar("Failed to load notifications."))
                 }
         }
     }

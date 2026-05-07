@@ -6,6 +6,7 @@ import com.nxzef.wc.shared.model.ProjectExpense
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
@@ -31,27 +32,36 @@ class ProjectExpenseRepository {
         createdAt       = row[ProjectExpensesTable.createdAt].toString()
     )
 
-    fun getByBookingId(bookingId: String): List<ProjectExpense> {
+    fun getByBookingId(bookingId: String, teamId: String): List<ProjectExpense> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             ProjectExpensesTable.selectAll()
-                .where { ProjectExpensesTable.bookingId eq UUID.fromString(bookingId) }
+                .where {
+                    (ProjectExpensesTable.bookingId eq UUID.fromString(bookingId)) and
+                            (ProjectExpensesTable.teamId eq tUuid)
+                }
                 .orderBy(ProjectExpensesTable.expenseDate, SortOrder.DESC)
                 .map { rowToExpense(it) }
         }
     }
 
-    fun getTotalByBookingId(bookingId: String): Double {
+    fun getTotalByBookingId(bookingId: String, teamId: String): Double {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return 0.0 }
         return transaction {
             ProjectExpensesTable
                 .select(ProjectExpensesTable.actualAmount.sum())
-                .where { ProjectExpensesTable.bookingId eq UUID.fromString(bookingId) }
+                .where {
+                    (ProjectExpensesTable.bookingId eq UUID.fromString(bookingId)) and
+                            (ProjectExpensesTable.teamId eq tUuid)
+                }
                 .singleOrNull()
                 ?.get(ProjectExpensesTable.actualAmount.sum())
                 ?.toDouble() ?: 0.0
         }
     }
 
-    fun create(request: CreateProjectExpenseRequest, addedByUserId: String): ProjectExpense {
+    fun create(request: CreateProjectExpenseRequest, addedByUserId: String, teamId: String): ProjectExpense {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
             val newId = ProjectExpensesTable.insert {
                 it[bookingId]       = UUID.fromString(request.bookingId)
@@ -63,6 +73,7 @@ class ProjectExpenseRepository {
                 it[addedBy]         = UUID.fromString(addedByUserId)
                 it[paymentMethod]   = request.paymentMethod
                 it[notes]           = request.notes
+                it[ProjectExpensesTable.teamId] = tUuid
                 it[createdAt]       = Instant.now()
             } get ProjectExpensesTable.id
 
@@ -73,9 +84,13 @@ class ProjectExpenseRepository {
         }
     }
 
-    fun delete(id: String) {
+    fun delete(id: String, teamId: String) {
+        val tUuid = UUID.fromString(teamId)
         transaction {
-            ProjectExpensesTable.deleteWhere { ProjectExpensesTable.id eq UUID.fromString(id) }
+            ProjectExpensesTable.deleteWhere {
+                (ProjectExpensesTable.id eq UUID.fromString(id)) and
+                        (ProjectExpensesTable.teamId eq tUuid)
+            }
         }
     }
 }

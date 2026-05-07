@@ -119,11 +119,9 @@ class AddLeadViewModel(
                 )
             ).onSuccess {
                 _uiEvent.send(AddLeadUiEvent.LeadCreated)
-            }.onFailure { e ->
+            }.onFailure {
                 _uiEvent.send(
-                    AddLeadUiEvent.ShowSnackbar(
-                        e.message ?: "Failed to create lead"
-                    )
+                    AddLeadUiEvent.ShowSnackbar("Failed to create lead. Please try again.")
                 )
             }
             _state.update { it.copy(isLoading = false) }

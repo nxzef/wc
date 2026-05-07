@@ -1,5 +1,6 @@
 package com.nxzef.wc.plugins
 
+import com.nxzef.wc.config.ServerConfig
 import com.nxzef.wc.data.repository.BookingRepository
 import com.nxzef.wc.data.repository.DashboardRepository
 import com.nxzef.wc.data.repository.InvoiceRepository
@@ -11,6 +12,7 @@ import com.nxzef.wc.data.repository.MonthlyGoalRepository
 import com.nxzef.wc.data.repository.ProjectExpenseRepository
 import com.nxzef.wc.data.repository.ReceiptRepository
 import com.nxzef.wc.data.repository.TaskRepository
+import com.nxzef.wc.data.repository.TeamRepository
 import com.nxzef.wc.data.repository.UserRepository
 import com.nxzef.wc.domain.service.AuthService
 import com.nxzef.wc.domain.service.EmailService
@@ -27,6 +29,7 @@ import com.nxzef.wc.routes.monthlyGoalRoutes
 import com.nxzef.wc.routes.projectExpenseRoutes
 import com.nxzef.wc.routes.receiptRoutes
 import com.nxzef.wc.routes.taskRoutes
+import com.nxzef.wc.routes.testRoutes
 import com.nxzef.wc.routes.userRoutes
 import com.nxzef.wc.shared.model.UserRole
 import io.ktor.http.HttpStatusCode
@@ -56,8 +59,7 @@ fun Application.configureRouting() {
     val notificationService by inject<NotificationService>()
     val emailService by inject<EmailService>()
     val leadStatusRepository by inject<LeadStatusRepository>()
-
-    userRepository.seedOwner()
+    val teamRepository by inject<TeamRepository>()
 
     routing {
         // Public
@@ -66,6 +68,11 @@ fun Application.configureRouting() {
         // Health check
         get("/health") {
             call.respond(mapOf("status" to "ok"))
+        }
+
+        // Debug-only email test endpoint — only mounted outside production
+        if (!ServerConfig.isProduction) {
+            testRoutes(emailService)
         }
 
         // Protected
@@ -86,7 +93,7 @@ fun Application.configureRouting() {
             // Booking
             bookingRoutes(bookingRepository, leadRepository, notificationService)
             // Invoice
-            invoiceRoutes(invoiceRepository, receiptRepository)
+            invoiceRoutes(invoiceRepository, receiptRepository, emailService)
             // Receipt
             receiptRoutes(receiptRepository)
             // Project Expenses
@@ -100,7 +107,7 @@ fun Application.configureRouting() {
             // Notification
             notificationRoutes(notificationRepository)
             // User
-            userRoutes(userRepository)
+            userRoutes(userRepository, teamRepository, emailService)
 
             // Email test (OWNER only)
             get("/email/test") {
@@ -117,11 +124,15 @@ fun Application.configureRouting() {
                     return@get
                 }
 
-                try {
-                    emailService.sendTestEmail(email)
+                val sent = emailService.sendEmail(
+                    to = email,
+                    subject = "Wedding Clouds — Email Test",
+                    htmlBody = """<p>Resend email delivery is working for The Wedding Clouds.</p>"""
+                )
+                if (sent) {
                     call.respond(mapOf("status" to "Test email sent to $email"))
-                } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, "Failed: ${e.message}")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Email send failed (check RESEND_API_KEY and FROM_EMAIL)")
                 }
             }
         }

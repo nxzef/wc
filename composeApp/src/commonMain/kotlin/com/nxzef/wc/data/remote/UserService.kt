@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.UserDto
 import com.nxzef.wc.shared.dto.toDomain
@@ -17,7 +18,7 @@ import io.ktor.http.contentType
 class UserService(private val client: HttpClient) {
 
     suspend fun getTeam(): List<User> {
-        val dtos: List<UserDto> = client.get("${ApiClient.BASE_URL}/users/team") {
+        val dtos: List<UserDto> = client.get("${AppConfig.BASE_URL}/users/team") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
         return dtos.map { it.toDomain() }
@@ -26,17 +27,15 @@ class UserService(private val client: HttpClient) {
     suspend fun createMember(
         name: String,
         email: String,
-        password: String,
         role: String
     ): User {
-        val dto: UserDto = client.post("${ApiClient.BASE_URL}/users") {
+        val dto: UserDto = client.post("${AppConfig.BASE_URL}/users") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(
                 mapOf(
                     "name" to name,
                     "email" to email,
-                    "password" to password,
                     "role" to role
                 )
             )
@@ -45,7 +44,7 @@ class UserService(private val client: HttpClient) {
     }
 
     suspend fun removeMember(id: String) {
-        client.delete("${ApiClient.BASE_URL}/users/$id") {
+        client.delete("${AppConfig.BASE_URL}/users/$id") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }
     }

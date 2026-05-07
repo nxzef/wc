@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.repository.MonthlyGoalRepository
 import com.nxzef.wc.domain.usecase.dashboard.GetDashboardStatsUseCase
 import com.nxzef.wc.shared.model.UpsertMonthlyGoalRequest
+import com.nxzef.wc.shared.util.ErrorMessages
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import com.nxzef.wc.util.RefreshManager
@@ -31,9 +32,6 @@ class DashboardViewModel(
 
     private val _uiEvent = Channel<DashboardUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
-
-    private var hasLoadedOnce = false
-    private var previousLeadCount = -1
 
     init {
         loadStats()
@@ -64,6 +62,7 @@ class DashboardViewModel(
     private fun collectRefreshTrigger() {
         viewModelScope.launch {
             RefreshManager.refreshTrigger.collect {
+                _state.update { it.copy(isRefreshing = true) }
                 loadStats(silent = true)
             }
         }
@@ -72,25 +71,20 @@ class DashboardViewModel(
     private fun loadStats(silent: Boolean = false) {
         viewModelScope.launch {
             if (!silent) _state.update { it.copy(isLoading = true, error = null) }
-            val oldCount = previousLeadCount
             getDashboardStatsUseCase()
                 .onSuccess { stats ->
-                    val newCount = stats.recentLeads.size + stats.totalBookingsThisMonth
-                    if (hasLoadedOnce && silent && newCount != oldCount) {
-                        _uiEvent.send(DashboardUiEvent.ShowSnackbar("Updated"))
-                    }
-                    previousLeadCount = newCount
-                    hasLoadedOnce = true
                     _state.update { it.copy(
                         stats = stats,
                         isLoading = false,
+                        isRefreshing = false,
                         goalRevenue = stats.currentMonthGoal?.targetRevenue?.toInt()?.toString() ?: it.goalRevenue,
                         goalProfit = stats.currentMonthGoal?.targetProfit?.toInt()?.toString() ?: it.goalProfit
                     ) }
                 }
                 .onFailure { error ->
-                    if (!silent) {
-                        _state.update { it.copy(error = error.message ?: "Failed to load", isLoading = false) }
+                    _state.update {
+                        if (silent) it.copy(isRefreshing = false)
+                        else it.copy(error = ErrorMessages.forGeneric(error.message), isLoading = false, isRefreshing = false)
                     }
                 }
         }
@@ -124,7 +118,7 @@ class DashboardViewModel(
                 }
                 .onFailure { error ->
                     _state.update { it.copy(isSavingGoal = false) }
-                    _uiEvent.send(DashboardUiEvent.ShowError(error.message ?: "Failed to save goal"))
+                    _uiEvent.send(DashboardUiEvent.ShowError(ErrorMessages.forGeneric(error.message)))
                 }
         }
     }

@@ -9,6 +9,7 @@ object LeadStatusesTable : Table("lead_statuses") {
     val color = varchar("color", 20).default("#2196F3")
     val position = integer("position").default(0)
     val isDefault = bool("is_default").default(false)
+    val teamId = uuid("team_id").references(TeamsTable.id).nullable()
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

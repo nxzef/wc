@@ -11,6 +11,7 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.time.Instant
+import java.util.UUID
 
 class NotificationRepository {
 
@@ -27,50 +28,45 @@ class NotificationRepository {
         )
     }
 
-    fun getByUserId(userId: String): List<Notification> {
+    fun getByUserId(userId: String, teamId: String): List<Notification> {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return emptyList() }
         return transaction {
             NotificationsTable
                 .selectAll()
                 .where {
-                    NotificationsTable.userId eq
-                            java.util.UUID.fromString(userId)
+                    (NotificationsTable.userId eq UUID.fromString(userId)) and
+                            (NotificationsTable.teamId eq tUuid)
                 }
-                .orderBy(
-                    NotificationsTable.createdAt,
-                    SortOrder.DESC
-                )
+                .orderBy(NotificationsTable.createdAt, SortOrder.DESC)
                 .map { rowToNotification(it) }
         }
     }
 
-    fun getUnreadCount(userId: String): Int {
+    fun getUnreadCount(userId: String, teamId: String): Int {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return 0 }
         return transaction {
             NotificationsTable
                 .selectAll()
                 .where {
-                    (NotificationsTable.userId eq
-                            java.util.UUID.fromString(userId)) and
-                            (NotificationsTable.isRead eq false)
+                    (NotificationsTable.userId eq UUID.fromString(userId)) and
+                            (NotificationsTable.isRead eq false) and
+                            (NotificationsTable.teamId eq tUuid)
                 }
                 .count().toInt()
         }
     }
 
-    fun create(request: CreateNotificationRequest): Notification {
+    fun create(request: CreateNotificationRequest, teamId: String): Notification {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
             val id = NotificationsTable.insert {
-                it[userId] = java.util.UUID.fromString(
-                    request.userId
-                )
+                it[userId] = UUID.fromString(request.userId)
                 it[title] = request.title
                 it[message] = request.message
                 it[isRead] = false
-                it[bookingId] = request.bookingId?.let { b ->
-                    java.util.UUID.fromString(b)
-                }
-                it[taskId] = request.taskId?.let { t ->
-                    java.util.UUID.fromString(t)
-                }
+                it[bookingId] = request.bookingId?.let { b -> UUID.fromString(b) }
+                it[taskId] = request.taskId?.let { t -> UUID.fromString(t) }
+                it[NotificationsTable.teamId] = tUuid
                 it[createdAt] = Instant.now()
             } get NotificationsTable.id
 
@@ -82,12 +78,13 @@ class NotificationRepository {
         }
     }
 
-    fun markAsRead(notificationId: String): Boolean {
+    fun markAsRead(notificationId: String, teamId: String): Boolean {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
             val updated = NotificationsTable.update(
                 {
-                    NotificationsTable.id eq
-                            java.util.UUID.fromString(notificationId)
+                    (NotificationsTable.id eq UUID.fromString(notificationId)) and
+                            (NotificationsTable.teamId eq tUuid)
                 }
             ) {
                 it[isRead] = true
@@ -96,12 +93,13 @@ class NotificationRepository {
         }
     }
 
-    fun markAllAsRead(userId: String): Int {
+    fun markAllAsRead(userId: String, teamId: String): Int {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
             NotificationsTable.update(
                 {
-                    NotificationsTable.userId eq
-                            java.util.UUID.fromString(userId)
+                    (NotificationsTable.userId eq UUID.fromString(userId)) and
+                            (NotificationsTable.teamId eq tUuid)
                 }
             ) {
                 it[isRead] = true

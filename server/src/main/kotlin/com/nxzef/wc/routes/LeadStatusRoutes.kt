@@ -3,9 +3,8 @@ package com.nxzef.wc.routes
 import com.nxzef.wc.data.repository.LeadStatusRepository
 import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.CreateLeadStatusRequest
+import com.nxzef.wc.shared.model.UserRole
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -18,31 +17,47 @@ fun Route.leadStatusRoutes(repository: LeadStatusRepository) {
     route("/lead-statuses") {
 
         get {
-            call.respond(repository.getAll().map { it.toDto() })
+            val teamId = call.requireTeamId() ?: return@get
+            call.respond(repository.getAll(teamId).map { it.toDto() })
         }
 
         post {
-            val principal = call.principal<JWTPrincipal>()
-            val role = principal?.payload?.getClaim("role")?.asString()
-            if (role != "OWNER") {
+            val teamId = call.requireTeamId() ?: return@post
+            if (call.role() != UserRole.OWNER.name) {
                 return@post call.respond(HttpStatusCode.Forbidden, "Owner only")
             }
             val request = call.receive<CreateLeadStatusRequest>()
-            val status = repository.create(request.name, request.color)
+            val name = request.name.trim()
+            if (name.isEmpty()) {
+                return@post call.respond(HttpStatusCode.BadRequest, "Status name is required")
+            }
+            if (repository.findByName(name, teamId) != null) {
+                return@post call.respond(HttpStatusCode.Conflict, "A status with this name already exists")
+            }
+            val status = repository.create(name, request.color, teamId)
             call.respond(HttpStatusCode.Created, status.toDto())
         }
 
         delete("/{id}") {
-            val principal = call.principal<JWTPrincipal>()
-            val role = principal?.payload?.getClaim("role")?.asString()
-            if (role != "OWNER") {
+            val teamId = call.requireTeamId() ?: return@delete
+            if (call.role() != UserRole.OWNER.name) {
                 return@delete call.respond(HttpStatusCode.Forbidden, "Owner only")
             }
             val id = call.parameters["id"]
                 ?: return@delete call.respond(HttpStatusCode.BadRequest, "Missing id")
-            val deleted = repository.delete(id)
-            if (deleted) call.respond(HttpStatusCode.NoContent)
-            else call.respond(HttpStatusCode.Conflict, "Cannot delete default status")
+            when (repository.delete(id, teamId)) {
+                "ok" -> call.respond(HttpStatusCode.NoContent)
+                "is_default" -> call.respond(
+                    HttpStatusCode.Forbidden,
+                    "The default status cannot be deleted. You can rename it instead."
+                )
+                "only_one" -> call.respond(
+                    HttpStatusCode.Forbidden,
+                    "You must have at least one status."
+                )
+                "not_found" -> call.respond(HttpStatusCode.NotFound, "Status not found")
+                else -> call.respond(HttpStatusCode.InternalServerError, "Delete failed")
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.db
 
+import com.nxzef.wc.config.ServerConfig
 import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.InvoicesTable
 import com.nxzef.wc.data.db.tables.LeadStatusesTable
@@ -10,11 +11,14 @@ import com.nxzef.wc.data.db.tables.ProjectExpensesTable
 import com.nxzef.wc.data.db.tables.QuoteItemsTable
 import com.nxzef.wc.data.db.tables.QuotesTable
 import com.nxzef.wc.data.db.tables.ReceiptsTable
+import com.nxzef.wc.data.db.tables.RefreshTokensTable
 import com.nxzef.wc.data.db.tables.TasksTable
+import com.nxzef.wc.data.db.tables.TeamsTable
 import com.nxzef.wc.data.db.tables.UsersTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object DatabaseFactory {
@@ -22,8 +26,12 @@ object DatabaseFactory {
     private lateinit var currentDbUrl: String
 
     fun init(jdbcUrl: String? = null) {
-        currentDbUrl = jdbcUrl ?: System.getenv("DATABASE_URL")
-            ?: "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
+        val rawUrl = jdbcUrl ?: ServerConfig.databaseUrl
+        // PgBouncer (Supabase port 6543) runs in transaction mode which doesn't support
+        // server-side prepared statements — disable them to avoid "already exists" errors.
+        currentDbUrl = if (rawUrl.startsWith("jdbc:postgresql") && !rawUrl.contains("prepareThreshold")) {
+            rawUrl + (if (rawUrl.contains("?")) "&" else "?") + "prepareThreshold=0"
+        } else rawUrl
 
         val isH2 = currentDbUrl.startsWith("jdbc:h2:")
 
@@ -40,8 +48,10 @@ object DatabaseFactory {
         Database.connect(HikariDataSource(config))
 
         transaction {
-            arrayOf(
+            SchemaUtils.createMissingTablesAndColumns(
                 UsersTable,
+                TeamsTable,
+                RefreshTokensTable,
                 LeadStatusesTable,
                 LeadsTable,
                 QuotesTable,
@@ -54,10 +64,8 @@ object DatabaseFactory {
                 TasksTable,
                 NotificationsTable
             )
-            Unit
         }
 
-        com.nxzef.wc.data.repository.LeadStatusRepository().seedDefault()
-        println("\uD83D\uDFE2 Database connected and tables created")
+        println("🟢 Database connected and tables created")
     }
 }

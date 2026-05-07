@@ -12,15 +12,17 @@ fun Route.receiptRoutes(receiptRepository: ReceiptRepository) {
     route("/receipts") {
 
         get("/invoice/{invoiceId}") {
+            val teamId = call.requireTeamId() ?: return@get
             val invoiceId = call.parameters["invoiceId"]
                 ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing invoiceId")
-            call.respond(receiptRepository.getByInvoiceId(invoiceId).map { it.toDto() })
+            call.respond(receiptRepository.getByInvoiceId(invoiceId, teamId).map { it.toDto() })
         }
 
         get("/booking/{bookingId}") {
+            val teamId = call.requireTeamId() ?: return@get
             val bookingId = call.parameters["bookingId"]
                 ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing bookingId")
-            call.respond(receiptRepository.getByBookingId(bookingId).map { it.toDto() })
+            call.respond(receiptRepository.getByBookingId(bookingId, teamId).map { it.toDto() })
         }
     }
 }

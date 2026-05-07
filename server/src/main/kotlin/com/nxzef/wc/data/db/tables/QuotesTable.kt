@@ -12,6 +12,8 @@ object QuotesTable : Table("quotes") {
     val notes = text("notes").nullable()
     val status = varchar("status", 50).default("DRAFT")
     val fileName = varchar("file_name", 500).nullable()
+    val totalAmount = decimal("total_amount", precision = 12, scale = 2).default(0.toBigDecimal())
+    val teamId = uuid("team_id").references(TeamsTable.id).nullable()
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

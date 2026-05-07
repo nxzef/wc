@@ -6,6 +6,7 @@ import com.nxzef.wc.domain.repository.TaskRepository
 import com.nxzef.wc.domain.usecase.bookings.GetAllBookingsUseCase
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
 import com.nxzef.wc.domain.usecase.tasks.GetMyPendingTasksUseCase
+import com.nxzef.wc.shared.util.ErrorMessages
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import com.nxzef.wc.util.RefreshManager
@@ -90,7 +91,7 @@ class TasksViewModel(
                 }
                 .onFailure { e ->
                     if (!silent) {
-                        _state.update { it.copy(error = e.message ?: "Failed to load tasks", isLoading = false) }
+                        _state.update { it.copy(error = ErrorMessages.forGeneric(e.message), isLoading = false) }
                     }
                 }
 
@@ -104,7 +105,7 @@ class TasksViewModel(
             taskRepository.markDone(taskId, done)
                 .onSuccess { load() }
                 .onFailure { e ->
-                    _uiEvent.send(TasksUiEvent.ShowError(e.message ?: "Failed to update task"))
+                    _uiEvent.send(TasksUiEvent.ShowError(ErrorMessages.forGeneric(e.message)))
                 }
         }
     }

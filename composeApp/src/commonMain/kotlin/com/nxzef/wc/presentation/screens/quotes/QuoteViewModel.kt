@@ -32,6 +32,10 @@ class QuoteViewModel(
         when (action) {
             is QuoteContract.Action.LoadQuotes -> loadQuotes(action.leadId, action.clientName, action.clientEmail)
             is QuoteContract.Action.AttachPdf -> attachPdf(action.path, action.name, action.bytes)
+            is QuoteContract.Action.OnAmountChange ->
+                _state.value = _state.value.copy(
+                    amountInput = action.value.filter { it.isDigit() || it == '.' }
+                )
             is QuoteContract.Action.SendQuote -> sendQuote()
             is QuoteContract.Action.UpdateStatus -> updateStatus(action.id, action.status)
         }
@@ -50,7 +54,7 @@ class QuoteViewModel(
                     _state.value = _state.value.copy(quotes = result.data, isLoading = false)
                 }
                 is AppResult.Failure -> {
-                    _state.value = _state.value.copy(error = result.exception.message, isLoading = false)
+                    _state.value = _state.value.copy(error = "Failed to load quotes.", isLoading = false)
                 }
                 is AppResult.Loading -> {
                     _state.value = _state.value.copy(isLoading = true)
@@ -72,6 +76,13 @@ class QuoteViewModel(
         val current = _state.value
         val bytes = current.selectedFileBytes ?: return
         val fileName = current.selectedFileName ?: return
+        val amount = current.amountInput.toDoubleOrNull()
+        if (amount == null || amount <= 0.0) {
+            viewModelScope.launch {
+                _uiEvent.emit(QuoteContract.UiEvent.ShowError("Enter a valid quote amount"))
+            }
+            return
+        }
         _state.value = current.copy(isSending = true)
         viewModelScope.launch {
             val fileBase64 = Base64.encode(bytes)
@@ -79,7 +90,8 @@ class QuoteViewModel(
                 leadId = current.leadId,
                 clientEmail = current.clientEmail,
                 fileBase64 = fileBase64,
-                fileName = fileName
+                fileName = fileName,
+                totalAmount = amount
             )
             when (val result = sendQuoteUseCase(request)) {
                 is AppResult.Success -> {
@@ -87,7 +99,8 @@ class QuoteViewModel(
                         isSending = false,
                         selectedFilePath = null,
                         selectedFileName = null,
-                        selectedFileBytes = null
+                        selectedFileBytes = null,
+                        amountInput = ""
                     )
                     _uiEvent.emit(QuoteContract.UiEvent.QuoteSent(current.clientEmail))
                     loadQuotes(current.leadId, current.clientName, current.clientEmail)
@@ -95,9 +108,7 @@ class QuoteViewModel(
                 is AppResult.Failure -> {
                     _state.value = _state.value.copy(isSending = false)
                     _uiEvent.emit(
-                        QuoteContract.UiEvent.ShowError(
-                            result.exception.message ?: "Failed to send quote"
-                        )
+                        QuoteContract.UiEvent.ShowError("Failed to send quote. Please try again.")
                     )
                 }
                 is AppResult.Loading -> {}
@@ -117,9 +128,7 @@ class QuoteViewModel(
                 is AppResult.Failure -> {
                     _state.value = _state.value.copy(isLoading = false)
                     _uiEvent.emit(
-                        QuoteContract.UiEvent.ShowError(
-                            result.exception.message ?: "Failed to update status"
-                        )
+                        QuoteContract.UiEvent.ShowError("Failed to update quote status.")
                     )
                 }
                 is AppResult.Loading -> {}

@@ -41,6 +41,7 @@ import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.Task
 import com.nxzef.wc.shared.model.UserRole
 import com.nxzef.wc.util.RefreshManager
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
 
@@ -60,6 +61,7 @@ fun LeadPipelineScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var draggingLeadId by remember { mutableStateOf<String?>(null) }
     val snackbarState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     val isMainScreen = remember { SessionManager.getRole() == UserRole.LEAD_MANAGER }
 
     LaunchedEffect(Unit) {
@@ -104,106 +106,118 @@ fun LeadPipelineScreen(
                 )
             }
         ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    when {
-                        state.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                        state.error != null -> Column(
-                            modifier = Modifier.align(Alignment.Center),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(text = state.error!!, color = MaterialTheme.colorScheme.error)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.onAction(LeadPipelineAction.LoadLeads) }) { Text("Retry") }
-                        }
-                        else -> {
-                            var columnBounds by remember {
-                                mutableStateOf(mapOf<String, androidx.compose.ui.layout.LayoutCoordinates>())
-                            }
-                            var hoveredStatusId by remember { mutableStateOf<String?>(null) }
+            val contentModifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
 
-                            val horizontalPadding = if (isCompact) 16.dp else 24.dp
-                            val columnWidth = if (isCompact) screenWidth * 0.85f else 320.dp
+            when {
+                state.isLoading -> Box(contentModifier, contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                state.error != null -> Column(
+                    modifier = contentModifier,
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = state.error!!, color = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { viewModel.onAction(LeadPipelineAction.LoadLeads) }) { Text("Retry") }
+                }
+                state.statuses.isEmpty() -> Column(
+                    modifier = contentModifier,
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "No statuses yet. Create your first status.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = { viewModel.onAction(LeadPipelineAction.ShowCreateStatusDialog) },
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Add Status")
+                    }
+                }
+                else -> {
+                    var columnBounds by remember {
+                        mutableStateOf(mapOf<String, androidx.compose.ui.layout.LayoutCoordinates>())
+                    }
+                    var hoveredStatusId by remember { mutableStateOf<String?>(null) }
 
-                            Row(
+                    val horizontalPadding = if (isCompact) 16.dp else 24.dp
+                    val columnWidth = if (isCompact) screenWidth * 0.85f else 320.dp
+
+                    Row(
+                        modifier = contentModifier
+                            .horizontalScroll(rememberScrollState())
+                            .padding(vertical = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 16.dp else 24.dp)
+                    ) {
+                        Spacer(modifier = Modifier.width(horizontalPadding / 2))
+
+                        state.statuses.forEach { status ->
+                            val isDraggingFromThisColumn =
+                                state.leads.any { it.id == draggingLeadId && it.customStatus?.id == status.id }
+
+                            KanBanColumn(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .horizontalScroll(rememberScrollState())
-                                    .padding(vertical = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(if (isCompact) 16.dp else 24.dp)
-                            ) {
-                                Spacer(modifier = Modifier.width(horizontalPadding / 2))
-
-                                state.statuses.forEach { status ->
-                                    val isDraggingFromThisColumn =
-                                        state.leads.any { it.id == draggingLeadId && it.customStatus?.id == status.id }
-
-                                    KanBanColumn(
-                                        modifier = Modifier
-                                            .width(columnWidth)
-                                            .zIndex(if (isDraggingFromThisColumn) 100f else 0f)
-                                            .onGloballyPositioned { coords ->
-                                                columnBounds = columnBounds + (status.id to coords)
-                                            },
-                                        status = status,
-                                        leads = state.leads.filter { it.customStatus?.id == status.id },
-                                        taskCounts = state.taskCounts,
-                                        onLeadClick = { lead ->
-                                            viewModel.onAction(LeadPipelineAction.SelectLead(lead))
-                                        },
-                                        isHighlighted = hoveredStatusId == status.id,
-                                        onDragStart = { draggingLeadId = it },
-                                        onDrag = { _, currentPosition ->
-                                            var found = false
-                                            columnBounds.forEach { (sid, coords) ->
-                                                if (coords.isAttached && coords.boundsInWindow().contains(currentPosition)) {
-                                                    hoveredStatusId = sid
-                                                    found = true
-                                                }
-                                            }
-                                            if (!found) hoveredStatusId = null
-                                        },
-                                        onDragEnd = { leadId, finalPosition ->
-                                            draggingLeadId = null
-                                            hoveredStatusId = null
-                                            columnBounds.forEach { (sid, coords) ->
-                                                if (coords.isAttached && coords.boundsInWindow().contains(finalPosition)) {
-                                                    viewModel.onAction(
-                                                        LeadPipelineAction.UpdateStatus(leadId, sid)
-                                                    )
-                                                }
-                                            }
+                                    .width(columnWidth)
+                                    .zIndex(if (isDraggingFromThisColumn) 100f else 0f)
+                                    .onGloballyPositioned { coords ->
+                                        columnBounds = columnBounds + (status.id to coords)
+                                    },
+                                status = status,
+                                leads = state.leads.filter { it.customStatus?.id == status.id },
+                                taskCounts = state.taskCounts,
+                                onLeadClick = { lead ->
+                                    viewModel.onAction(LeadPipelineAction.SelectLead(lead))
+                                },
+                                onDeleteStatus = if (status.isDefault) null else {
+                                    { viewModel.onAction(LeadPipelineAction.RequestDeleteStatus(status)) }
+                                },
+                                isHighlighted = hoveredStatusId == status.id,
+                                onDragStart = { draggingLeadId = it },
+                                onDrag = { _, currentPosition ->
+                                    var found = false
+                                    columnBounds.forEach { (sid, coords) ->
+                                        if (coords.isAttached && coords.boundsInWindow().contains(currentPosition)) {
+                                            hoveredStatusId = sid
+                                            found = true
                                         }
-                                    )
-                                }
-
-                                // "+" add status button
-                                Box(
-                                    modifier = Modifier
-                                        .width(columnWidth)
-                                        .fillMaxHeight()
-                                        .padding(top = 8.dp),
-                                    contentAlignment = Alignment.TopCenter
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { viewModel.onAction(LeadPipelineAction.ShowCreateStatusDialog) },
-                                        shape = MaterialTheme.shapes.medium,
-                                        modifier = Modifier.width(160.dp)
-                                    ) {
-                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(Modifier.width(4.dp))
-                                        Text("Add Status")
+                                    }
+                                    if (!found) hoveredStatusId = null
+                                },
+                                onDragEnd = { leadId, finalPosition ->
+                                    draggingLeadId = null
+                                    hoveredStatusId = null
+                                    columnBounds.forEach { (sid, coords) ->
+                                        if (coords.isAttached && coords.boundsInWindow().contains(finalPosition)) {
+                                            viewModel.onAction(
+                                                LeadPipelineAction.UpdateStatus(leadId, sid)
+                                            )
+                                        }
                                     }
                                 }
-
-                                Spacer(modifier = Modifier.width(horizontalPadding / 2))
-                            }
+                            )
                         }
+
+                        OutlinedButton(
+                            onClick = { viewModel.onAction(LeadPipelineAction.ShowCreateStatusDialog) },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.width(160.dp).padding(top = 8.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Add Status")
+                        }
+
+                        Spacer(modifier = Modifier.width(horizontalPadding / 2))
                     }
                 }
             }
@@ -242,9 +256,35 @@ fun LeadPipelineScreen(
 
     if (state.showCreateStatusDialog) {
         CreateStatusDialog(
+            existingStatuses = state.statuses,
             onDismiss = { viewModel.onAction(LeadPipelineAction.HideCreateStatusDialog) },
             onConfirm = { name, color ->
                 viewModel.onAction(LeadPipelineAction.CreateStatus(name, color))
+            },
+            onValidationError = { msg ->
+                coroutineScope.launch { snackbarState.showSnackbar(msg) }
+            }
+        )
+    }
+
+    state.statusToDelete?.let { target ->
+        AlertDialog(
+            onDismissRequest = { viewModel.onAction(LeadPipelineAction.DismissDeleteStatusDialog) },
+            title = { Text("Delete status?") },
+            text = {
+                Text("Delete status '${target.name}'? Leads in this status will be moved to the default New status.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.onAction(LeadPipelineAction.ConfirmDeleteStatus) }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onAction(LeadPipelineAction.DismissDeleteStatusDialog) }) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -257,6 +297,7 @@ fun KanBanColumn(
     leads: List<Lead>,
     taskCounts: Map<String, Int> = emptyMap(),
     onLeadClick: (Lead) -> Unit,
+    onDeleteStatus: (() -> Unit)? = null,
     isHighlighted: Boolean = false,
     onDragStart: (String) -> Unit,
     onDrag: (String, Offset) -> Unit,
@@ -283,11 +324,7 @@ fun KanBanColumn(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 20.dp, start = 4.dp, end = 4.dp)
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.extraSmall,
-                color = color,
-                modifier = Modifier.size(12.dp)
-            ) {}
+            Box(modifier = Modifier.size(12.dp).background(color, MaterialTheme.shapes.extraSmall))
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = status.name,
@@ -296,16 +333,25 @@ fun KanBanColumn(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.weight(1f))
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            ) {
-                Text(
-                    text = leads.size.toString(),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
+            Text(
+                text = leads.size.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.shapes.small)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+            if (onDeleteStatus != null) {
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(onClick = onDeleteStatus, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete status",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
 
@@ -329,8 +375,10 @@ fun KanBanColumn(
 
 @Composable
 fun CreateStatusDialog(
+    existingStatuses: List<LeadStatus>,
     onDismiss: () -> Unit,
-    onConfirm: (name: String, color: String) -> Unit
+    onConfirm: (name: String, color: String) -> Unit,
+    onValidationError: (String) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf(STATUS_COLORS.first()) }
@@ -369,7 +417,16 @@ fun CreateStatusDialog(
         },
         confirmButton = {
             Button(
-                onClick = { if (name.isNotBlank()) onConfirm(name.trim(), selectedColor) },
+                onClick = {
+                    val trimmed = name.trim()
+                    when {
+                        trimmed.isEmpty() ->
+                            onValidationError("Status name is required")
+                        existingStatuses.any { it.name.equals(trimmed, ignoreCase = true) } ->
+                            onValidationError("A status with this name already exists")
+                        else -> onConfirm(trimmed, selectedColor)
+                    }
+                },
                 enabled = name.isNotBlank(),
                 shape = MaterialTheme.shapes.medium
             ) { Text("Create") }

@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.LeadDto
 import com.nxzef.wc.shared.dto.toDomain
@@ -20,7 +21,7 @@ class LeadService(
     private val client: HttpClient,
     private val sessionManager: SessionManager
 ) {
-    private val baseUrl = ApiClient.BASE_URL
+    private val baseUrl = AppConfig.BASE_URL
 
     suspend fun getAllLeads(): List<Lead> {
         val dtos: List<LeadDto> = client.get("$baseUrl/leads") {
@@ -43,7 +44,7 @@ class LeadService(
     }
 
     suspend fun create(request: CreateLeadRequest): Lead {
-        val dto: LeadDto = client.post("${ApiClient.BASE_URL}/leads") {
+        val dto: LeadDto = client.post("$baseUrl/leads") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)

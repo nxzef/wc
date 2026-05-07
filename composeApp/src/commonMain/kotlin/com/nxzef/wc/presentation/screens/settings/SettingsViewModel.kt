@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.data.remote.ApiService
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.model.User
+import com.nxzef.wc.shared.util.ErrorMessages
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -47,7 +48,7 @@ class SettingsViewModel(
                 apiService.changePassword(current, new)
                 _message.emit("Password updated successfully")
             } catch (e: Exception) {
-                _message.emit("Failed to update password: ${e.message}")
+                _message.emit(ErrorMessages.forGeneric(e.message))
             } finally {
                 isChangingPassword = false
             }

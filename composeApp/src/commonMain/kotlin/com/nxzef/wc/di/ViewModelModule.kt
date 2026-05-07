@@ -1,6 +1,8 @@
 package com.nxzef.wc.di
 
+import com.nxzef.wc.presentation.screens.auth.JoinTeamViewModel
 import com.nxzef.wc.presentation.screens.auth.LoginViewModel
+import com.nxzef.wc.presentation.screens.auth.RegisterViewModel
 import com.nxzef.wc.presentation.screens.bookings.BookingViewModel
 import com.nxzef.wc.presentation.screens.dashboard.DashboardViewModel
 import com.nxzef.wc.presentation.screens.editor.EditorViewModel
@@ -20,6 +22,8 @@ import org.koin.dsl.module
 
 val viewModelModule = module {
     viewModelOf(::LoginViewModel)
+    viewModelOf(::RegisterViewModel)
+    viewModelOf(::JoinTeamViewModel)
     viewModelOf(::DashboardViewModel)
     viewModelOf(::LeadPipelineViewModel)
     viewModelOf(::AddLeadViewModel)

@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.DashboardStatsDto
 import com.nxzef.wc.shared.dto.toDomain
@@ -13,7 +14,7 @@ class DashboardService(
     private val client: HttpClient,
     private val sessionManager: SessionManager
 ) {
-    private val baseUrl = ApiClient.BASE_URL
+    private val baseUrl = AppConfig.BASE_URL
 
     suspend fun getDashboardStats(): DashboardStats {
         val dto: DashboardStatsDto = client.get("$baseUrl/dashboard/stats") {

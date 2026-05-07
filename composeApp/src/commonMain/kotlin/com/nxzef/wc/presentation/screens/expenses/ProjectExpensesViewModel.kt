@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.repository.ProjectExpenseRepository
 import com.nxzef.wc.shared.model.CreateProjectExpenseRequest
+import com.nxzef.wc.shared.util.ErrorMessages
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
@@ -49,7 +50,7 @@ class ProjectExpensesViewModel(
                     _state.update { it.copy(expenses = expenses, isLoading = false) }
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(error = error.message ?: "Failed to load", isLoading = false) }
+                    _state.update { it.copy(error = ErrorMessages.forGeneric(error.message), isLoading = false) }
                 }
         }
     }
@@ -93,7 +94,7 @@ class ProjectExpensesViewModel(
                 }
                 .onFailure { error ->
                     _state.update { it.copy(isSaving = false) }
-                    _uiEvent.send(ProjectExpensesUiEvent.ShowSnackbar(error.message ?: "Failed to add expense"))
+                    _uiEvent.send(ProjectExpensesUiEvent.ShowSnackbar(ErrorMessages.forGeneric(error.message)))
                 }
         }
     }
@@ -105,7 +106,7 @@ class ProjectExpensesViewModel(
                     _state.update { it.copy(expenses = it.expenses.filter { e -> e.id != id }) }
                 }
                 .onFailure { error ->
-                    _uiEvent.send(ProjectExpensesUiEvent.ShowSnackbar(error.message ?: "Failed to delete"))
+                    _uiEvent.send(ProjectExpensesUiEvent.ShowSnackbar(ErrorMessages.forGeneric(error.message)))
                 }
         }
     }

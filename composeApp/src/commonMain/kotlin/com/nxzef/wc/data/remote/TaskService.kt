@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.TaskDto
 import com.nxzef.wc.shared.dto.toDomain
@@ -21,7 +22,7 @@ class TaskService(private val client: HttpClient) {
 
     suspend fun getActiveCountByLeadId(leadId: String): Int {
         val result: Map<String, Int> = client.get(
-            "${ApiClient.BASE_URL}/tasks/count/lead/$leadId"
+            "${AppConfig.BASE_URL}/tasks/count/lead/$leadId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -30,7 +31,7 @@ class TaskService(private val client: HttpClient) {
 
     suspend fun getMyByLeadId(leadId: String): List<Task> {
         val dtos: List<TaskDto> = client.get(
-            "${ApiClient.BASE_URL}/tasks/my/lead/$leadId"
+            "${AppConfig.BASE_URL}/tasks/my/lead/$leadId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -39,7 +40,7 @@ class TaskService(private val client: HttpClient) {
 
     suspend fun getByLeadId(leadId: String): List<Task> {
         val dtos: List<TaskDto> = client.get(
-            "${ApiClient.BASE_URL}/tasks/lead/$leadId"
+            "${AppConfig.BASE_URL}/tasks/lead/$leadId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -48,7 +49,7 @@ class TaskService(private val client: HttpClient) {
 
     suspend fun getByBookingId(bookingId: String): List<Task> {
         val dtos: List<TaskDto> = client.get(
-            "${ApiClient.BASE_URL}/tasks/booking/$bookingId"
+            "${AppConfig.BASE_URL}/tasks/booking/$bookingId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -57,7 +58,7 @@ class TaskService(private val client: HttpClient) {
 
     suspend fun getMyByBookingId(bookingId: String): List<Task> {
         val dtos: List<TaskDto> = client.get(
-            "${ApiClient.BASE_URL}/tasks/my/booking/$bookingId"
+            "${AppConfig.BASE_URL}/tasks/my/booking/$bookingId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -66,7 +67,7 @@ class TaskService(private val client: HttpClient) {
 
     suspend fun getMyPending(): List<Task> {
         val dtos: List<TaskDto> = client.get(
-            "${ApiClient.BASE_URL}/tasks/my/pending"
+            "${AppConfig.BASE_URL}/tasks/my/pending"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -75,7 +76,7 @@ class TaskService(private val client: HttpClient) {
 
     suspend fun getByAssignedUser(userId: String): List<Task> {
         val dtos: List<TaskDto> = client.get(
-            "${ApiClient.BASE_URL}/tasks/assigned/$userId"
+            "${AppConfig.BASE_URL}/tasks/assigned/$userId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -83,7 +84,7 @@ class TaskService(private val client: HttpClient) {
     }
 
     suspend fun create(request: CreateTaskRequest): Task {
-        val dto: TaskDto = client.post("${ApiClient.BASE_URL}/tasks") {
+        val dto: TaskDto = client.post("${AppConfig.BASE_URL}/tasks") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)
@@ -93,7 +94,7 @@ class TaskService(private val client: HttpClient) {
 
     suspend fun markDone(id: String, done: Boolean): Task {
         val dto: TaskDto = client.put(
-            "${ApiClient.BASE_URL}/tasks/$id/done"
+            "${AppConfig.BASE_URL}/tasks/$id/done"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
@@ -103,7 +104,7 @@ class TaskService(private val client: HttpClient) {
     }
 
     suspend fun delete(id: String) {
-        client.delete("${ApiClient.BASE_URL}/tasks/$id") {
+        client.delete("${AppConfig.BASE_URL}/tasks/$id") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }
     }

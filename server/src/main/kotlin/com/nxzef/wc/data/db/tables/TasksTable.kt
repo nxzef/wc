@@ -23,6 +23,7 @@ object TasksTable : Table("tasks") {
         .references(UsersTable.id)
     val createdAt = timestamp("created_at")
     val stageName = varchar("stage_name", 100).nullable()
+    val teamId = uuid("team_id").references(TeamsTable.id).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

@@ -11,6 +11,7 @@ object NotificationsTable : Table("notifications") {
     val isRead = bool("is_read").default(false)
     val bookingId = uuid("booking_id").references(BookingsTable.id).nullable()
     val taskId = uuid("task_id").references(TasksTable.id).nullable()
+    val teamId = uuid("team_id").references(TeamsTable.id).nullable()
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

@@ -2,13 +2,14 @@ package com.nxzef.wc.plugins
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.nxzef.wc.config.ServerConfig
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 
-val jwtSecret = System.getenv("JWT_SECRET") ?: "wc-dev-secret-change-in-production"
+val jwtSecret get() = ServerConfig.jwtSecret
 const val jwtIssuer = "wc-app"
 const val jwtAudience = "wc-users"
 
@@ -31,8 +32,8 @@ fun Application.configureSecurity() {
     }
 }
 
-fun generateToken(userId: String, email: String, role: String): String {
-    return JWT.create()
+fun generateToken(userId: String, email: String, role: String, teamId: String?): String {
+    val builder = JWT.create()
         .withIssuer(jwtIssuer)
         .withAudience(jwtAudience)
         .withClaim("userId", userId)
@@ -41,5 +42,12 @@ fun generateToken(userId: String, email: String, role: String): String {
         .withExpiresAt(
             java.util.Date(System.currentTimeMillis() + 86_400_000L)
         )
-        .sign(Algorithm.HMAC256(jwtSecret))
+    if (teamId != null) builder.withClaim("teamId", teamId)
+    return builder.sign(Algorithm.HMAC256(jwtSecret))
+}
+
+fun generateRefreshToken(): String {
+    val bytes = ByteArray(64)
+    java.security.SecureRandom().nextBytes(bytes)
+    return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
 }

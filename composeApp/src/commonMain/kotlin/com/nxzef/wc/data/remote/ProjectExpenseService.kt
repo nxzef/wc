@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.ProjectExpenseDto
 import com.nxzef.wc.shared.dto.toDomain
@@ -19,7 +20,7 @@ class ProjectExpenseService(private val client: HttpClient) {
 
     suspend fun getByBookingId(bookingId: String): List<ProjectExpense> {
         val dtos: List<ProjectExpenseDto> = client.get(
-            "${ApiClient.BASE_URL}/expenses/booking/$bookingId"
+            "${AppConfig.BASE_URL}/expenses/booking/$bookingId"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }.body()
@@ -27,7 +28,7 @@ class ProjectExpenseService(private val client: HttpClient) {
     }
 
     suspend fun create(request: CreateProjectExpenseRequest): ProjectExpense {
-        val dto: ProjectExpenseDto = client.post("${ApiClient.BASE_URL}/expenses") {
+        val dto: ProjectExpenseDto = client.post("${AppConfig.BASE_URL}/expenses") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)
@@ -36,7 +37,7 @@ class ProjectExpenseService(private val client: HttpClient) {
     }
 
     suspend fun delete(id: String) {
-        client.delete("${ApiClient.BASE_URL}/expenses/$id") {
+        client.delete("${AppConfig.BASE_URL}/expenses/$id") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
         }
     }

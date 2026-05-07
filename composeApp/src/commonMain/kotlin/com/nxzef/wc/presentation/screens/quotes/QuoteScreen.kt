@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Send
@@ -14,12 +15,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.nxzef.wc.platform.pickPdfFile
 import com.nxzef.wc.presentation.components.QuoteStatusBadge
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.shared.model.Quote
 import com.nxzef.wc.shared.model.QuoteStatus
+import com.nxzef.wc.shared.util.CurrencyUtils
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -142,9 +145,21 @@ fun QuoteScreen(
                                 }
                             }
 
+                            OutlinedTextField(
+                                value = state.amountInput,
+                                onValueChange = { viewModel.onAction(QuoteContract.Action.OnAmountChange(it)) },
+                                label = { Text("Quote Amount (₹)") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium
+                            )
+
+                            val amountValid = state.amountInput.toDoubleOrNull()?.let { it > 0.0 } == true
+
                             Button(
                                 onClick = { viewModel.onAction(QuoteContract.Action.SendQuote) },
-                                enabled = state.selectedFileName != null && !state.isSending,
+                                enabled = state.selectedFileName != null && amountValid && !state.isSending,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = MaterialTheme.shapes.medium
                             ) {
@@ -227,7 +242,7 @@ fun QuoteHistoryCard(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = quote.createdAt.take(10),
+                        text = "${CurrencyUtils.formatINR(quote.totalAmount)} · ${quote.createdAt.take(10)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

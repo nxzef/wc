@@ -201,6 +201,44 @@ fun TeamScreen(
         )
     }
 
+    // Invite-code dialog (shown after a member is created)
+    state.showInviteDialog?.let { invited ->
+        AlertDialog(
+            onDismissRequest = { viewModel.onAction(TeamAction.DismissInviteDialog) },
+            title = { Text("Invite Sent") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "An invitation email was sent to ${invited.email}.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Share this code manually if needed:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text("Email: ${invited.email}", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = "Team invite code: ${invited.inviteCode}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "${invited.name} should open the app, tap \"Join Existing Team\", enter this code and their email, and set their password.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onAction(TeamAction.DismissInviteDialog) }) {
+                    Text("Done")
+                }
+            }
+        )
+    }
+
     // Delete confirmation dialog
     state.showDeleteDialog?.let { user ->
         AlertDialog(
@@ -393,23 +431,6 @@ fun AddMemberDialog(
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = {
                         Icon(Icons.Default.Email, null)
-                    }
-                )
-
-                OutlinedTextField(
-                    value = state.newPassword,
-                    onValueChange = {
-                        onAction(TeamAction.OnPasswordChange(it))
-                    },
-                    label = { Text("Password *") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password
-                    ),
-                    leadingIcon = {
-                        Icon(Icons.Default.Lock, null)
                     }
                 )
 

@@ -15,7 +15,8 @@ data class LeadPipelineState(
     val isTasksLoading: Boolean = false,
     val showAddTaskDialog: Boolean = false,
     val newTaskTitle: String = "",
-    val showCreateStatusDialog: Boolean = false
+    val showCreateStatusDialog: Boolean = false,
+    val statusToDelete: LeadStatus? = null
 )
 
 sealed interface LeadPipelineAction {
@@ -39,6 +40,10 @@ sealed interface LeadPipelineAction {
     data object ShowCreateStatusDialog : LeadPipelineAction
     data object HideCreateStatusDialog : LeadPipelineAction
     data class CreateStatus(val name: String, val color: String) : LeadPipelineAction
+
+    data class RequestDeleteStatus(val status: LeadStatus) : LeadPipelineAction
+    data object ConfirmDeleteStatus : LeadPipelineAction
+    data object DismissDeleteStatusDialog : LeadPipelineAction
 }
 
 sealed interface LeadPipelineUiEvent {

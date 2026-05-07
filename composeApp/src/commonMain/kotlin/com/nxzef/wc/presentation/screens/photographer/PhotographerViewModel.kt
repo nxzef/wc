@@ -8,6 +8,7 @@ import com.nxzef.wc.domain.usecase.bookings.GetMyShootsUseCase
 import com.nxzef.wc.domain.usecase.bookings.UpdateBookingUseCase
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.UpdateBookingRequest
+import com.nxzef.wc.shared.util.ErrorMessages
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import kotlinx.coroutines.channels.Channel
@@ -76,7 +77,7 @@ class PhotographerViewModel(
                 .onFailure { e ->
                     _state.update {
                         it.copy(
-                            error = e.message ?: "Failed to load",
+                            error = ErrorMessages.forGeneric(e.message),
                             isLoading = false
                         )
                     }
@@ -107,7 +108,7 @@ class PhotographerViewModel(
             }.onFailure { e ->
                 _uiEvent.send(
                     PhotographerUiEvent.ShowSnackbar(
-                        e.message ?: "Failed to update"
+                        ErrorMessages.forGeneric(e.message)
                     )
                 )
             }

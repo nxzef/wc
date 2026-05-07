@@ -23,10 +23,12 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.util.UUID
 
 class DashboardRepository {
 
-    fun getStats(): DashboardStats {
+    fun getStats(teamId: String): DashboardStats {
+        val tUuid = UUID.fromString(teamId)
         return transaction {
 
             val now = LocalDate.now()
@@ -38,17 +40,22 @@ class DashboardRepository {
             val totalLeadsThisMonth = LeadsTable
                 .selectAll()
                 .where {
-                    LeadsTable.createdAt greaterEq monthStart and
+                    (LeadsTable.teamId eq tUuid) and
+                            (LeadsTable.createdAt greaterEq monthStart) and
                             (LeadsTable.createdAt lessEq monthEnd)
                 }
                 .count().toInt()
 
-            val openLeads = LeadsTable.selectAll().count().toInt()
+            val openLeads = LeadsTable
+                .selectAll()
+                .where { LeadsTable.teamId eq tUuid }
+                .count().toInt()
 
             val totalBookingsThisMonth = BookingsTable
                 .selectAll()
                 .where {
-                    BookingsTable.createdAt greaterEq monthStart and
+                    (BookingsTable.teamId eq tUuid) and
+                            (BookingsTable.createdAt greaterEq monthStart) and
                             (BookingsTable.createdAt lessEq monthEnd)
                 }
                 .count().toInt()
@@ -56,15 +63,19 @@ class DashboardRepository {
             val pendingDeliveries = BookingsTable
                 .selectAll()
                 .where {
-                    BookingsTable.status inList listOf(
-                        BookingStatus.BOOKED.name,
-                        BookingStatus.SHOOT_DONE.name,
-                        BookingStatus.EDITING.name
-                    )
+                    (BookingsTable.teamId eq tUuid) and
+                            (BookingsTable.status inList listOf(
+                                BookingStatus.BOOKED.name,
+                                BookingStatus.SHOOT_DONE.name,
+                                BookingStatus.EDITING.name
+                            ))
                 }
                 .count().toInt()
 
-            val invoicesThisMonth = InvoicesTable.selectAll().toList()
+            val invoicesThisMonth = InvoicesTable
+                .selectAll()
+                .where { InvoicesTable.teamId eq tUuid }
+                .toList()
             val totalRevenueThisMonth = invoicesThisMonth
                 .filter { row ->
                     val createdAt = row[InvoicesTable.createdAt]
@@ -74,7 +85,7 @@ class DashboardRepository {
 
             val pendingPayments = InvoicesTable
                 .selectAll()
-                .where { InvoicesTable.finalPaid eq false }
+                .where { (InvoicesTable.teamId eq tUuid) and (InvoicesTable.finalPaid eq false) }
                 .toList()
                 .sumOf { row ->
                     val total = row[InvoicesTable.totalAmount].toDouble()
@@ -85,11 +96,13 @@ class DashboardRepository {
 
             val leadsBySource = LeadsTable
                 .selectAll()
+                .where { LeadsTable.teamId eq tUuid }
                 .groupBy { it[LeadsTable.leadSource] }
                 .mapValues { it.value.size }
 
             val recentLeads = LeadsTable
                 .selectAll()
+                .where { LeadsTable.teamId eq tUuid }
                 .orderBy(LeadsTable.createdAt, SortOrder.DESC)
                 .limit(5)
                 .map { row ->
@@ -131,7 +144,8 @@ class DashboardRepository {
             val upcomingBookings = BookingsTable
                 .selectAll()
                 .where {
-                    BookingsTable.eventDate greaterEq now and
+                    (BookingsTable.teamId eq tUuid) and
+                            (BookingsTable.eventDate greaterEq now) and
                             (BookingsTable.status neq BookingStatus.CLOSED.name)
                 }
                 .orderBy(BookingsTable.eventDate, SortOrder.ASC)
@@ -152,19 +166,21 @@ class DashboardRepository {
                     )
                 }
 
-            val totalInvoices = InvoicesTable.selectAll().count()
-            val totalRevenue = InvoicesTable.selectAll()
-                .sumOf { it[InvoicesTable.totalAmount].toDouble() }
+            val teamInvoices = InvoicesTable.selectAll().where { InvoicesTable.teamId eq tUuid }.toList()
+            val totalInvoices = teamInvoices.size.toLong()
+            val totalRevenue = teamInvoices.sumOf { it[InvoicesTable.totalAmount].toDouble() }
             val avgOrderValue = if (totalInvoices > 0) totalRevenue / totalInvoices else 0.0
             val totalCollected = ReceiptsTable.selectAll()
+                .where { ReceiptsTable.teamId eq tUuid }
                 .sumOf { it[ReceiptsTable.amount].toDouble() }
             val totalPending = totalRevenue - totalCollected
 
-            // Per-booking P&L
-            val allBookings = BookingsTable.selectAll().toList()
-            val invoiceByBooking = InvoicesTable.selectAll()
+            val allBookings = BookingsTable.selectAll().where { BookingsTable.teamId eq tUuid }.toList()
+            val invoiceByBooking = teamInvoices
                 .associate { it[InvoicesTable.bookingId].toString() to it[InvoicesTable.totalAmount].toDouble() }
-            val expenseSumByBooking = ProjectExpensesTable.selectAll()
+            val expenseSumByBooking = ProjectExpensesTable
+                .selectAll()
+                .where { ProjectExpensesTable.teamId eq tUuid }
                 .groupBy { it[ProjectExpensesTable.bookingId].toString() }
                 .mapValues { (_, rows) -> rows.sumOf { it[ProjectExpensesTable.actualAmount].toDouble() } }
 
@@ -185,7 +201,6 @@ class DashboardRepository {
                 )
             }
 
-            // Monthly goal tracking
             val currentMonth = now.monthValue
             val currentYear  = now.year
             val currentMonthGoal = MonthlyGoalsTable.selectAll()
@@ -204,7 +219,7 @@ class DashboardRepository {
             val currentMonthActualProfit = projectPnLList
                 .filter {
                     try {
-                        val date = java.time.LocalDate.parse(it.eventDate)
+                        val date = LocalDate.parse(it.eventDate)
                         date.monthValue == currentMonth && date.year == currentYear
                     } catch (e: Exception) { false }
                 }

@@ -1,5 +1,6 @@
 package com.nxzef.wc.data.remote
 
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.MonthlyGoalDto
 import com.nxzef.wc.shared.dto.toDomain
@@ -16,7 +17,7 @@ import io.ktor.http.contentType
 class MonthlyGoalService(private val client: HttpClient) {
 
     suspend fun upsert(request: UpsertMonthlyGoalRequest): MonthlyGoal {
-        val dto: MonthlyGoalDto = client.post("${ApiClient.BASE_URL}/goals") {
+        val dto: MonthlyGoalDto = client.post("${AppConfig.BASE_URL}/goals") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)

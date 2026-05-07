@@ -3,6 +3,7 @@ package com.nxzef.wc.presentation.screens.invoices
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.repository.BookingRepository
+import com.nxzef.wc.domain.repository.LeadRepository
 import com.nxzef.wc.domain.repository.ReceiptRepository
 import com.nxzef.wc.domain.usecase.invoices.GetAllInvoicesUseCase
 import com.nxzef.wc.domain.usecase.invoices.UpdatePaymentUseCase
@@ -23,6 +24,7 @@ class InvoiceViewModel(
     private val getAllInvoicesUseCase: GetAllInvoicesUseCase,
     private val updatePaymentUseCase: UpdatePaymentUseCase,
     private val bookingRepository: BookingRepository,
+    private val leadRepository: LeadRepository,
     private val receiptRepository: ReceiptRepository
 ) : ViewModel() {
 
@@ -64,6 +66,7 @@ class InvoiceViewModel(
             val oldCount = previousInvoiceCount
             val invoicesResult = getAllInvoicesUseCase()
             val bookingsResult = bookingRepository.getAll()
+            val leadsResult = leadRepository.getAll()
             invoicesResult.onSuccess { invoices ->
                 val newCount = invoices.size
                 if (hasLoadedOnce && silent && newCount != oldCount) {
@@ -72,9 +75,16 @@ class InvoiceViewModel(
                 previousInvoiceCount = newCount
                 hasLoadedOnce = true
                 _state.update { it.copy(invoices = invoices) }
+            }.onFailure {
+                if (!silent) {
+                    _uiEvent.send(InvoiceUiEvent.ShowSnackbar("Failed to load invoices."))
+                }
             }
             bookingsResult.onSuccess { bookings ->
                 _state.update { it.copy(bookings = bookings) }
+            }
+            leadsResult.onSuccess { leads ->
+                _state.update { it.copy(leads = leads) }
             }
             if (!silent) _state.update { it.copy(isLoading = false) }
         }
@@ -129,8 +139,8 @@ class InvoiceViewModel(
                     _uiEvent.send(InvoiceUiEvent.PaymentUpdated)
                     load()
                     _state.value.selectedInvoice?.let { loadReceipts(invoiceId) }
-                }.onFailure { e ->
-                    _uiEvent.send(InvoiceUiEvent.ShowSnackbar(e.message ?: "Failed to update payment"))
+                }.onFailure {
+                    _uiEvent.send(InvoiceUiEvent.ShowSnackbar("Invalid amount entered."))
                 }
         }
     }
