@@ -47,7 +47,6 @@ class LeadPipelineViewModel(
     init {
         loadStatuses()
         loadLeads()
-        startAutoRefresh()
         collectRefreshTrigger()
     }
 
@@ -78,15 +77,6 @@ class LeadPipelineViewModel(
         }
     }
 
-    private fun startAutoRefresh() {
-        viewModelScope.launch {
-            while (true) {
-                delay(30_000)
-                loadLeads(silent = true)
-            }
-        }
-    }
-
     private fun collectRefreshTrigger() {
         viewModelScope.launch {
             RefreshManager.refreshTrigger.collect {
@@ -111,6 +101,7 @@ class LeadPipelineViewModel(
                         statuses = it.statuses + newStatus,
                         showCreateStatusDialog = false
                     ) }
+                    RefreshManager.triggerRefresh()
                 }
                 .onFailure { error ->
                     val raw = error.message.orEmpty()
@@ -132,6 +123,7 @@ class LeadPipelineViewModel(
                 .onSuccess {
                     loadStatuses()
                     loadLeads(silent = true)
+                    RefreshManager.triggerRefresh()
                     _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Deleted '${target.name}'"))
                 }
                 .onFailure { error ->
@@ -151,6 +143,7 @@ class LeadPipelineViewModel(
                 CreateTaskRequest(leadId = leadId, title = s.newTaskTitle, stageName = stageName)
             ).onSuccess {
                 _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
+                RefreshManager.triggerRefresh()
                 loadTasks(leadId)
                 refreshTaskCount(leadId)
             }
@@ -161,6 +154,7 @@ class LeadPipelineViewModel(
         viewModelScope.launch {
             deleteTaskUseCase(taskId).onSuccess {
                 val leadId = _state.value.selectedLead?.id ?: return@onSuccess
+                RefreshManager.triggerRefresh()
                 loadTasks(leadId)
                 refreshTaskCount(leadId)
             }
@@ -175,6 +169,7 @@ class LeadPipelineViewModel(
                         s.copy(tasks = s.tasks.map { if (it.id == taskId) updatedTask else it })
                     }
                     val leadId = _state.value.selectedLead?.id ?: return@onSuccess
+                    RefreshManager.triggerRefresh()
                     refreshTaskCount(leadId)
                 }
         }
@@ -191,9 +186,13 @@ class LeadPipelineViewModel(
 
     private fun loadLeads(silent: Boolean = false) {
         viewModelScope.launch {
+            val oldLeads = _state.value.leads
             if (!silent) _state.update { it.copy(isLoading = true, error = null) }
             getAllLeadsUseCase()
                 .onSuccess { leads ->
+                    if (silent && leads.size != oldLeads.size) {
+                        _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Updated"))
+                    }
                     _state.update { it.copy(leads = leads, isLoading = false) }
                     loadTaskCounts(leads)
                 }
@@ -229,7 +228,10 @@ class LeadPipelineViewModel(
     private fun updateStatus(leadId: String, customStatusId: String, notes: String?) {
         viewModelScope.launch {
             updateLeadStatusUseCase(leadId, customStatusId, notes)
-                .onSuccess { loadLeads() }
+                .onSuccess {
+                    RefreshManager.triggerRefresh()
+                    loadLeads()
+                }
                 .onFailure { error ->
                     _state.update { it.copy(error = ErrorMessages.forGeneric(error.message)) }
                 }

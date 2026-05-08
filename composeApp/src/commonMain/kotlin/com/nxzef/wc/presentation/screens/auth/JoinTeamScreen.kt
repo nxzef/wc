@@ -86,7 +86,7 @@ fun JoinTeamScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Enter the 6-character invite code from your team owner",
+                        text = "First time signing in? Enter your invite code below to set up your account.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -167,7 +167,7 @@ fun JoinTeamScreen(
                     }
 
                     TextButton(onClick = onBack) {
-                        Text("Back")
+                        Text("Already set up? Sign In \u2192")
                     }
                 }
             }

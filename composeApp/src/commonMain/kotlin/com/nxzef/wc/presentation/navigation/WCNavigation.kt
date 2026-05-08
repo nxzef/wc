@@ -31,6 +31,7 @@ import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.domain.repository.AuthRepository
 import kotlinx.coroutines.launch
 import com.nxzef.wc.presentation.components.WCPermanentSidebar
+import com.nxzef.wc.presentation.screens.auth.ForgotPasswordScreen
 import com.nxzef.wc.presentation.screens.auth.JoinTeamScreen
 import com.nxzef.wc.presentation.screens.auth.LoginScreen
 import com.nxzef.wc.presentation.screens.auth.RegisterScreen
@@ -61,7 +62,7 @@ private fun roleHome(role: UserRole): Route = when (role) {
 }
 
 private fun isAuthRoute(route: Route): Boolean = when (route) {
-    Route.Welcome, Route.Register, Route.JoinTeam, Route.Login -> true
+    Route.Welcome, Route.Register, Route.JoinTeam, Route.Login, Route.ForgotPassword -> true
     else -> false
 }
 
@@ -92,7 +93,8 @@ fun WCNavigation(isFreshInstall: Boolean = false) {
             if (dest != null && !dest.hasRoute<Route.Welcome>() &&
                 !dest.hasRoute<Route.Login>() &&
                 !dest.hasRoute<Route.Register>() &&
-                !dest.hasRoute<Route.JoinTeam>()
+                !dest.hasRoute<Route.JoinTeam>() &&
+                !dest.hasRoute<Route.ForgotPassword>()
             ) {
                 tokenStorage.clearSession()
                 navController.navigate(Route.Login) {
@@ -217,7 +219,19 @@ fun AppNavHost(
             LoginScreen(
                 onLoginSuccess = onAuthSuccess,
                 onCreateCompany = { navController.navigate(Route.Register) },
-                onJoinTeam = { navController.navigate(Route.JoinTeam) }
+                onJoinTeam = { navController.navigate(Route.JoinTeam) },
+                onForgotPassword = { navController.navigate(Route.ForgotPassword) }
+            )
+        }
+
+        composable<Route.ForgotPassword> {
+            ForgotPasswordScreen(
+                onBack = { navController.popBackStack() },
+                onResetSuccess = {
+                    navController.navigate(Route.Login) {
+                        popUpTo(Route.Login) { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -317,6 +331,7 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
         destination.hasRoute<Route.Register>() -> Route.Register
         destination.hasRoute<Route.JoinTeam>() -> Route.JoinTeam
         destination.hasRoute<Route.Login>() -> Route.Login
+        destination.hasRoute<Route.ForgotPassword>() -> Route.ForgotPassword
         destination.hasRoute<Route.OwnerDashboard>() -> Route.OwnerDashboard
         destination.hasRoute<Route.LeadPipeline>() -> Route.LeadPipeline
         destination.hasRoute<Route.AddLead>() -> Route.AddLead

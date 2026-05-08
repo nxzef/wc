@@ -38,7 +38,6 @@ class TasksViewModel(
 
     init {
         load()
-        startAutoRefresh()
         collectRefreshTrigger()
     }
 
@@ -46,15 +45,6 @@ class TasksViewModel(
         when (action) {
             TasksAction.Load -> load(silent = false)
             is TasksAction.MarkDone -> markTaskDone(action.taskId, action.done)
-        }
-    }
-
-    private fun startAutoRefresh() {
-        viewModelScope.launch {
-            while (true) {
-                delay(30_000)
-                load(silent = true)
-            }
         }
     }
 

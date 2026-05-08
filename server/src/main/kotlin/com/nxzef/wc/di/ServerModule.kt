@@ -24,7 +24,8 @@ val serverModule = module {
 
     single { RefreshTokenRepository() }
     single { TeamRepository() }
-    single { AuthService(get(), get(), get(), get()) }
+    single { PasswordResetRepository() }
+    single { AuthService(get(), get(), get(), get(), get(), get()) }
     single { NotificationService(get(), get()) }
     single { EmailService() }
 }

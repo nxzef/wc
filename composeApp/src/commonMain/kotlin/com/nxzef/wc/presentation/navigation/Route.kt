@@ -13,6 +13,8 @@ sealed interface Route {
     @Serializable
     data object Login : Route
     @Serializable
+    data object ForgotPassword : Route
+    @Serializable
     data object OwnerDashboard : Route
     @Serializable
     data object LeadPipeline : Route

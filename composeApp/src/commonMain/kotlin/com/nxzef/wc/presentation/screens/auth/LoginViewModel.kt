@@ -55,7 +55,7 @@ class LoginViewModel(
                 is AppResult.Failure ->
                     _uiEvent.send(
                         LoginUiEvent.ShowSnackbar(
-                            ErrorMessages.forLogin(result.exception.message)
+                            ErrorMessages.extractServerMessage(result.exception.message)
                         )
                     )
 

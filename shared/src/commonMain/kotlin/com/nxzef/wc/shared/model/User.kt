@@ -63,3 +63,13 @@ data class JoinTeamRequest(
     val newPassword: String,
     val confirmPassword: String
 )
+
+@Serializable
+data class ForgotPasswordRequest(val email: String)
+
+@Serializable
+data class ResetPasswordRequest(
+    val email: String,
+    val code: String,
+    val newPassword: String
+)

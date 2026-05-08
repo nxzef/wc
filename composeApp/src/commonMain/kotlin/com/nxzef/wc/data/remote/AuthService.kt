@@ -3,15 +3,18 @@ package com.nxzef.wc.data.remote
 import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.shared.dto.LoginResponseDto
 import com.nxzef.wc.shared.dto.toDomain
+import com.nxzef.wc.shared.model.ForgotPasswordRequest
 import com.nxzef.wc.shared.model.JoinTeamRequest
 import com.nxzef.wc.shared.model.LoginRequest
 import com.nxzef.wc.shared.model.LoginResponse
 import com.nxzef.wc.shared.model.RefreshRequest
 import com.nxzef.wc.shared.model.RegisterRequest
+import com.nxzef.wc.shared.model.ResetPasswordRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
@@ -62,6 +65,20 @@ class AuthService(private val client: HttpClient) {
             }
         } catch (_: Exception) {
             // Best-effort — local session is cleared regardless
+        }
+    }
+
+    suspend fun forgotPassword(email: String): HttpResponse {
+        return client.post("$baseUrl/auth/forgot-password") {
+            contentType(ContentType.Application.Json)
+            setBody(ForgotPasswordRequest(email))
+        }
+    }
+
+    suspend fun resetPassword(request: ResetPasswordRequest): HttpResponse {
+        return client.post("$baseUrl/auth/reset-password") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
         }
     }
 }

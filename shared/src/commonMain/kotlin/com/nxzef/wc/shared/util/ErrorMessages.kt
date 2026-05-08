@@ -5,9 +5,11 @@ object ErrorMessages {
     fun forLogin(raw: String?): String {
         val msg = raw.orEmpty()
         return when {
-            msg.containsAny("401", "Unauthorized", "Invalid") -> "Invalid email or password"
+            msg.containsAny("invite code") -> "Please use Join Team with your invite code."
+            msg.containsAny("already joined") -> "Already joined. Please sign in with your email and password."
+            msg.containsAny("Invalid", "401") -> "Invalid email or password."
+            msg.containsAny("not found", "404") -> "Account not found."
             msg.containsAny("429", "Too many") -> "Too many attempts. Please wait a moment."
-            msg.containsAny("404") -> "Account not found"
             else -> "Login failed. Please try again."
         }
     }
@@ -25,6 +27,14 @@ object ErrorMessages {
             msg.containsAny("500", "Internal Server", "502", "503", "504") -> "Server error. Please try again."
             else -> "Something went wrong. Please try again."
         }
+    }
+
+    fun extractServerMessage(raw: String?): String {
+        if (raw == null) return "Something went wrong."
+        // Try to find "message":"..." pattern
+        val match = Regex(""""message"\s*:\s*"([^"]+)"""")
+            .find(raw)
+        return match?.groupValues?.get(1) ?: raw.take(100)
     }
 
     private fun String.containsAny(vararg needles: String): Boolean =

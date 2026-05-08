@@ -39,7 +39,6 @@ class MarketingViewModel(
         val currentUser = sessionManager.getUser()
         _state.update { it.copy(userName = currentUser?.name ?: "User") }
         load()
-        startAutoRefresh()
         collectRefreshTrigger()
     }
 
@@ -47,15 +46,6 @@ class MarketingViewModel(
         when (action) {
             MarketingAction.Load -> load(silent = false)
             is MarketingAction.FilterBySource -> _state.update { it.copy(sourceFilter = action.source) }
-        }
-    }
-
-    private fun startAutoRefresh() {
-        viewModelScope.launch {
-            while (true) {
-                delay(30_000)
-                load(silent = true)
-            }
         }
     }
 

@@ -1,6 +1,7 @@
 package com.nxzef.wc.domain.service
 
 import com.nxzef.wc.data.repository.LeadStatusRepository
+import com.nxzef.wc.data.repository.PasswordResetRepository
 import com.nxzef.wc.data.repository.RefreshTokenRepository
 import com.nxzef.wc.data.repository.TeamRepository
 import com.nxzef.wc.data.repository.UserRepository
@@ -20,12 +21,14 @@ class AuthService(
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val teamRepository: TeamRepository,
-    private val leadStatusRepository: LeadStatusRepository
+    private val leadStatusRepository: LeadStatusRepository,
+    private val passwordResetRepository: PasswordResetRepository,
+    private val emailService: EmailService
 ) {
 
     fun login(request: LoginRequest): Result<LoginResponse> {
         val result = userRepository.findByEmail(request.email)
-            ?: return Result.failure(Exception("Invalid credentials"))
+            ?: return Result.failure(Exception("User not found"))
 
         val (user, hash) = result
 
@@ -34,7 +37,7 @@ class AuthService(
         }
 
         if (!BCrypt.checkpw(request.password, hash)) {
-            return Result.failure(Exception("Invalid credentials"))
+            return Result.failure(Exception("Wrong password"))
         }
 
         if (!user.isActive) {
@@ -52,6 +55,9 @@ class AuthService(
     fun register(request: RegisterRequest): Result<LoginResponse> {
         if (request.email.isBlank() || request.password.isBlank() || request.name.isBlank() || request.teamName.isBlank()) {
             return Result.failure(Exception("All fields are required"))
+        }
+        if (request.password.length < 6) {
+            return Result.failure(Exception("Password too short"))
         }
         if (userRepository.emailExists(request.email)) {
             return Result.failure(Exception("Email already registered"))
@@ -84,6 +90,9 @@ class AuthService(
             request.confirmPassword.isBlank()
         ) {
             return Result.failure(Exception("All fields are required"))
+        }
+        if (request.newPassword.length < 6) {
+            return Result.failure(Exception("Password too short"))
         }
         if (request.newPassword != request.confirmPassword) {
             return Result.failure(Exception("Passwords do not match"))
@@ -141,5 +150,58 @@ class AuthService(
 
     fun logout(refreshToken: String) {
         refreshTokenRepository.delete(refreshToken)
+    }
+
+    suspend fun forgotPassword(email: String): Result<String> {
+        val user = userRepository.findByEmail(email)?.first
+            ?: return Result.success("If this email exists you will receive a reset code.")
+
+        val code = (100000..999999).random().toString()
+        val expiresAt = Instant.now().plusSeconds(15 * 60) // 15 minutes
+
+        passwordResetRepository.createToken(user.id, code, expiresAt)
+
+        val html = """
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+              <h2 style="color:#E91E63;margin-bottom:8px">The Wedding Clouds</h2>
+              <p>Hello,</p>
+              <p>You requested a password reset for your account. Use the code below to set a new password.</p>
+
+              <div style="background:#f5f5f5;padding:24px;border-radius:8px;margin:24px 0;text-align:center">
+                <p style="margin:0;font-size:13px;color:#666;text-transform:uppercase;letter-spacing:1px">Your Reset Code</p>
+                <p style="margin:12px 0 0;font-size:36px;font-weight:bold;letter-spacing:8px;color:#E91E63">$code</p>
+              </div>
+
+              <p style="color:#888;font-size:13px;margin-top:24px">
+                This code will expire in 15 minutes. If you did not request this, please ignore this email.
+              </p>
+
+              <br/>
+              <p>Warm regards,<br/><strong>The Wedding Clouds Team</strong></p>
+            </div>
+        """.trimIndent()
+
+        emailService.sendEmail(email, "Reset your password — The Wedding Clouds", html)
+
+        return Result.success("Reset code sent to your email.")
+    }
+
+    fun resetPassword(request: com.nxzef.wc.shared.model.ResetPasswordRequest): Result<String> {
+        if (request.newPassword.length < 6) {
+            return Result.failure(Exception("Password too short"))
+        }
+
+        val match = userRepository.findByEmail(request.email)
+            ?: return Result.failure(Exception("Invalid or expired reset code."))
+
+        val user = match.first
+        val tokenId = passwordResetRepository.findValidToken(user.id, request.code)
+            ?: return Result.failure(Exception("Invalid or expired reset code."))
+
+        val passwordHash = BCrypt.hashpw(request.newPassword, BCrypt.gensalt())
+        userRepository.updatePassword(user.id, passwordHash)
+        passwordResetRepository.markAsUsed(tokenId)
+
+        return Result.success("Password reset successfully. Please sign in.")
     }
 }

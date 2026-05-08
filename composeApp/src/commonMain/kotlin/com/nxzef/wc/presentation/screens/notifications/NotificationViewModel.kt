@@ -47,7 +47,7 @@ class NotificationViewModel(
     private fun startAutoRefresh() {
         viewModelScope.launch {
             while (true) {
-                delay(15_000)
+                delay(10_000)
                 load(silent = true)
             }
         }

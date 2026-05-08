@@ -8,6 +8,7 @@ import com.nxzef.wc.domain.usecase.leads.CreateLeadUseCase
 import com.nxzef.wc.shared.model.CreateLeadRequest
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
+import com.nxzef.wc.util.RefreshManager
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -118,6 +119,7 @@ class AddLeadViewModel(
                     assignedTo = assignedTo
                 )
             ).onSuccess {
+                RefreshManager.triggerRefresh()
                 _uiEvent.send(AddLeadUiEvent.LeadCreated)
             }.onFailure {
                 _uiEvent.send(

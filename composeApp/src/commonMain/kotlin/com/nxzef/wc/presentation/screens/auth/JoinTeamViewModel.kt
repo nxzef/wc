@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.auth.JoinTeamUseCase
 import com.nxzef.wc.shared.util.AppResult
+import com.nxzef.wc.shared.util.ErrorMessages
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,10 +47,12 @@ class JoinTeamViewModel(
                 newPassword = s.newPassword,
                 confirmPassword = s.confirmPassword
             )) {
-                is AppResult.Success ->
+                is AppResult.Success -> {
+                    _uiEvent.send(JoinTeamUiEvent.ShowSnackbar("Welcome! You can sign in with your email and password next time."))
                     _uiEvent.send(JoinTeamUiEvent.NavigateToHome(result.data.user.role))
+                }
                 is AppResult.Failure ->
-                    _uiEvent.send(JoinTeamUiEvent.ShowSnackbar(result.exception.message ?: "Could not join team"))
+                    _uiEvent.send(JoinTeamUiEvent.ShowSnackbar(ErrorMessages.extractServerMessage(result.exception.message)))
                 is AppResult.Loading -> Unit
             }
             _state.update { it.copy(isLoading = false) }

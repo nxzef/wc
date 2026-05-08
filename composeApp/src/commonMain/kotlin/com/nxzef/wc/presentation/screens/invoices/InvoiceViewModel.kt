@@ -39,17 +39,7 @@ class InvoiceViewModel(
 
     init {
         load()
-        startAutoRefresh()
         collectRefreshTrigger()
-    }
-
-    private fun startAutoRefresh() {
-        viewModelScope.launch {
-            while (true) {
-                delay(30_000)
-                load(silent = true)
-            }
-        }
     }
 
     private fun collectRefreshTrigger() {
@@ -137,6 +127,7 @@ class InvoiceViewModel(
             updatePaymentUseCase(invoiceId, request)
                 .onSuccess {
                     _uiEvent.send(InvoiceUiEvent.PaymentUpdated)
+                    RefreshManager.triggerRefresh()
                     load()
                     _state.value.selectedInvoice?.let { loadReceipts(invoiceId) }
                 }.onFailure {

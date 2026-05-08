@@ -47,6 +47,7 @@ fun LoginScreen(
     onLoginSuccess: (UserRole) -> Unit,
     onCreateCompany: () -> Unit,
     onJoinTeam: () -> Unit,
+    onForgotPassword: () -> Unit,
     viewModel: LoginViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -184,7 +185,7 @@ fun LoginScreen(
 
                     TextButton(onClick = onJoinTeam) {
                         Text(
-                            text = "Join existing team? Join Team",
+                            text = "Have an invite code? Join Team \u2192",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }

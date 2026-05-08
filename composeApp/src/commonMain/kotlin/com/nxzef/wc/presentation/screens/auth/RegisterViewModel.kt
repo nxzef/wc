@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.domain.usecase.auth.RegisterUseCase
 import com.nxzef.wc.shared.util.AppResult
+import com.nxzef.wc.shared.util.ErrorMessages
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,7 +49,7 @@ class RegisterViewModel(
                 is AppResult.Success ->
                     _uiEvent.send(RegisterUiEvent.NavigateToHome(result.data.user.role))
                 is AppResult.Failure ->
-                    _uiEvent.send(RegisterUiEvent.ShowSnackbar(result.exception.message ?: "Registration failed"))
+                    _uiEvent.send(RegisterUiEvent.ShowSnackbar(ErrorMessages.extractServerMessage(result.exception.message)))
                 is AppResult.Loading -> Unit
             }
             _state.update { it.copy(isLoading = false) }

@@ -47,17 +47,7 @@ class BookingViewModel(
 
     init {
         load()
-        startAutoRefresh()
         collectRefreshTrigger()
-    }
-
-    private fun startAutoRefresh() {
-        viewModelScope.launch {
-            while (true) {
-                delay(30_000)
-                load(silent = true)
-            }
-        }
     }
 
     private fun collectRefreshTrigger() {
@@ -130,6 +120,7 @@ class BookingViewModel(
                 request = UpdateBookingRequest(photographerId = userId)
             ).onSuccess {
                 load()
+                RefreshManager.triggerRefresh()
                 if (_state.value.selectedBooking?.id == bookingId) {
                     _state.update { s -> s.copy(selectedBooking = s.bookings.find { it.id == bookingId }) }
                 }
@@ -146,6 +137,7 @@ class BookingViewModel(
                 request = UpdateBookingRequest(editorId = userId)
             ).onSuccess {
                 load()
+                RefreshManager.triggerRefresh()
                 if (_state.value.selectedBooking?.id == bookingId) {
                     _state.update { s -> s.copy(selectedBooking = s.bookings.find { it.id == bookingId }) }
                 }
@@ -170,6 +162,7 @@ class BookingViewModel(
         viewModelScope.launch {
             markTaskDoneUseCase(taskId, isDone).onSuccess {
                 val bookingId = _state.value.selectedBooking?.id ?: return@onSuccess
+                RefreshManager.triggerRefresh()
                 loadTasks(bookingId)
             }
         }
@@ -185,6 +178,7 @@ class BookingViewModel(
                 CreateTaskRequest(bookingId = bookingId, title = s.newTaskTitle)
             ).onSuccess {
                 _state.update { it.copy(showAddTaskDialog = false, newTaskTitle = "") }
+                RefreshManager.triggerRefresh()
                 loadTasks(bookingId)
             }
         }
@@ -194,6 +188,7 @@ class BookingViewModel(
         viewModelScope.launch {
             deleteTaskUseCase(taskId).onSuccess {
                 val bookingId = _state.value.selectedBooking?.id ?: return@onSuccess
+                RefreshManager.triggerRefresh()
                 loadTasks(bookingId)
             }
         }
@@ -206,6 +201,7 @@ class BookingViewModel(
                 request = UpdateBookingRequest(status = status)
             ).onSuccess {
                 load()
+                RefreshManager.triggerRefresh()
                 if (_state.value.selectedBooking?.id == bookingId) {
                     _state.update { s -> s.copy(selectedBooking = s.bookings.find { it.id == bookingId }) }
                 }

@@ -1,5 +1,6 @@
 package com.nxzef.wc.di
 
+import com.nxzef.wc.presentation.screens.auth.ForgotPasswordViewModel
 import com.nxzef.wc.presentation.screens.auth.JoinTeamViewModel
 import com.nxzef.wc.presentation.screens.auth.LoginViewModel
 import com.nxzef.wc.presentation.screens.auth.RegisterViewModel
@@ -24,6 +25,7 @@ val viewModelModule = module {
     viewModelOf(::LoginViewModel)
     viewModelOf(::RegisterViewModel)
     viewModelOf(::JoinTeamViewModel)
+    viewModelOf(::ForgotPasswordViewModel)
     viewModelOf(::DashboardViewModel)
     viewModelOf(::LeadPipelineViewModel)
     viewModelOf(::AddLeadViewModel)

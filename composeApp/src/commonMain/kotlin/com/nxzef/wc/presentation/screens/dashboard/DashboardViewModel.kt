@@ -46,14 +46,18 @@ class DashboardViewModel(
             DashboardAction.HideGoalDialog -> _state.update { it.copy(showGoalDialog = false) }
             is DashboardAction.OnGoalRevenueChange -> _state.update { it.copy(goalRevenue = action.value) }
             is DashboardAction.OnGoalProfitChange -> _state.update { it.copy(goalProfit = action.value) }
-            DashboardAction.SetMonthlyGoal -> setGoal()
+            DashboardAction.SetMonthlyGoal -> {
+                val revenue = _state.value.goalRevenue.toDoubleOrNull() ?: 0.0
+                val profit = _state.value.goalProfit.toDoubleOrNull() ?: 0.0
+                setGoal(revenue, profit)
+            }
         }
     }
 
     private fun startAutoRefresh() {
         viewModelScope.launch {
             while (true) {
-                delay(30_000)
+                delay(60_000)
                 loadStats(silent = true)
             }
         }
@@ -70,9 +74,13 @@ class DashboardViewModel(
 
     private fun loadStats(silent: Boolean = false) {
         viewModelScope.launch {
+            val oldStats = _state.value.stats
             if (!silent) _state.update { it.copy(isLoading = true, error = null) }
             getDashboardStatsUseCase()
                 .onSuccess { stats ->
+                    if (silent && stats != oldStats) {
+                        _uiEvent.send(DashboardUiEvent.ShowSnackbar("Updated"))
+                    }
                     _state.update { it.copy(
                         stats = stats,
                         isLoading = false,
@@ -90,17 +98,7 @@ class DashboardViewModel(
         }
     }
 
-    @OptIn(ExperimentalTime::class)
-    private fun setGoal() {
-        val s = _state.value
-        val revenue = s.goalRevenue.toDoubleOrNull() ?: run {
-            viewModelScope.launch { _uiEvent.send(DashboardUiEvent.ShowError("Enter a valid revenue target")) }
-            return
-        }
-        val profit = s.goalProfit.toDoubleOrNull() ?: run {
-            viewModelScope.launch { _uiEvent.send(DashboardUiEvent.ShowError("Enter a valid profit target")) }
-            return
-        }
+    private fun setGoal(revenue: Double, profit: Double) {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         _state.update { it.copy(isSavingGoal = true) }
         viewModelScope.launch {
@@ -114,6 +112,8 @@ class DashboardViewModel(
             )
                 .onSuccess {
                     _state.update { it.copy(isSavingGoal = false, showGoalDialog = false) }
+                    _uiEvent.send(DashboardUiEvent.ShowSnackbar("Monthly goal updated successfully"))
+                    RefreshManager.triggerRefresh()
                     loadStats(silent = false)
                 }
                 .onFailure { error ->
