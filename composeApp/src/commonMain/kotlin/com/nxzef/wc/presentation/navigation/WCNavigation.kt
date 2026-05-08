@@ -15,9 +15,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
@@ -29,7 +29,6 @@ import androidx.navigation.toRoute
 import com.nxzef.wc.data.local.TokenStorage
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.domain.repository.AuthRepository
-import kotlinx.coroutines.launch
 import com.nxzef.wc.presentation.components.WCPermanentSidebar
 import com.nxzef.wc.presentation.screens.auth.ForgotPasswordScreen
 import com.nxzef.wc.presentation.screens.auth.JoinTeamScreen
@@ -39,6 +38,7 @@ import com.nxzef.wc.presentation.screens.auth.WelcomeScreen
 import com.nxzef.wc.presentation.screens.bookings.BookingScreen
 import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
 import com.nxzef.wc.presentation.screens.editor.EditorScreen
+import com.nxzef.wc.presentation.screens.expenses.ProjectExpensesScreen
 import com.nxzef.wc.presentation.screens.invoices.InvoiceScreen
 import com.nxzef.wc.presentation.screens.leads.AddLeadScreen
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineScreen
@@ -46,11 +46,11 @@ import com.nxzef.wc.presentation.screens.marketing.MarketingScreen
 import com.nxzef.wc.presentation.screens.photographer.PhotographerScreen
 import com.nxzef.wc.presentation.screens.quotes.QuoteScreen
 import com.nxzef.wc.presentation.screens.settings.SettingsScreen
-import com.nxzef.wc.presentation.screens.expenses.ProjectExpensesScreen
 import com.nxzef.wc.presentation.screens.tasks.TasksScreen
 import com.nxzef.wc.presentation.screens.team.TeamScreen
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.UserRole
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 private fun roleHome(role: UserRole): Route = when (role) {
@@ -259,7 +259,16 @@ fun AppNavHost(
 
         composable<Route.AddLead> {
             AddLeadScreen(
-                onLeadCreated = { navController.popBackStack() },
+                onLeadCreated = {
+                    val previousDestination = navController.previousBackStackEntry?.destination
+                    if (previousDestination?.hasRoute<Route.LeadPipeline>() == true) {
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate(Route.LeadPipeline) {
+                            popUpTo(Route.OwnerDashboard)
+                        }
+                    }
+                },
                 onBack = { navController.popBackStack() }
             )
         }
