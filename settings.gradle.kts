@@ -32,7 +32,12 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-include(":composeApp")
+val skipMobile = System.getenv("SKIP_MOBILE") == "true"
+
 include(":server")
 include(":shared")
-include(":androidApp")
+
+if (!skipMobile) {
+    include(":composeApp")
+    include(":androidApp")
+}

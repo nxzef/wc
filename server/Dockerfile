@@ -1,6 +1,8 @@
 FROM gradle:8.5-jdk17 AS build
 WORKDIR /app
 COPY . .
+# Set flag to skip mobile modules during build
+ENV SKIP_MOBILE=true
 RUN gradle :server:shadowJar --no-daemon --info
 
 FROM eclipse-temurin:17-jre-alpine
