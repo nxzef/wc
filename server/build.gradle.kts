@@ -53,7 +53,7 @@ dependencies {
     // Test
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
-    testImplementation("com.h2database:h2:2.2.224")
+    testImplementation(libs.h2)
 }
 
 // Fat JAR — produced by the Ktor plugin via Shadow. Override naming so the artifact lands
