@@ -93,9 +93,17 @@ compose.desktop {
         mainClass = "com.nxzef.wc.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.nxzef.wc"
+            targetFormats(TargetFormat.Dmg)
+            packageName = "WeddingClouds"
             packageVersion = "1.0.0"
+
+            macOS {
+                bundleID = "com.nxzef.wc"
+                jvmArgs += listOf(
+                    "--add-opens=java.base/sun.misc=ALL-UNNAMED",
+                    "--add-opens=java.base/java.lang=ALL-UNNAMED"
+                )
+            }
         }
     }
 }
