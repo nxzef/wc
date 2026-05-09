@@ -1,6 +1,7 @@
 package com.nxzef.wc.presentation.screens.leads
 
 import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.model.LeadSource
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.Task
 
@@ -18,7 +19,11 @@ data class LeadPipelineState(
     val newTaskTitle: String = "",
     val showCreateStatusDialog: Boolean = false,
     val statusToDelete: LeadStatus? = null,
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val filterPriority: Int? = null,
+    val filterSource: LeadSource? = null,
+    val filterDateMonth: Int? = null, // 1-12
+    val filterDateYear: Int? = null
 )
 
 sealed interface LeadPipelineAction {
@@ -47,6 +52,10 @@ sealed interface LeadPipelineAction {
     data object ConfirmDeleteStatus : LeadPipelineAction
     data object DismissDeleteStatusDialog : LeadPipelineAction
     data class OnSearchQueryChange(val query: String) : LeadPipelineAction
+    data class OnFilterPriorityChange(val priority: Int?) : LeadPipelineAction
+    data class OnFilterSourceChange(val source: LeadSource?) : LeadPipelineAction
+    data class OnFilterMonthChange(val month: Int?) : LeadPipelineAction
+    data object ClearFilters : LeadPipelineAction
 }
 
 sealed interface LeadPipelineUiEvent {

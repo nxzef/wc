@@ -1,18 +1,69 @@
 package com.nxzef.wc.presentation.screens.leads
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.*
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -29,13 +80,13 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nxzef.wc.data.session.SessionManager
+import com.nxzef.wc.presentation.components.LeadFilterBar
 import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.components.LeadStatusBadge
 import com.nxzef.wc.presentation.components.RefreshButton
-import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.components.TaskCheckItem
-import com.nxzef.wc.presentation.components.toComposeColor
-import com.nxzef.wc.data.session.SessionManager
+import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.Task
@@ -86,19 +137,6 @@ fun LeadPipelineScreen(
                     onBack = if (isMainScreen) null else onBack,
                     showNotificationIcon = isMainScreen,
                     actions = {
-                        OutlinedTextField(
-                            value = state.searchQuery,
-                            onValueChange = { viewModel.onAction(LeadPipelineAction.OnSearchQueryChange(it)) },
-                            placeholder = { Text("Filter leads...") },
-                            leadingIcon = { Icon(Icons.Default.FilterList, null) },
-                            modifier = Modifier.width(if (isCompact) 150.dp else 250.dp).padding(end = 8.dp),
-                            singleLine = true,
-                            shape = MaterialTheme.shapes.medium,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            )
-                        )
                         RefreshButton(
                             isLoading = state.isLoading || state.isRefreshing,
                             onClick = { RefreshManager.triggerRefresh() }
@@ -124,14 +162,41 @@ fun LeadPipelineScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
 
-            val filteredLeads = remember(state.leads, state.searchQuery) {
-                if (state.searchQuery.isBlank()) state.leads
-                else state.leads.filter { lead ->
-                    lead.fullName.contains(state.searchQuery, ignoreCase = true) ||
-                    lead.phone.contains(state.searchQuery) ||
-                    (lead.email?.contains(state.searchQuery, ignoreCase = true) ?: false) ||
-                    lead.eventType.name.contains(state.searchQuery, ignoreCase = true) ||
-                    lead.source.name.contains(state.searchQuery, ignoreCase = true)
+            val filteredLeads = remember(
+                state.leads,
+                state.searchQuery,
+                state.filterPriority,
+                state.filterSource,
+                state.filterDateMonth
+            ) {
+                state.leads.filter { lead ->
+                    val matchesQuery = if (state.searchQuery.isBlank()) true
+                    else {
+                        lead.fullName.contains(state.searchQuery, ignoreCase = true) ||
+                                lead.phone.contains(state.searchQuery) ||
+                                (lead.email?.contains(state.searchQuery, ignoreCase = true) ?: false) ||
+                                lead.eventType.name.contains(state.searchQuery, ignoreCase = true) ||
+                                lead.source.name.contains(state.searchQuery, ignoreCase = true)
+                    }
+
+                    val matchesPriority = state.filterPriority == null || lead.priority == state.filterPriority
+                    val matchesSource = state.filterSource == null || lead.source == state.filterSource
+
+                    // Check date (e.g., eventDate is ISO string like "2023-10-25")
+                    val matchesMonth = if (state.filterDateMonth == null) true
+                    else {
+                        try {
+                            // Extract month from "YYYY-MM-DD"
+                            val parts = lead.eventDate?.split("-")
+                            if (parts != null && parts.size >= 2) {
+                                parts[1].toInt() == state.filterDateMonth
+                            } else false
+                        } catch (_: Exception) {
+                            false
+                        }
+                    }
+
+                    matchesQuery && matchesPriority && matchesSource && matchesMonth
                 }
             }
 
@@ -177,71 +242,80 @@ fun LeadPipelineScreen(
                     val horizontalPadding = if (isCompact) 16.dp else 24.dp
                     val columnWidth = if (isCompact) screenWidth * 0.85f else 320.dp
 
-                    Row(
-                        modifier = contentModifier
-                            .horizontalScroll(rememberScrollState())
-                            .padding(vertical = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 16.dp else 24.dp)
-                    ) {
-                        Spacer(modifier = Modifier.width(horizontalPadding / 2))
+                    Column(modifier = contentModifier) {
+                        LeadFilterBar(
+                            state = state,
+                            onAction = viewModel::onAction,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 8.dp)
+                        )
 
-                        state.statuses.forEach { status ->
-                            val isDraggingFromThisColumn =
-                                state.leads.any { it.id == draggingLeadId && it.customStatus?.id == status.id }
-
-                            KanBanColumn(
-                                modifier = Modifier
-                                    .width(columnWidth)
-                                    .zIndex(if (isDraggingFromThisColumn) 100f else 0f)
-                                    .onGloballyPositioned { coords ->
-                                        columnBounds = columnBounds + (status.id to coords)
-                                    },
-                                status = status,
-                                leads = filteredLeads.filter { it.customStatus?.id == status.id },
-                                taskCounts = state.taskCounts,
-                                onLeadClick = { lead ->
-                                    viewModel.onAction(LeadPipelineAction.SelectLead(lead))
-                                },
-                                onDeleteStatus = if (status.isDefault) null else {
-                                    { viewModel.onAction(LeadPipelineAction.RequestDeleteStatus(status)) }
-                                },
-                                isHighlighted = hoveredStatusId == status.id,
-                                onDragStart = { draggingLeadId = it },
-                                onDrag = { _, currentPosition ->
-                                    var found = false
-                                    columnBounds.forEach { (sid, coords) ->
-                                        if (coords.isAttached && coords.boundsInWindow().contains(currentPosition)) {
-                                            hoveredStatusId = sid
-                                            found = true
-                                        }
-                                    }
-                                    if (!found) hoveredStatusId = null
-                                },
-                                onDragEnd = { leadId, finalPosition ->
-                                    draggingLeadId = null
-                                    hoveredStatusId = null
-                                    columnBounds.forEach { (sid, coords) ->
-                                        if (coords.isAttached && coords.boundsInWindow().contains(finalPosition)) {
-                                            viewModel.onAction(
-                                                LeadPipelineAction.UpdateStatus(leadId, sid)
-                                            )
-                                        }
-                                    }
-                                }
-                            )
-                        }
-
-                        OutlinedButton(
-                            onClick = { viewModel.onAction(LeadPipelineAction.ShowCreateStatusDialog) },
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.width(160.dp).padding(top = 8.dp)
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .horizontalScroll(rememberScrollState())
+                                .padding(vertical = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(if (isCompact) 16.dp else 24.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Add Status")
-                        }
+                            Spacer(modifier = Modifier.width(horizontalPadding / 2))
 
-                        Spacer(modifier = Modifier.width(horizontalPadding / 2))
+                            state.statuses.forEach { status ->
+                                val isDraggingFromThisColumn =
+                                    state.leads.any { it.id == draggingLeadId && it.customStatus?.id == status.id }
+
+                                KanBanColumn(
+                                    modifier = Modifier
+                                        .width(columnWidth)
+                                        .zIndex(if (isDraggingFromThisColumn) 100f else 0f)
+                                        .onGloballyPositioned { coords ->
+                                            columnBounds = columnBounds + (status.id to coords)
+                                        },
+                                    status = status,
+                                    leads = filteredLeads.filter { it.customStatus?.id == status.id },
+                                    taskCounts = state.taskCounts,
+                                    onLeadClick = { lead ->
+                                        viewModel.onAction(LeadPipelineAction.SelectLead(lead))
+                                    },
+                                    onDeleteStatus = if (status.isDefault) null else {
+                                        { viewModel.onAction(LeadPipelineAction.RequestDeleteStatus(status)) }
+                                    },
+                                    isHighlighted = hoveredStatusId == status.id,
+                                    onDragStart = { draggingLeadId = it },
+                                    onDrag = { _, currentPosition ->
+                                        var found = false
+                                        columnBounds.forEach { (sid, coords) ->
+                                            if (coords.isAttached && coords.boundsInWindow().contains(currentPosition)) {
+                                                hoveredStatusId = sid
+                                                found = true
+                                            }
+                                        }
+                                        if (!found) hoveredStatusId = null
+                                    },
+                                    onDragEnd = { leadId, finalPosition ->
+                                        draggingLeadId = null
+                                        hoveredStatusId = null
+                                        columnBounds.forEach { (sid, coords) ->
+                                            if (coords.isAttached && coords.boundsInWindow().contains(finalPosition)) {
+                                                viewModel.onAction(
+                                                    LeadPipelineAction.UpdateStatus(leadId, sid)
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = { viewModel.onAction(LeadPipelineAction.ShowCreateStatusDialog) },
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier.width(160.dp).padding(top = 8.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Add Status")
+                            }
+
+                            Spacer(modifier = Modifier.width(horizontalPadding / 2))
+                        }
                     }
                 }
             }
@@ -887,16 +961,16 @@ fun DetailRow(label: String, value: String) {
     }
 }
 
-private fun String.toComposeColor(): androidx.compose.ui.graphics.Color {
+fun String.toComposeColor(): Color {
     val hex = removePrefix("#")
     return try {
         val value = hex.toLong(16)
         when (hex.length) {
-            6 -> androidx.compose.ui.graphics.Color((0xFF000000L or value).toInt())
-            8 -> androidx.compose.ui.graphics.Color(value.toInt())
-            else -> androidx.compose.ui.graphics.Color(0xFF2196F3.toInt())
+            6 -> Color((0xFF000000L or value).toInt())
+            8 -> Color(value.toInt())
+            else -> Color(0xFF2196F3.toInt())
         }
-    } catch (e: Exception) {
-        androidx.compose.ui.graphics.Color(0xFF2196F3.toInt())
+    } catch (_: Exception) {
+        Color(0xFF2196F3.toInt())
     }
 }

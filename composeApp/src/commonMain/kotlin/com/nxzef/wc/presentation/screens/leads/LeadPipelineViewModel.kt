@@ -75,6 +75,17 @@ class LeadPipelineViewModel(
             LeadPipelineAction.DismissDeleteStatusDialog -> _state.update { it.copy(statusToDelete = null) }
             LeadPipelineAction.ConfirmDeleteStatus -> deleteStatus()
             is LeadPipelineAction.OnSearchQueryChange -> _state.update { it.copy(searchQuery = action.query) }
+            is LeadPipelineAction.OnFilterPriorityChange -> _state.update { it.copy(filterPriority = action.priority) }
+            is LeadPipelineAction.OnFilterSourceChange -> _state.update { it.copy(filterSource = action.source) }
+            is LeadPipelineAction.OnFilterMonthChange -> _state.update { it.copy(filterDateMonth = action.month) }
+            LeadPipelineAction.ClearFilters -> _state.update {
+                it.copy(
+                    searchQuery = "",
+                    filterPriority = null,
+                    filterSource = null,
+                    filterDateMonth = null
+                )
+            }
         }
     }
 
