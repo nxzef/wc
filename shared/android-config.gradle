@@ -1,0 +1,9 @@
+// This file uses Groovy to avoid KTS compilation issues when the Android plugin is missing.
+kotlin {
+    androidLibrary {
+        namespace = "com.nxzef.wc.shared"
+        // Accessing versions from libs.versions.toml
+        compileSdk = Integer.parseInt(libs.versions.android.compileSdk.get())
+        minSdk = Integer.parseInt(libs.versions.android.minSdk.get())
+    }
+}

@@ -1,7 +1,7 @@
 plugins {
-    alias(libs.plugins.kotlinJvm)
-    alias(libs.plugins.ktor)
-    alias(libs.plugins.kotlinSerialization)
+    id("org.jetbrains.kotlin.jvm")
+    id("io.ktor.plugin")
+    id("org.jetbrains.kotlin.plugin.serialization")
     application
 }
 

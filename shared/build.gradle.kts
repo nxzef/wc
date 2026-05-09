@@ -1,31 +1,40 @@
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidMultiplatformLibrary)
-    alias(libs.plugins.kotlinSerialization)
+    id("org.jetbrains.kotlin.multiplatform")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    
+    val skipMobile = System.getenv("SKIP_MOBILE") == "true"
+    if (!skipMobile) {
+        id("com.android.kotlin.multiplatform.library")
+    }
 }
 
 kotlin {
     jvmToolchain(17)
-
-    androidLibrary {
-        namespace = "com.nxzef.wc.shared"
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
-        minSdk = libs.versions.android.minSdk.get().toInt()
-    }
-
-    iosArm64()
-    iosSimulatorArm64()
     jvm()
 
+    val skipMobile = System.getenv("SKIP_MOBILE") == "true"
+    if (!skipMobile) {
+        iosArm64()
+        iosSimulatorArm64()
+        
+        // Apply Android configuration from a Groovy script to avoid KTS 
+        // compilation errors when the Android plugin is missing.
+        apply(from = "android-config.gradle")
+    }
+
     sourceSets {
-        commonMain.dependencies {
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.datetime)
-            implementation(project.dependencies.platform(libs.koin.bom))
-            implementation(libs.koin.core)
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.datetime)
+                implementation(project.dependencies.platform(libs.koin.bom))
+                implementation(libs.koin.core)
+            }
         }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
+        val commonTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
+            }
         }
     }
 }
