@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.AssignmentInd
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -28,24 +28,14 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.ui.window.Dialog
-import com.nxzef.wc.shared.util.DateUtils
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,8 +44,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,18 +53,19 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.shared.model.EventType
 import com.nxzef.wc.shared.model.LeadSource
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -263,7 +254,7 @@ fun AddLeadScreen(
                             confirmButton = {
                                 TextButton(onClick = {
                                     datePickerState.selectedDateMillis?.let { millis ->
-                                        val date = Instant.fromEpochMilliseconds(millis)
+                                        val date = kotlin.time.Instant.fromEpochMilliseconds(millis)
                                             .toLocalDateTime(TimeZone.UTC).date
                                         viewModel.onAction(AddLeadAction.OnEventDateChange(date.toString()))
                                     }
@@ -306,7 +297,8 @@ fun AddLeadScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     (1..5).forEach { starIndex ->
-                        val isFilled = starIndex <= if (hoveredStar > 0) hoveredStar else state.priority
+                        val isFilled =
+                            starIndex <= if (hoveredStar > 0) hoveredStar else state.priority
                         Icon(
                             imageVector = if (isFilled) Icons.Default.Star else Icons.Default.StarBorder,
                             contentDescription = "Priority $starIndex",
@@ -319,8 +311,12 @@ fun AddLeadScreen(
                                             val event = awaitPointerEvent()
                                             when (event.type) {
                                                 PointerEventType.Enter -> hoveredStar = starIndex
-                                                PointerEventType.Exit -> if (hoveredStar == starIndex) hoveredStar = 0
-                                                PointerEventType.Press -> viewModel.onAction(AddLeadAction.OnPriorityChange(starIndex))
+                                                PointerEventType.Exit -> if (hoveredStar == starIndex) hoveredStar =
+                                                    0
+
+                                                PointerEventType.Press -> viewModel.onAction(
+                                                    AddLeadAction.OnPriorityChange(starIndex)
+                                                )
                                             }
                                         }
                                     }
