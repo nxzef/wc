@@ -1,4 +1,4 @@
-name: Build Mac Desktop App
+name: Build App
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-mac:
-    runs-on: macos-13
+  build-jar:
+    runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
@@ -30,24 +30,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Grant execute permission for gradlew
+      - name: Grant execute permission
         run: chmod +x gradlew
 
-      - name: Build Mac DMG
-        run: |
-          ./gradlew :composeApp:packageDmg \
-            --no-daemon \
-            --stacktrace \
-            -Pandroid.sdk.suppress=true \
-            -x :androidApp:assembleDebug \
-            -x :androidApp:assembleRelease \
-            -x :composeApp:compileKotlinAndroid \
-            -x :composeApp:compileDebugKotlin \
-            -x :composeApp:compileReleaseKotlin
+      - name: Build desktop JAR
+        run: ./gradlew :composeApp:packageUberJarForCurrentOS --no-daemon
 
-      - name: Upload DMG artifact
+      - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: WeddingClouds-Mac
-          path: composeApp/build/compose/binaries/main/dmg/*.dmg
+          name: WeddingClouds-App
+          path: composeApp/build/compose/jars/*.jar
           retention-days: 30
