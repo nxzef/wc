@@ -8,6 +8,7 @@ on:
 jobs:
   build-mac:
     runs-on: macos-13
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -33,9 +34,16 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Mac DMG
-        run: ./gradlew :composeApp:packageDmg --no-daemon
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
+        run: |
+          ./gradlew :composeApp:packageDmg \
+            --no-daemon \
+            --stacktrace \
+            -Pandroid.sdk.suppress=true \
+            -x :androidApp:assembleDebug \
+            -x :androidApp:assembleRelease \
+            -x :composeApp:compileKotlinAndroid \
+            -x :composeApp:compileDebugKotlin \
+            -x :composeApp:compileReleaseKotlin
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
