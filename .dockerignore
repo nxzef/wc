@@ -1,9 +1,6 @@
-androidApp/
-composeApp/
 .gradle/
 .idea/
 *.md
-gradle/wrapper/gradle-wrapper.jar
 build/
 **/build/
 .git/
