@@ -195,6 +195,60 @@ class DashboardRepository {
             
             val revenueTrend = dailyRevenue.toList()
 
+            // Calculate Project P&L
+            val projectPnLList = transaction {
+                BookingsTable
+                    .selectAll()
+                    .where { BookingsTable.teamId eq tUuid }
+                    .orderBy(BookingsTable.eventDate, SortOrder.DESC)
+                    .limit(20)
+                    .map { bookingRow ->
+                        val bId = bookingRow[BookingsTable.id]
+                        val revenue = InvoicesTable.selectAll()
+                            .where { InvoicesTable.bookingId eq bId }
+                            .sumOf { it[InvoicesTable.totalAmount].toDouble() }
+
+                        val expenses = ProjectExpensesTable.selectAll()
+                            .where { ProjectExpensesTable.bookingId eq bId }
+                            .sumOf { it[ProjectExpensesTable.actualAmount].toDouble() }
+
+                        val netProfit = revenue - expenses
+                        val marginPercent = if (revenue > 0) (netProfit / revenue) * 100.0 else 0.0
+
+                        ProjectPnL(
+                            bookingId = bId.toString(),
+                            eventType = bookingRow[BookingsTable.eventType],
+                            eventDate = bookingRow[BookingsTable.eventDate].toString(),
+                            revenue = revenue,
+                            totalExpenses = expenses,
+                            netProfit = netProfit,
+                            marginPercent = marginPercent
+                        )
+                    }
+            }
+
+            // Current Month Goal and Actuals
+            val currentMonthGoalRow = MonthlyGoalsTable.selectAll()
+                .where { (MonthlyGoalsTable.month eq now.monthValue) and (MonthlyGoalsTable.year eq now.year) }
+                .singleOrNull()
+
+            val currentMonthGoal = currentMonthGoalRow?.let {
+                MonthlyGoal(
+                    id = it[MonthlyGoalsTable.id].toString(),
+                    year = it[MonthlyGoalsTable.year],
+                    month = it[MonthlyGoalsTable.month],
+                    targetRevenue = it[MonthlyGoalsTable.targetRevenue].toDouble(),
+                    targetProfit = it[MonthlyGoalsTable.targetProfit].toDouble()
+                )
+            }
+
+            val currentMonthExpenses = ProjectExpensesTable.selectAll()
+                .where { (ProjectExpensesTable.teamId eq tUuid) and (ProjectExpensesTable.expenseDate greaterEq now.withDayOfMonth(1)) and (ProjectExpensesTable.expenseDate lessEq now) }
+                .sumOf { it[ProjectExpensesTable.actualAmount].toDouble() }
+            
+            val currentMonthActualProfit = totalRevenueThisMonth - currentMonthExpenses
+            val isMonthBelowTarget = currentMonthGoal?.let { currentMonthActualProfit < it.targetProfit } ?: false
+
             // Previous Month Stats for Trends
             val prevMonthStart = now.minusMonths(1).withDayOfMonth(1).atStartOfDay().toInstant(ZoneOffset.UTC)
             val prevMonthEnd = now.withDayOfMonth(1).atStartOfDay().toInstant(ZoneOffset.UTC)

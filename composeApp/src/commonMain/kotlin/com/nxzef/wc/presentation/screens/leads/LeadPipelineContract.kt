@@ -23,7 +23,8 @@ data class LeadPipelineState(
     val filterPriority: Int? = null,
     val filterSource: LeadSource? = null,
     val filterDateMonth: Int? = null, // 1-12
-    val filterDateYear: Int? = null
+    val filterDateYear: Int? = null,
+    val filterStatusIds: Set<String> = emptySet()
 )
 
 sealed interface LeadPipelineAction {
@@ -55,6 +56,8 @@ sealed interface LeadPipelineAction {
     data class OnFilterPriorityChange(val priority: Int?) : LeadPipelineAction
     data class OnFilterSourceChange(val source: LeadSource?) : LeadPipelineAction
     data class OnFilterMonthChange(val month: Int?) : LeadPipelineAction
+    data class OnFilterYearChange(val year: Int?) : LeadPipelineAction
+    data class OnFilterStatusesChange(val statusIds: Set<String>) : LeadPipelineAction
     data object ClearFilters : LeadPipelineAction
 }
 

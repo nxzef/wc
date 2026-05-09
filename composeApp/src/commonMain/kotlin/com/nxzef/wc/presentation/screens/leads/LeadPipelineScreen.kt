@@ -87,6 +87,8 @@ import com.nxzef.wc.presentation.components.LeadStatusBadge
 import com.nxzef.wc.presentation.components.RefreshButton
 import com.nxzef.wc.presentation.components.TaskCheckItem
 import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.presentation.components.toComposeColor
+import com.nxzef.wc.shared.util.DateUtils
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.Task
@@ -167,7 +169,9 @@ fun LeadPipelineScreen(
                 state.searchQuery,
                 state.filterPriority,
                 state.filterSource,
-                state.filterDateMonth
+                state.filterDateMonth,
+                state.filterDateYear,
+                state.filterStatusIds
             ) {
                 state.leads.filter { lead ->
                     val matchesQuery = if (state.searchQuery.isBlank()) true
@@ -181,22 +185,17 @@ fun LeadPipelineScreen(
 
                     val matchesPriority = state.filterPriority == null || lead.priority == state.filterPriority
                     val matchesSource = state.filterSource == null || lead.source == state.filterSource
+                    val matchesStatus = state.filterStatusIds.isEmpty() || 
+                            (lead.customStatus?.id?.let { state.filterStatusIds.contains(it) } ?: false)
 
-                    // Check date (e.g., eventDate is ISO string like "2023-10-25")
-                    val matchesMonth = if (state.filterDateMonth == null) true
-                    else {
-                        try {
-                            // Extract month from "YYYY-MM-DD"
-                            val parts = lead.eventDate?.split("-")
-                            if (parts != null && parts.size >= 2) {
-                                parts[1].toInt() == state.filterDateMonth
-                            } else false
-                        } catch (_: Exception) {
-                            false
-                        }
-                    }
+                    // Check date using shared DateUtils
+                    val matchesMonth = state.filterDateMonth == null || 
+                            DateUtils.getMonth(lead.eventDate) == state.filterDateMonth
 
-                    matchesQuery && matchesPriority && matchesSource && matchesMonth
+                    val matchesYear = state.filterDateYear == null || 
+                            DateUtils.getYear(lead.eventDate) == state.filterDateYear
+
+                    matchesQuery && matchesPriority && matchesSource && matchesMonth && matchesYear && matchesStatus
                 }
             }
 
@@ -239,6 +238,11 @@ fun LeadPipelineScreen(
                     }
                     var hoveredStatusId by remember { mutableStateOf<String?>(null) }
 
+                    // Clean up detached columns from the bounds map
+                    LaunchedEffect(state.filterStatusIds) {
+                        columnBounds = columnBounds.filter { it.value.isAttached }
+                    }
+
                     val horizontalPadding = if (isCompact) 16.dp else 24.dp
                     val columnWidth = if (isCompact) screenWidth * 0.85f else 320.dp
 
@@ -258,7 +262,11 @@ fun LeadPipelineScreen(
                         ) {
                             Spacer(modifier = Modifier.width(horizontalPadding / 2))
 
-                            state.statuses.forEach { status ->
+                            state.statuses
+                                .filter { status ->
+                                    state.filterStatusIds.isEmpty() || state.filterStatusIds.contains(status.id)
+                                }
+                                .forEach { status ->
                                 val isDraggingFromThisColumn =
                                     state.leads.any { it.id == draggingLeadId && it.customStatus?.id == status.id }
 
@@ -958,19 +966,5 @@ fun DetailRow(label: String, value: String) {
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold
         )
-    }
-}
-
-fun String.toComposeColor(): Color {
-    val hex = removePrefix("#")
-    return try {
-        val value = hex.toLong(16)
-        when (hex.length) {
-            6 -> Color((0xFF000000L or value).toInt())
-            8 -> Color(value.toInt())
-            else -> Color(0xFF2196F3.toInt())
-        }
-    } catch (_: Exception) {
-        Color(0xFF2196F3.toInt())
     }
 }
