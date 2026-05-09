@@ -14,7 +14,7 @@ object DateUtils {
         return try {
             val date = LocalDate.parse(isoDate)
             val month = getMonthName(date.month.ordinal + 1)
-            "${date.dayOfMonth} $month ${date.year}"
+            "${date.day} $month ${date.year}"
         } catch (_: Exception) {
             isoDate
         }
@@ -23,7 +23,7 @@ object DateUtils {
     fun formatShortDate(isoDate: String): String {
         return try {
             val date = LocalDate.parse(isoDate)
-            "${date.dayOfMonth} ${getMonthName(date.month.ordinal + 1)}"
+            "${date.day} ${getMonthName(date.month.ordinal + 1)}"
         } catch (_: Exception) {
             isoDate
         }

@@ -1,8 +1,10 @@
 package com.nxzef.wc.data.repository
 
 import com.nxzef.wc.data.db.DatabaseFactory
+import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.LeadStatusesTable
 import com.nxzef.wc.data.db.tables.LeadsTable
+import com.nxzef.wc.data.db.tables.QuotesTable
 import com.nxzef.wc.data.db.tables.TeamsTable
 import com.nxzef.wc.data.db.tables.UsersTable
 import com.nxzef.wc.shared.model.BookingStatus
@@ -11,6 +13,7 @@ import com.nxzef.wc.shared.model.EventType
 import com.nxzef.wc.shared.model.LeadSource
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import com.nxzef.wc.shared.model.UserRole
+import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
@@ -31,6 +34,8 @@ class BookingRepositoryTest {
     private lateinit var repository: BookingRepository
     private val dbName = "test_${UUID.randomUUID()}"
     private val testTeamId = UUID.randomUUID().toString()
+    private var testUserId: UUID? = null
+    private var testStatusId: UUID? = null
 
     @Before
     fun setup() {
@@ -39,8 +44,14 @@ class BookingRepositoryTest {
 
         // Seed test data
         transaction {
+            // Ensure tables are created for this connection
+            SchemaUtils.create(
+                UsersTable, TeamsTable, LeadStatusesTable, LeadsTable, BookingsTable, QuotesTable
+            )
+
             val tUuid = UUID.fromString(testTeamId)
             val userId = UUID.randomUUID()
+            testUserId = userId
 
             // Create test user first (to satisfy TeamsTable.ownerId FK)
             UsersTable.insert {
@@ -70,6 +81,7 @@ class BookingRepositoryTest {
 
             // Create test lead status
             val statusId = UUID.randomUUID()
+            testStatusId = statusId
             LeadStatusesTable.insert {
                 it[id] = statusId
                 it[name] = "New"
@@ -206,8 +218,9 @@ class BookingRepositoryTest {
                 it[leadSource] = LeadSource.FACEBOOK.name
                 it[eventType] = EventType.PORTRAIT.name
                 it[status] = "NEW"
-                it[addedBy] = UUID.fromString(UsersTable.selectAll().single()[UsersTable.id].toString())
-                it[assignedTo] = UUID.fromString(UsersTable.selectAll().single()[UsersTable.id].toString())
+                it[statusId] = testStatusId!!
+                it[addedBy] = testUserId!!
+                it[assignedTo] = testUserId!!
                 it[teamId] = UUID.fromString(testTeamId)
                 it[createdAt] = Instant.now()
             }
