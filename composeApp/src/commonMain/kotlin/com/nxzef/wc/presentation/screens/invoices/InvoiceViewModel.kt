@@ -45,6 +45,7 @@ class InvoiceViewModel(
     private fun collectRefreshTrigger() {
         viewModelScope.launch {
             RefreshManager.refreshTrigger.collect {
+                _state.update { it.copy(isRefreshing = true) }
                 load(silent = true)
             }
         }
@@ -76,7 +77,7 @@ class InvoiceViewModel(
             leadsResult.onSuccess { leads ->
                 _state.update { it.copy(leads = leads) }
             }
-            if (!silent) _state.update { it.copy(isLoading = false) }
+            _state.update { it.copy(isLoading = false, isRefreshing = false) }
         }
     }
 

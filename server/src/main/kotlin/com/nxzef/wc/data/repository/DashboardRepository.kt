@@ -175,66 +175,109 @@ class DashboardRepository {
                 .sumOf { it[ReceiptsTable.amount].toDouble() }
             val totalPending = totalRevenue - totalCollected
 
-            val allBookings = BookingsTable.selectAll().where { BookingsTable.teamId eq tUuid }.toList()
-            val invoiceByBooking = teamInvoices
-                .associate { it[InvoicesTable.bookingId].toString() to it[InvoicesTable.totalAmount].toDouble() }
-            val expenseSumByBooking = ProjectExpensesTable
-                .selectAll()
-                .where { ProjectExpensesTable.teamId eq tUuid }
-                .groupBy { it[ProjectExpensesTable.bookingId].toString() }
-                .mapValues { (_, rows) -> rows.sumOf { it[ProjectExpensesTable.actualAmount].toDouble() } }
+            // Calculate Conversion Rate
+            val allLeads = LeadsTable.selectAll().where { LeadsTable.teamId eq tUuid }.count()
+            val wonLeads = LeadsTable.selectAll().where { 
+                (LeadsTable.teamId eq tUuid) and (LeadsTable.status eq "WON") 
+            }.count()
+            val conversionRate = if (allLeads > 0) (wonLeads.toDouble() / allLeads.toDouble()) * 100.0 else 0.0
 
-            val projectPnLList = allBookings.mapNotNull { row ->
-                val bid = row[BookingsTable.id].toString()
-                val revenue = invoiceByBooking[bid] ?: return@mapNotNull null
-                val expenses = expenseSumByBooking[bid] ?: 0.0
-                val netProfit = revenue - expenses
-                val margin = if (revenue > 0) (netProfit / revenue) * 100 else 0.0
-                ProjectPnL(
-                    bookingId = bid,
-                    eventType = row[BookingsTable.eventType],
-                    eventDate = row[BookingsTable.eventDate].toString(),
-                    revenue = revenue,
-                    totalExpenses = expenses,
-                    netProfit = netProfit,
-                    marginPercent = margin
+            // Calculate Revenue Trend (Daily for current month)
+            val daysInMonth = now.lengthOfMonth()
+            val dailyRevenue = DoubleArray(daysInMonth) { 0.0 }
+            
+            invoicesThisMonth.forEach { row ->
+                val date = row[InvoicesTable.createdAt].atZone(ZoneOffset.UTC).toLocalDate()
+                if (date.monthValue == now.monthValue && date.year == now.year) {
+                    dailyRevenue[date.dayOfMonth - 1] += row[InvoicesTable.totalAmount].toDouble()
+                }
+            }
+            
+            val revenueTrend = dailyRevenue.toList()
+
+            // Calculate Project P&L
+            val projectPnLList = transaction {
+                BookingsTable
+                    .selectAll()
+                    .where { BookingsTable.teamId eq tUuid }
+                    .orderBy(BookingsTable.eventDate, SortOrder.DESC)
+                    .limit(20)
+                    .map { bookingRow ->
+                        val bId = bookingRow[BookingsTable.id]
+                        val revenue = InvoicesTable.selectAll()
+                            .where { InvoicesTable.bookingId eq bId }
+                            .sumOf { it[InvoicesTable.totalAmount].toDouble() }
+
+                        val expenses = ProjectExpensesTable.selectAll()
+                            .where { ProjectExpensesTable.bookingId eq bId }
+                            .sumOf { it[ProjectExpensesTable.actualAmount].toDouble() }
+
+                        val netProfit = revenue - expenses
+                        val marginPercent = if (revenue > 0) (netProfit / revenue) * 100.0 else 0.0
+
+                        ProjectPnL(
+                            bookingId = bId.toString(),
+                            eventType = bookingRow[BookingsTable.eventType],
+                            eventDate = bookingRow[BookingsTable.eventDate].toString(),
+                            revenue = revenue,
+                            totalExpenses = expenses,
+                            netProfit = netProfit,
+                            marginPercent = marginPercent
+                        )
+                    }
+            }
+
+            // Current Month Goal and Actuals
+            val currentMonthGoalRow = MonthlyGoalsTable.selectAll()
+                .where { (MonthlyGoalsTable.month eq now.monthValue) and (MonthlyGoalsTable.year eq now.year) }
+                .singleOrNull()
+
+            val currentMonthGoal = currentMonthGoalRow?.let {
+                MonthlyGoal(
+                    id = it[MonthlyGoalsTable.id].toString(),
+                    year = it[MonthlyGoalsTable.year],
+                    month = it[MonthlyGoalsTable.month],
+                    targetRevenue = it[MonthlyGoalsTable.targetRevenue].toDouble(),
+                    targetProfit = it[MonthlyGoalsTable.targetProfit].toDouble()
                 )
             }
 
-            val currentMonth = now.monthValue
-            val currentYear  = now.year
-            val currentMonthGoal = MonthlyGoalsTable.selectAll()
-                .where { (MonthlyGoalsTable.month eq currentMonth) and (MonthlyGoalsTable.year eq currentYear) }
-                .singleOrNull()
-                ?.let { r ->
-                    MonthlyGoal(
-                        id = r[MonthlyGoalsTable.id].toString(),
-                        year = r[MonthlyGoalsTable.year],
-                        month = r[MonthlyGoalsTable.month],
-                        targetRevenue = r[MonthlyGoalsTable.targetRevenue].toDouble(),
-                        targetProfit = r[MonthlyGoalsTable.targetProfit].toDouble()
-                    )
-                }
+            val currentMonthExpenses = ProjectExpensesTable.selectAll()
+                .where { (ProjectExpensesTable.teamId eq tUuid) and (ProjectExpensesTable.expenseDate greaterEq now.withDayOfMonth(1)) and (ProjectExpensesTable.expenseDate lessEq now) }
+                .sumOf { it[ProjectExpensesTable.actualAmount].toDouble() }
+            
+            val currentMonthActualProfit = totalRevenueThisMonth - currentMonthExpenses
+            val isMonthBelowTarget = currentMonthGoal?.let { currentMonthActualProfit < it.targetProfit } ?: false
 
-            val currentMonthActualProfit = projectPnLList
-                .filter {
-                    try {
-                        val date = LocalDate.parse(it.eventDate)
-                        date.monthValue == currentMonth && date.year == currentYear
-                    } catch (e: Exception) { false }
-                }
-                .sumOf { it.netProfit }
+            // Previous Month Stats for Trends
+            val prevMonthStart = now.minusMonths(1).withDayOfMonth(1).atStartOfDay().toInstant(ZoneOffset.UTC)
+            val prevMonthEnd = now.withDayOfMonth(1).atStartOfDay().toInstant(ZoneOffset.UTC)
+            
+            val prevMonthInvoices = InvoicesTable.selectAll()
+                .where { (InvoicesTable.teamId eq tUuid) and (InvoicesTable.createdAt greaterEq prevMonthStart) and (InvoicesTable.createdAt less prevMonthEnd) }
+                .toList()
+            val prevMonthRevenue = prevMonthInvoices.sumOf { it[InvoicesTable.totalAmount].toDouble() }
+            val prevMonthAvgOrderValue = if (prevMonthInvoices.isNotEmpty()) prevMonthRevenue / prevMonthInvoices.size else 0.0
+            
+            val prevMonthLeads = LeadsTable.selectAll()
+                .where { (LeadsTable.teamId eq tUuid) and (LeadsTable.createdAt greaterEq prevMonthStart) and (LeadsTable.createdAt less prevMonthEnd) }
+                .count()
+            val prevMonthWonLeads = LeadsTable.selectAll()
+                .where { (LeadsTable.teamId eq tUuid) and (LeadsTable.status eq "WON") and (LeadsTable.createdAt greaterEq prevMonthStart) and (LeadsTable.createdAt less prevMonthEnd) }
+                .count()
+            val prevMonthConversionRate = if (prevMonthLeads > 0) (prevMonthWonLeads.toDouble() / prevMonthLeads.toDouble()) * 100.0 else 0.0
 
-            val isMonthBelowTarget = currentMonthGoal != null &&
-                currentMonthActualProfit < currentMonthGoal.targetProfit
+            val revenueTrendPercentage = if (prevMonthRevenue > 0) ((totalRevenueThisMonth - prevMonthRevenue) / prevMonthRevenue) * 100.0 else 0.0
+            val conversionRateTrendPercentage = if (prevMonthConversionRate > 0) conversionRate - prevMonthConversionRate else 0.0
+            val averageOrderValueTrendPercentage = if (prevMonthAvgOrderValue > 0) ((avgOrderValue - prevMonthAvgOrderValue) / prevMonthAvgOrderValue) * 100.0 else 0.0
 
             DashboardStats(
                 totalLeadsThisMonth = totalLeadsThisMonth,
                 totalBookingsThisMonth = totalBookingsThisMonth,
                 totalRevenueThisMonth = totalRevenueThisMonth,
                 averageOrderValue = avgOrderValue,
-                conversionRate = 0.0,
-                revenueTrend = listOf(0.2, 0.4, 0.35, 0.6, 0.55, 0.85, 0.75, 0.95),
+                conversionRate = conversionRate,
+                revenueTrend = revenueTrend,
                 pendingPayments = pendingPayments,
                 openLeads = openLeads,
                 pendingDeliveries = pendingDeliveries,
@@ -247,7 +290,10 @@ class DashboardRepository {
                 projectPnLList = projectPnLList,
                 currentMonthGoal = currentMonthGoal,
                 currentMonthActualProfit = currentMonthActualProfit,
-                isMonthBelowTarget = isMonthBelowTarget
+                isMonthBelowTarget = isMonthBelowTarget,
+                revenueTrendPercentage = revenueTrendPercentage,
+                conversionRateTrendPercentage = conversionRateTrendPercentage,
+                averageOrderValueTrendPercentage = averageOrderValueTrendPercentage
             )
         }
     }

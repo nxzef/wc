@@ -33,7 +33,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.window.Dialog
+import com.nxzef.wc.shared.util.DateUtils
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -215,21 +227,57 @@ fun AddLeadScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    var showDatePicker by remember { mutableStateOf(false) }
+                    val datePickerState = rememberDatePickerState()
+
                     OutlinedTextField(
                         value = state.eventDate,
-                        onValueChange = {
-                            viewModel.onAction(
-                                AddLeadAction.OnEventDateChange(it)
-                            )
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Event Date") },
+                        modifier = Modifier.weight(1f).pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    if (event.type == PointerEventType.Release) {
+                                        showDatePicker = true
+                                    }
+                                }
+                            }
                         },
-                        label = { Text("Event Date (YYYY-MM-DD)") },
-                        modifier = Modifier.weight(1f),
                         singleLine = true,
                         shape = MaterialTheme.shapes.medium,
                         leadingIcon = {
                             Icon(Icons.Default.CalendarMonth, null)
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { showDatePicker = true }) {
+                                Icon(Icons.Default.CalendarMonth, null)
+                            }
                         }
                     )
+
+                    if (showDatePicker) {
+                        DatePickerDialog(
+                            onDismissRequest = { showDatePicker = false },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    datePickerState.selectedDateMillis?.let { millis ->
+                                        val date = Instant.fromEpochMilliseconds(millis)
+                                            .toLocalDateTime(TimeZone.UTC).date
+                                        viewModel.onAction(AddLeadAction.OnEventDateChange(date.toString()))
+                                    }
+                                    showDatePicker = false
+                                }) { Text("OK") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                            }
+                        ) {
+                            DatePicker(state = datePickerState)
+                        }
+                    }
+
                     OutlinedTextField(
                         value = state.location,
                         onValueChange = {

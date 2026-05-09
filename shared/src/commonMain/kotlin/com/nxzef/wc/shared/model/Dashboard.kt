@@ -22,5 +22,8 @@ data class DashboardStats(
     val projectPnLList: List<ProjectPnL> = emptyList(),
     val currentMonthGoal: MonthlyGoal? = null,
     val currentMonthActualProfit: Double = 0.0,
-    val isMonthBelowTarget: Boolean = false
+    val isMonthBelowTarget: Boolean = false,
+    val revenueTrendPercentage: Double = 0.0,
+    val conversionRateTrendPercentage: Double = 0.0,
+    val averageOrderValueTrendPercentage: Double = 0.0
 )

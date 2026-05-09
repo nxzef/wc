@@ -74,12 +74,29 @@ class LeadPipelineViewModel(
             is LeadPipelineAction.RequestDeleteStatus -> _state.update { it.copy(statusToDelete = action.status) }
             LeadPipelineAction.DismissDeleteStatusDialog -> _state.update { it.copy(statusToDelete = null) }
             LeadPipelineAction.ConfirmDeleteStatus -> deleteStatus()
+            is LeadPipelineAction.OnSearchQueryChange -> _state.update { it.copy(searchQuery = action.query) }
+            is LeadPipelineAction.OnFilterPriorityChange -> _state.update { it.copy(filterPriority = action.priority) }
+            is LeadPipelineAction.OnFilterSourceChange -> _state.update { it.copy(filterSource = action.source) }
+            is LeadPipelineAction.OnFilterMonthChange -> _state.update { it.copy(filterDateMonth = action.month) }
+            is LeadPipelineAction.OnFilterYearChange -> _state.update { it.copy(filterDateYear = action.year) }
+            is LeadPipelineAction.OnFilterStatusesChange -> _state.update { it.copy(filterStatusIds = action.statusIds) }
+            LeadPipelineAction.ClearFilters -> _state.update {
+                it.copy(
+                    searchQuery = "",
+                    filterPriority = null,
+                    filterSource = null,
+                    filterDateMonth = null,
+                    filterDateYear = null,
+                    filterStatusIds = emptySet()
+                )
+            }
         }
     }
 
     private fun collectRefreshTrigger() {
         viewModelScope.launch {
             RefreshManager.refreshTrigger.collect {
+                _state.update { it.copy(isRefreshing = true) }
                 loadLeads(silent = true)
             }
         }
@@ -193,12 +210,13 @@ class LeadPipelineViewModel(
                     if (silent && leads.size != oldLeads.size) {
                         _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Updated"))
                     }
-                    _state.update { it.copy(leads = leads, isLoading = false) }
+                    _state.update { it.copy(leads = leads, isLoading = false, isRefreshing = false) }
                     loadTaskCounts(leads)
                 }
                 .onFailure { error ->
+                    _state.update { it.copy(isLoading = false, isRefreshing = false) }
                     if (!silent) {
-                        _state.update { it.copy(error = ErrorMessages.forGeneric(error.message), isLoading = false) }
+                        _state.update { it.copy(error = ErrorMessages.forGeneric(error.message)) }
                     }
                 }
         }

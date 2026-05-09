@@ -9,6 +9,7 @@ data class TasksState(
     val leads: List<Lead> = emptyList(),
     val bookings: List<Booking> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val error: String? = null
 )
 

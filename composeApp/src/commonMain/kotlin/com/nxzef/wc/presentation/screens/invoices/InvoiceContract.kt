@@ -10,6 +10,7 @@ data class InvoiceState(
     val bookings: List<Booking> = emptyList(),
     val leads: List<Lead> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val selectedInvoice: Invoice? = null,
     val receipts: List<Receipt> = emptyList(),
     val isLoadingReceipts: Boolean = false,

@@ -52,6 +52,7 @@ class MarketingViewModel(
     private fun collectRefreshTrigger() {
         viewModelScope.launch {
             RefreshManager.refreshTrigger.collect {
+                _state.update { it.copy(isRefreshing = true) }
                 load(silent = true)
             }
         }
@@ -67,11 +68,12 @@ class MarketingViewModel(
                         .toList()
                         .sortedByDescending { it.second }
                         .toMap()
-                    _state.update { it.copy(leads = leads, sourceStats = stats, isLoading = false) }
+                    _state.update { it.copy(leads = leads, sourceStats = stats, isLoading = false, isRefreshing = false) }
                 }
                 .onFailure { e ->
+                    _state.update { it.copy(isLoading = false, isRefreshing = false) }
                     if (!silent) {
-                        _state.update { it.copy(error = ErrorMessages.forGeneric(e.message), isLoading = false) }
+                        _state.update { it.copy(error = ErrorMessages.forGeneric(e.message)) }
                     }
                 }
         }

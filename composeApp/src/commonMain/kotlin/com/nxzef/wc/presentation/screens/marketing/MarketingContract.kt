@@ -8,6 +8,7 @@ data class MarketingState(
     val sourceStats: Map<LeadSource, Int> = emptyMap(),
     val userName: String = "",
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val error: String? = null,
     val sourceFilter: LeadSource? = null
 )

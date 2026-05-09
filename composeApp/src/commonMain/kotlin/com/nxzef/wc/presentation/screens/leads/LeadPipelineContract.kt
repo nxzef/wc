@@ -1,11 +1,13 @@
 package com.nxzef.wc.presentation.screens.leads
 
 import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.model.LeadSource
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.Task
 
 data class LeadPipelineState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val leads: List<Lead> = emptyList(),
     val statuses: List<LeadStatus> = emptyList(),
     val taskCounts: Map<String, Int> = emptyMap(),
@@ -16,7 +18,13 @@ data class LeadPipelineState(
     val showAddTaskDialog: Boolean = false,
     val newTaskTitle: String = "",
     val showCreateStatusDialog: Boolean = false,
-    val statusToDelete: LeadStatus? = null
+    val statusToDelete: LeadStatus? = null,
+    val searchQuery: String = "",
+    val filterPriority: Int? = null,
+    val filterSource: LeadSource? = null,
+    val filterDateMonth: Int? = null, // 1-12
+    val filterDateYear: Int? = null,
+    val filterStatusIds: Set<String> = emptySet()
 )
 
 sealed interface LeadPipelineAction {
@@ -44,6 +52,13 @@ sealed interface LeadPipelineAction {
     data class RequestDeleteStatus(val status: LeadStatus) : LeadPipelineAction
     data object ConfirmDeleteStatus : LeadPipelineAction
     data object DismissDeleteStatusDialog : LeadPipelineAction
+    data class OnSearchQueryChange(val query: String) : LeadPipelineAction
+    data class OnFilterPriorityChange(val priority: Int?) : LeadPipelineAction
+    data class OnFilterSourceChange(val source: LeadSource?) : LeadPipelineAction
+    data class OnFilterMonthChange(val month: Int?) : LeadPipelineAction
+    data class OnFilterYearChange(val year: Int?) : LeadPipelineAction
+    data class OnFilterStatusesChange(val statusIds: Set<String>) : LeadPipelineAction
+    data object ClearFilters : LeadPipelineAction
 }
 
 sealed interface LeadPipelineUiEvent {

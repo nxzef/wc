@@ -13,8 +13,8 @@ object DateUtils {
     fun formatDisplayDate(isoDate: String): String {
         return try {
             val date = LocalDate.parse(isoDate)
-            val month = monthAbbr(date.month.ordinal + 1)
-            "${date.day} $month ${date.year}"
+            val month = getMonthName(date.month.ordinal + 1)
+            "${date.dayOfMonth} $month ${date.year}"
         } catch (_: Exception) {
             isoDate
         }
@@ -23,7 +23,7 @@ object DateUtils {
     fun formatShortDate(isoDate: String): String {
         return try {
             val date = LocalDate.parse(isoDate)
-            "${date.day} ${monthAbbr(date.month.ordinal + 1)}"
+            "${date.dayOfMonth} ${getMonthName(date.month.ordinal + 1)}"
         } catch (_: Exception) {
             isoDate
         }
@@ -59,7 +59,7 @@ object DateUtils {
 
     fun getCurrentMonthYear(): String {
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-        return "${monthAbbr(today.month.ordinal + 1)} ${today.year}"
+        return "${getMonthName(today.month.ordinal + 1)} ${today.year}"
     }
 
     fun getCurrentYear(): Int =
@@ -71,7 +71,29 @@ object DateUtils {
     // Kept for backward compatibility
     fun formatIsoDate(isoDate: String): String = isoDate
 
-    private fun monthAbbr(month: Int): String = when (month) {
+    fun getYear(isoDate: String?): Int? {
+        if (isoDate == null) return null
+        return try {
+            val date = LocalDate.parse(isoDate)
+            date.year
+        } catch (_: Exception) {
+            val parts = isoDate.split("-")
+            if (parts.isNotEmpty()) parts[0].toIntOrNull() else null
+        }
+    }
+
+    fun getMonth(isoDate: String?): Int? {
+        if (isoDate == null) return null
+        return try {
+            val date = LocalDate.parse(isoDate)
+            date.month.ordinal + 1
+        } catch (_: Exception) {
+            val parts = isoDate.split("-")
+            if (parts.size >= 2) parts[1].toIntOrNull() else null
+        }
+    }
+
+    fun getMonthName(month: Int): String = when (month) {
         1 -> "Jan"; 2 -> "Feb"; 3 -> "Mar"; 4 -> "Apr"
         5 -> "May"; 6 -> "Jun"; 7 -> "Jul"; 8 -> "Aug"
         9 -> "Sep"; 10 -> "Oct"; 11 -> "Nov"; 12 -> "Dec"

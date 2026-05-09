@@ -53,6 +53,7 @@ class BookingViewModel(
     private fun collectRefreshTrigger() {
         viewModelScope.launch {
             RefreshManager.refreshTrigger.collect {
+                _state.update { it.copy(isRefreshing = true) }
                 load(silent = true)
             }
         }
@@ -85,7 +86,7 @@ class BookingViewModel(
             teamResult.onSuccess { team ->
                 _state.update { it.copy(team = team) }
             }
-            if (!silent) _state.update { it.copy(isLoading = false) }
+            _state.update { it.copy(isLoading = false, isRefreshing = false) }
         }
     }
 
