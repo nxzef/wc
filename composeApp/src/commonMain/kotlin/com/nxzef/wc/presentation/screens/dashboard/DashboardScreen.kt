@@ -284,8 +284,8 @@ fun DashboardContent(
                             value = CurrencyUtils.formatINR(stats.totalRevenueThisMonth),
                             icon = Icons.Default.AccountBalanceWallet,
                             color = MaterialTheme.colorScheme.primary,
-                            trend = "+12.5%",
-                            isPositive = true
+                            trend = "${if (stats.revenueTrendPercentage >= 0) "+" else ""}${stats.revenueTrendPercentage.toInt()}%",
+                            isPositive = stats.revenueTrendPercentage >= 0
                         )
                         SummaryStatCard(
                             modifier = Modifier.weight(1f),
@@ -293,8 +293,8 @@ fun DashboardContent(
                             value = "${stats.conversionRate.toInt()}%",
                             icon = Icons.AutoMirrored.Filled.TrendingUp,
                             color = WCTheme.colors.statusWon,
-                            trend = "+4.2%",
-                            isPositive = true
+                            trend = "${if (stats.conversionRateTrendPercentage >= 0) "+" else ""}${stats.conversionRateTrendPercentage.toInt()}%",
+                            isPositive = stats.conversionRateTrendPercentage >= 0
                         )
                         SummaryStatCard(
                             modifier = Modifier.weight(1f),
@@ -302,8 +302,8 @@ fun DashboardContent(
                             value = CurrencyUtils.formatINR(stats.averageOrderValue),
                             icon = Icons.Default.Analytics,
                             color = MaterialTheme.colorScheme.tertiary,
-                            trend = "-2.1%",
-                            isPositive = false
+                            trend = "${if (stats.averageOrderValueTrendPercentage >= 0) "+" else ""}${stats.averageOrderValueTrendPercentage.toInt()}%",
+                            isPositive = stats.averageOrderValueTrendPercentage >= 0
                         )
                     }
                 } else {
@@ -317,8 +317,8 @@ fun DashboardContent(
                             value = CurrencyUtils.formatINR(stats.totalRevenueThisMonth),
                             icon = Icons.Default.AccountBalanceWallet,
                             color = MaterialTheme.colorScheme.primary,
-                            trend = "+12.5%",
-                            isPositive = true
+                            trend = "${if (stats.revenueTrendPercentage >= 0) "+" else ""}${stats.revenueTrendPercentage.toInt()}%",
+                            isPositive = stats.revenueTrendPercentage >= 0
                         )
                         SummaryStatCard(
                             modifier = Modifier.fillMaxWidth(),
@@ -326,8 +326,8 @@ fun DashboardContent(
                             value = "${stats.conversionRate.toInt()}%",
                             icon = Icons.AutoMirrored.Filled.TrendingUp,
                             color = WCTheme.colors.statusWon,
-                            trend = "+4.2%",
-                            isPositive = true
+                            trend = "${if (stats.conversionRateTrendPercentage >= 0) "+" else ""}${stats.conversionRateTrendPercentage.toInt()}%",
+                            isPositive = stats.conversionRateTrendPercentage >= 0
                         )
                         SummaryStatCard(
                             modifier = Modifier.fillMaxWidth(),
@@ -335,8 +335,8 @@ fun DashboardContent(
                             value = CurrencyUtils.formatINR(stats.averageOrderValue),
                             icon = Icons.Default.Analytics,
                             color = MaterialTheme.colorScheme.tertiary,
-                            trend = "-2.1%",
-                            isPositive = false
+                            trend = "${if (stats.averageOrderValueTrendPercentage >= 0) "+" else ""}${stats.averageOrderValueTrendPercentage.toInt()}%",
+                            isPositive = stats.averageOrderValueTrendPercentage >= 0
                         )
                     }
                 }
@@ -384,7 +384,8 @@ fun DashboardContent(
                     ) {
                         RevenueChart(
                             data = stats.revenueTrend.map { it.toFloat() },
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            targetGoal = stats.currentMonthGoal?.targetRevenue?.toFloat()
                         )
                     }
                 }
@@ -1014,7 +1015,8 @@ fun PremiumLeadCard(
 @Composable
 fun RevenueChart(
     data: List<Float>,
-    color: Color
+    color: Color,
+    targetGoal: Float? = null
 ) {
     // Use rememberSaveable to ensure animation only runs once per screen session
     var animationPlayed by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
@@ -1030,17 +1032,45 @@ fun RevenueChart(
         }
     }
 
+    val maxVal = (data.maxOrNull() ?: 1f).coerceAtLeast(targetGoal ?: 0f)
+
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height
-        val spacing = width / (data.size - 1)
+        val spacing = width / (data.size - 1).coerceAtLeast(1)
+
+        // Draw horizontal grid lines
+        val gridLines = 5
+        for (i in 0..gridLines) {
+            val y = height - (i * height / gridLines)
+            drawLine(
+                color = Color.LightGray.copy(alpha = 0.3f),
+                start = Offset(0f, y),
+                end = Offset(width, y),
+                strokeWidth = 1.dp.toPx()
+            )
+        }
+
+        // Draw Target Goal Line (Red)
+        targetGoal?.let { goal ->
+            val yGoal = height - (goal / maxVal * height)
+            drawLine(
+                color = Color.Red.copy(alpha = 0.6f),
+                start = Offset(0f, yGoal),
+                end = Offset(width, yGoal),
+                strokeWidth = 2.dp.toPx(),
+                cap = StrokeCap.Round,
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+            )
+        }
 
         val path = Path()
         val fillPath = Path()
 
         data.forEachIndexed { index, value ->
             val x = index * spacing
-            val y = height - (value * height)
+            val normalizedValue = if (maxVal > 0) value / maxVal else 0f
+            val y = height - (normalizedValue * height)
 
             if (index == 0) {
                 path.moveTo(x, y)
@@ -1080,16 +1110,17 @@ fun RevenueChart(
         
         data.forEachIndexed { index, value ->
             val x = index * spacing
+            val normalizedValue = if (maxVal > 0) value / maxVal else 0f
             if (x <= clipWidth) {
                 drawCircle(
                     color = color,
                     radius = 4.dp.toPx(),
-                    center = Offset(x, height - (value * height))
+                    center = Offset(x, height - (normalizedValue * height))
                 )
                 drawCircle(
                     color = Color.White,
                     radius = 2.dp.toPx(),
-                    center = Offset(x, height - (value * height))
+                    center = Offset(x, height - (normalizedValue * height))
                 )
             }
         }

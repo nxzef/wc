@@ -51,6 +51,7 @@ class TasksViewModel(
     private fun collectRefreshTrigger() {
         viewModelScope.launch {
             RefreshManager.refreshTrigger.collect {
+                _state.update { it.copy(isRefreshing = true) }
                 load(silent = true)
             }
         }
@@ -77,16 +78,18 @@ class TasksViewModel(
                     }
                     previousTaskCount = newCount
                     hasLoadedOnce = true
-                    _state.update { it.copy(pendingTasks = tasks, isLoading = false) }
+                    _state.update { it.copy(pendingTasks = tasks) }
                 }
                 .onFailure { e ->
                     if (!silent) {
-                        _state.update { it.copy(error = ErrorMessages.forGeneric(e.message), isLoading = false) }
+                        _state.update { it.copy(error = ErrorMessages.forGeneric(e.message)) }
                     }
                 }
 
             leadsResult.onSuccess { leads -> _state.update { it.copy(leads = leads) } }
             bookingsResult.onSuccess { bookings -> _state.update { it.copy(bookings = bookings) } }
+
+            _state.update { it.copy(isLoading = false, isRefreshing = false) }
         }
     }
 

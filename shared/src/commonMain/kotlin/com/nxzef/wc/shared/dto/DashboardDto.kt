@@ -23,7 +23,10 @@ data class DashboardStatsDto(
     val projectPnLList: List<ProjectPnLDto> = emptyList(),
     val currentMonthGoal: MonthlyGoalDto? = null,
     val currentMonthActualProfit: Double = 0.0,
-    val isMonthBelowTarget: Boolean = false
+    val isMonthBelowTarget: Boolean = false,
+    val revenueTrendPercentage: Double = 0.0,
+    val conversionRateTrendPercentage: Double = 0.0,
+    val averageOrderValueTrendPercentage: Double = 0.0
 )
 
 fun DashboardStatsDto.toDomain(): DashboardStats {
@@ -46,7 +49,10 @@ fun DashboardStatsDto.toDomain(): DashboardStats {
         projectPnLList = projectPnLList.map { it.toDomain() },
         currentMonthGoal = currentMonthGoal?.toDomain(),
         currentMonthActualProfit = currentMonthActualProfit,
-        isMonthBelowTarget = isMonthBelowTarget
+        isMonthBelowTarget = isMonthBelowTarget,
+        revenueTrendPercentage = revenueTrendPercentage,
+        conversionRateTrendPercentage = conversionRateTrendPercentage,
+        averageOrderValueTrendPercentage = averageOrderValueTrendPercentage
     )
 }
 
@@ -70,6 +76,9 @@ fun DashboardStats.toDto(): DashboardStatsDto {
         projectPnLList = projectPnLList.map { it.toDto() },
         currentMonthGoal = currentMonthGoal?.toDto(),
         currentMonthActualProfit = currentMonthActualProfit,
-        isMonthBelowTarget = isMonthBelowTarget
+        isMonthBelowTarget = isMonthBelowTarget,
+        revenueTrendPercentage = revenueTrendPercentage,
+        conversionRateTrendPercentage = conversionRateTrendPercentage,
+        averageOrderValueTrendPercentage = averageOrderValueTrendPercentage
     )
 }

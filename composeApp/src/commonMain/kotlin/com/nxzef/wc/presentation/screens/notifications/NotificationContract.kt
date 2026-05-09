@@ -6,6 +6,7 @@ data class NotificationState(
     val notifications: List<Notification> = emptyList(),
     val unreadCount: Int = 0,
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val isVisible: Boolean = false,
     val error: String? = null
 )

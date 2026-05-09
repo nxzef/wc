@@ -86,8 +86,21 @@ fun LeadPipelineScreen(
                     onBack = if (isMainScreen) null else onBack,
                     showNotificationIcon = isMainScreen,
                     actions = {
+                        OutlinedTextField(
+                            value = state.searchQuery,
+                            onValueChange = { viewModel.onAction(LeadPipelineAction.OnSearchQueryChange(it)) },
+                            placeholder = { Text("Filter leads...") },
+                            leadingIcon = { Icon(Icons.Default.FilterList, null) },
+                            modifier = Modifier.width(if (isCompact) 150.dp else 250.dp).padding(end = 8.dp),
+                            singleLine = true,
+                            shape = MaterialTheme.shapes.medium,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            )
+                        )
                         RefreshButton(
-                            isLoading = state.isLoading,
+                            isLoading = state.isLoading || state.isRefreshing,
                             onClick = { RefreshManager.triggerRefresh() }
                         )
                         Button(
@@ -110,6 +123,17 @@ fun LeadPipelineScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
+
+            val filteredLeads = remember(state.leads, state.searchQuery) {
+                if (state.searchQuery.isBlank()) state.leads
+                else state.leads.filter { lead ->
+                    lead.fullName.contains(state.searchQuery, ignoreCase = true) ||
+                    lead.phone.contains(state.searchQuery) ||
+                    (lead.email?.contains(state.searchQuery, ignoreCase = true) ?: false) ||
+                    lead.eventType.name.contains(state.searchQuery, ignoreCase = true) ||
+                    lead.source.name.contains(state.searchQuery, ignoreCase = true)
+                }
+            }
 
             when {
                 state.isLoading -> Box(contentModifier, contentAlignment = Alignment.Center) {
@@ -173,7 +197,7 @@ fun LeadPipelineScreen(
                                         columnBounds = columnBounds + (status.id to coords)
                                     },
                                 status = status,
-                                leads = state.leads.filter { it.customStatus?.id == status.id },
+                                leads = filteredLeads.filter { it.customStatus?.id == status.id },
                                 taskCounts = state.taskCounts,
                                 onLeadClick = { lead ->
                                     viewModel.onAction(LeadPipelineAction.SelectLead(lead))
@@ -519,7 +543,7 @@ fun LeadCard(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = Color(0xFFFFC107)
                             )
                         }
                     }

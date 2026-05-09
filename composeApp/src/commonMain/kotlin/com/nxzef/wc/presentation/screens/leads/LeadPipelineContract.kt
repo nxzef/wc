@@ -6,6 +6,7 @@ import com.nxzef.wc.shared.model.Task
 
 data class LeadPipelineState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val leads: List<Lead> = emptyList(),
     val statuses: List<LeadStatus> = emptyList(),
     val taskCounts: Map<String, Int> = emptyMap(),
@@ -16,7 +17,8 @@ data class LeadPipelineState(
     val showAddTaskDialog: Boolean = false,
     val newTaskTitle: String = "",
     val showCreateStatusDialog: Boolean = false,
-    val statusToDelete: LeadStatus? = null
+    val statusToDelete: LeadStatus? = null,
+    val searchQuery: String = ""
 )
 
 sealed interface LeadPipelineAction {
@@ -44,6 +46,7 @@ sealed interface LeadPipelineAction {
     data class RequestDeleteStatus(val status: LeadStatus) : LeadPipelineAction
     data object ConfirmDeleteStatus : LeadPipelineAction
     data object DismissDeleteStatusDialog : LeadPipelineAction
+    data class OnSearchQueryChange(val query: String) : LeadPipelineAction
 }
 
 sealed interface LeadPipelineUiEvent {

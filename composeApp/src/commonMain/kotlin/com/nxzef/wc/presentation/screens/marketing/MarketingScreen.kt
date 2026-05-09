@@ -86,7 +86,7 @@ fun MarketingScreen(
                 showNotificationIcon = isMainScreen,
                 actions = {
                     RefreshButton(
-                        isLoading = state.isLoading,
+                        isLoading = state.isLoading || state.isRefreshing,
                         onClick = { RefreshManager.triggerRefresh() }
                     )
                     Button(

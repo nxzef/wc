@@ -11,6 +11,7 @@ data class BookingState(
     val leads: List<Lead> = emptyList(),
     val team: List<User> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val selectedBooking: Booking? = null,
     // Filter
     val filterStatus: BookingStatus? = null,
