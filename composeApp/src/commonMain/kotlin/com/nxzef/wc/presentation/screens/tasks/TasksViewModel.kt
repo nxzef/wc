@@ -45,6 +45,7 @@ class TasksViewModel(
         when (action) {
             TasksAction.Load -> load(silent = false)
             is TasksAction.MarkDone -> markTaskDone(action.taskId, action.done)
+            is TasksAction.OnSearchQueryChange -> _state.update { it.copy(searchQuery = action.query) }
         }
     }
 

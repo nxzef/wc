@@ -13,7 +13,7 @@ data class BookingState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val selectedBooking: Booking? = null,
-    // Filter
+    val searchQuery: String = "",
     val filterStatus: BookingStatus? = null,
     // Task management
     val tasks: List<Task> = emptyList(),
@@ -31,6 +31,7 @@ sealed interface BookingAction {
         val status: BookingStatus
     ) : BookingAction
 
+    data class OnSearchQueryChange(val query: String) : BookingAction
     data class OnFilterStatus(
         val status: BookingStatus?
     ) : BookingAction

@@ -85,6 +85,9 @@ class InvoiceViewModel(
         when (action) {
             InvoiceAction.LoadInvoices -> load(silent = false)
 
+            is InvoiceAction.OnSearchQueryChange ->
+                _state.update { it.copy(searchQuery = action.query) }
+
             is InvoiceAction.SelectInvoice -> {
                 _state.update { it.copy(selectedInvoice = action.invoice, receipts = emptyList()) }
                 loadReceipts(action.invoice.id)

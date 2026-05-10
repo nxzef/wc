@@ -37,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.InvoiceStatusBadge
 import com.nxzef.wc.presentation.components.RefreshButton
+import com.nxzef.wc.presentation.components.WCSearchBar
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.util.RefreshManager
 import com.nxzef.wc.shared.util.CurrencyUtils
@@ -116,14 +118,13 @@ fun InvoiceScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                Icons.Default.Receipt,
-                                contentDescription = null,
+                                Icons.Default.Receipt, null,
                                 modifier = Modifier.size(64.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
                             Spacer(Modifier.height(16.dp))
                             Text(
-                                text = "No invoices yet",
+                                "No invoices yet",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -131,23 +132,73 @@ fun InvoiceScreen(
                     }
 
                     else -> {
+                        val filteredInvoices = remember(
+                            state.invoices, state.searchQuery, state.bookings, state.leads
+                        ) {
+                            if (state.searchQuery.isBlank()) state.invoices
+                            else {
+                                val q = state.searchQuery.trim()
+                                state.invoices.filter { invoice ->
+                                    val booking = state.bookings.find { it.id == invoice.bookingId }
+                                    val lead = booking?.let { b -> state.leads.find { it.id == b.leadId } }
+                                    lead?.fullName?.contains(q, ignoreCase = true) == true ||
+                                        booking?.eventType?.contains(q, ignoreCase = true) == true ||
+                                        booking?.eventDate?.contains(q, ignoreCase = true) == true ||
+                                        invoice.notes?.contains(q, ignoreCase = true) == true
+                                }
+                            }
+                        }
+
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(24.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             item {
+                                WCSearchBar(
+                                    query = state.searchQuery,
+                                    onQueryChange = { viewModel.onAction(InvoiceAction.OnSearchQueryChange(it)) },
+                                    placeholder = "Search invoices…",
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            item {
                                 InvoiceSummaryRow(invoices = state.invoices)
                             }
-                            items(state.invoices) { invoice ->
-                                val booking = state.bookings.find { it.id == invoice.bookingId }
-                                val lead = booking?.let { b -> state.leads.find { it.id == b.leadId } }
-                                InvoiceCard(
-                                    invoice = invoice,
-                                    booking = booking,
-                                    lead = lead,
-                                    onClick = { viewModel.onAction(InvoiceAction.SelectInvoice(invoice)) }
-                                )
+                            if (filteredInvoices.isEmpty()) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Receipt, null,
+                                                modifier = Modifier.size(40.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                            )
+                                            Text(
+                                                "No invoices match your search",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                items(filteredInvoices) { invoice ->
+                                    val booking = state.bookings.find { it.id == invoice.bookingId }
+                                    val lead = booking?.let { b -> state.leads.find { it.id == b.leadId } }
+                                    InvoiceCard(
+                                        invoice = invoice,
+                                        booking = booking,
+                                        lead = lead,
+                                        onClick = { viewModel.onAction(InvoiceAction.SelectInvoice(invoice)) }
+                                    )
+                                }
                             }
                         }
                     }

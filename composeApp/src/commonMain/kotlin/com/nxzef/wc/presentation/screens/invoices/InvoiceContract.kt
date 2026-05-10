@@ -15,11 +15,13 @@ data class InvoiceState(
     val receipts: List<Receipt> = emptyList(),
     val isLoadingReceipts: Boolean = false,
     val viewingReceipt: Receipt? = null,
-    val notes: String = ""
+    val notes: String = "",
+    val searchQuery: String = ""
 )
 
 sealed interface InvoiceAction {
     data object LoadInvoices : InvoiceAction
+    data class OnSearchQueryChange(val query: String) : InvoiceAction
     data class SelectInvoice(val invoice: Invoice) : InvoiceAction
     data object DismissDetail : InvoiceAction
     data class OnNotesChange(val value: String) : InvoiceAction

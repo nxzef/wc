@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -34,11 +36,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.RefreshButton
+import com.nxzef.wc.presentation.components.WCSearchBar
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.shared.model.Task
 import com.nxzef.wc.util.RefreshManager
@@ -144,51 +148,94 @@ fun TasksScreen(
                 }
 
                 else -> {
-                    val leadNameById  = state.leads.associate { it.id to it.fullName }
+                    val leadNameById     = state.leads.associate { it.id to it.fullName }
                     val bookingTitleById = state.bookings.associate { it.id to it.eventType }
 
-                    val leadTaskGroups    = state.pendingTasks
-                        .filter { it.leadId != null }
-                        .groupBy { it.leadId!! }
-
-                    val bookingTaskGroups = state.pendingTasks
-                        .filter { it.bookingId != null }
-                        .groupBy { it.bookingId!! }
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .widthIn(max = 1000.dp),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        leadTaskGroups.forEach { (leadId, tasks) ->
-                            val leadName = leadNameById[leadId] ?: "Lead"
-                            item(key = "lead-header-$leadId") {
-                                TaskGroupHeader(title = leadName, count = tasks.size)
-                            }
-                            items(items = tasks, key = { it.id }) { task ->
-                                TaskCard(
-                                    task = task,
-                                    onToggle = { done ->
-                                        viewModel.onAction(TasksAction.MarkDone(task.id, done))
-                                    }
-                                )
+                    val visibleTasks = remember(state.pendingTasks, state.searchQuery) {
+                        if (state.searchQuery.isBlank()) state.pendingTasks
+                        else {
+                            val q = state.searchQuery.trim()
+                            state.pendingTasks.filter { task ->
+                                task.title.contains(q, ignoreCase = true) ||
+                                    task.stageName?.contains(q, ignoreCase = true) == true ||
+                                    task.description?.contains(q, ignoreCase = true) == true ||
+                                    task.leadId?.let { leadNameById[it] }?.contains(q, ignoreCase = true) == true ||
+                                    task.bookingId?.let { bookingTitleById[it] }?.contains(q, ignoreCase = true) == true
                             }
                         }
+                    }
 
-                        bookingTaskGroups.forEach { (bookingId, tasks) ->
-                            val title = bookingTitleById[bookingId] ?: "Booking"
-                            item(key = "booking-header-$bookingId") {
-                                TaskGroupHeader(title = title, count = tasks.size)
+                    val leadTaskGroups    = visibleTasks.filter { it.leadId != null }.groupBy { it.leadId!! }
+                    val bookingTaskGroups = visibleTasks.filter { it.bookingId != null }.groupBy { it.bookingId!! }
+
+                    Column(modifier = Modifier.fillMaxSize().widthIn(max = 1000.dp)) {
+                        WCSearchBar(
+                            query = state.searchQuery,
+                            onQueryChange = { viewModel.onAction(TasksAction.OnSearchQueryChange(it)) },
+                            placeholder = "Search tasks…",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                        if (visibleTasks.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.Assignment,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                    )
+                                    Text(
+                                        "No tasks match your search",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
-                            items(items = tasks, key = { it.id }) { task ->
-                                TaskCard(
-                                    task = task,
-                                    onToggle = { done ->
-                                        viewModel.onAction(TasksAction.MarkDone(task.id, done))
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                leadTaskGroups.forEach { (leadId, tasks) ->
+                                    val leadName = leadNameById[leadId] ?: "Lead"
+                                    item(key = "lead-header-$leadId") {
+                                        TaskGroupHeader(title = leadName, count = tasks.size)
                                     }
-                                )
+                                    items(items = tasks, key = { it.id }) { task ->
+                                        TaskCard(
+                                            task = task,
+                                            onToggle = { done ->
+                                                viewModel.onAction(TasksAction.MarkDone(task.id, done))
+                                            }
+                                        )
+                                    }
+                                }
+
+                                bookingTaskGroups.forEach { (bookingId, tasks) ->
+                                    val title = bookingTitleById[bookingId] ?: "Booking"
+                                    item(key = "booking-header-$bookingId") {
+                                        TaskGroupHeader(title = title, count = tasks.size)
+                                    }
+                                    items(items = tasks, key = { it.id }) { task ->
+                                        TaskCard(
+                                            task = task,
+                                            onToggle = { done ->
+                                                viewModel.onAction(TasksAction.MarkDone(task.id, done))
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

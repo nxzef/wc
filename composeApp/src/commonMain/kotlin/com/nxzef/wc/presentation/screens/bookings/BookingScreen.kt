@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.AddTaskDialog
 import com.nxzef.wc.presentation.components.RefreshButton
+import com.nxzef.wc.presentation.components.WCSearchBar
 import com.nxzef.wc.shared.util.DateUtils
 import com.nxzef.wc.util.RefreshManager
 import com.nxzef.wc.presentation.components.BookingStatusBadge
@@ -117,49 +118,49 @@ fun BookingScreen(
                     .fillMaxSize()
                     .widthIn(max = 1000.dp)
             ) {
-                // Status filter chips
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(
-                        horizontal = 24.dp,
-                        vertical = 12.dp
-                    ),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // ── Search bar ──────────────────────────────────────────────
+                WCSearchBar(
+                    query = state.searchQuery,
+                    onQueryChange = { viewModel.onAction(BookingAction.OnSearchQueryChange(it)) },
+                    placeholder = "Search bookings…",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                )
+
+                // ── Status chips (centered) ─────────────────────────────────
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    item {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         FilterChip(
                             selected = state.filterStatus == null,
-                            onClick = {
-                                viewModel.onAction(
-                                    BookingAction.OnFilterStatus(null)
-                                )
-                            },
+                            onClick = { viewModel.onAction(BookingAction.OnFilterStatus(null)) },
                             label = { Text("All") },
-                            shape = MaterialTheme.shapes.medium
+                            shape = MaterialTheme.shapes.large
                         )
-                    }
-                    items(BookingStatus.entries) { status ->
-                        FilterChip(
-                            selected = state.filterStatus == status,
-                            onClick = {
-                                viewModel.onAction(
-                                    BookingAction.OnFilterStatus(status)
-                                )
-                            },
-                            label = {
-                                Text(status.name.replace("_", " "))
-                            },
-                            shape = MaterialTheme.shapes.medium
-                        )
+                        BookingStatus.entries.forEach { status ->
+                            FilterChip(
+                                selected = state.filterStatus == status,
+                                onClick = { viewModel.onAction(BookingAction.OnFilterStatus(status)) },
+                                label = { Text(status.name.replace("_", " ")) },
+                                shape = MaterialTheme.shapes.large
+                            )
+                        }
                     }
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                // Content
-                Box(
-                    modifier = Modifier.weight(1f)
-                ) {
+                // ── Content ─────────────────────────────────────────────────
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     when {
                         state.isLoading -> {
                             CircularProgressIndicator(

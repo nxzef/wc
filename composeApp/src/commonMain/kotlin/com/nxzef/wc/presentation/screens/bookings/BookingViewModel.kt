@@ -11,6 +11,7 @@ import com.nxzef.wc.domain.usecase.tasks.DeleteTaskUseCase
 import com.nxzef.wc.domain.usecase.tasks.GetTasksByBookingUseCase
 import com.nxzef.wc.domain.usecase.tasks.MarkTaskDoneUseCase
 import com.nxzef.wc.shared.model.BookingStatus
+import com.nxzef.wc.util.applySearch
 import com.nxzef.wc.shared.model.CreateTaskRequest
 import com.nxzef.wc.shared.model.UpdateBookingRequest
 import com.nxzef.wc.shared.util.onFailure
@@ -101,6 +102,8 @@ class BookingViewModel(
                 _state.update { it.copy(selectedBooking = null, tasks = emptyList()) }
             is BookingAction.OnUpdateStatus ->
                 updateStatus(action.bookingId, action.status)
+            is BookingAction.OnSearchQueryChange ->
+                _state.update { it.copy(searchQuery = action.query) }
             is BookingAction.OnFilterStatus ->
                 _state.update { it.copy(filterStatus = action.status) }
             is BookingAction.AssignPhotographer -> assignPhotographer(action.bookingId, action.userId)
@@ -214,7 +217,13 @@ class BookingViewModel(
 
     val filteredBookings
         get() = _state.value.let { s ->
-            if (s.filterStatus == null) s.bookings
-            else s.bookings.filter { it.status == s.filterStatus }
+            val byStatus = if (s.filterStatus == null) s.bookings
+                           else s.bookings.filter { it.status == s.filterStatus }
+            byStatus.applySearch(s.searchQuery,
+                { b -> s.leads.find { it.id == b.leadId }?.fullName },
+                { b -> b.eventType },
+                { b -> b.location },
+                { b -> b.eventDate }
+            )
         }
 }
