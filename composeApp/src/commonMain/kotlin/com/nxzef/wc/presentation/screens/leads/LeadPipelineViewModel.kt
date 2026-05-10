@@ -2,6 +2,7 @@ package com.nxzef.wc.presentation.screens.leads
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nxzef.wc.data.local.TokenStorage
 import com.nxzef.wc.domain.repository.LeadStatusRepository
 import com.nxzef.wc.domain.repository.TaskRepository
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
@@ -16,6 +17,7 @@ import com.nxzef.wc.shared.util.ErrorMessages
 import com.nxzef.wc.shared.util.onFailure
 import com.nxzef.wc.shared.util.onSuccess
 import com.nxzef.wc.util.RefreshManager
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -35,7 +37,8 @@ class LeadPipelineViewModel(
     private val createTaskUseCase: CreateTaskUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
     private val leadStatusRepository: LeadStatusRepository,
-    private val taskRepository: TaskRepository
+    private val taskRepository: TaskRepository,
+    private val tokenStorage: TokenStorage
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LeadPipelineState())
@@ -44,10 +47,13 @@ class LeadPipelineViewModel(
     private val _uiEvent = Channel<LeadPipelineUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
+    private var saveWidthsJob: Job? = null
+
     init {
         loadStatuses()
         loadLeads()
         collectRefreshTrigger()
+        loadPipelinePrefs()
     }
 
     fun onAction(action: LeadPipelineAction) {
@@ -77,6 +83,7 @@ class LeadPipelineViewModel(
             is LeadPipelineAction.OnSearchQueryChange -> _state.update { it.copy(searchQuery = action.query) }
             is LeadPipelineAction.OnFilterPriorityChange -> _state.update { it.copy(filterPriority = action.priority) }
             is LeadPipelineAction.OnFilterSourceChange -> _state.update { it.copy(filterSource = action.source) }
+            is LeadPipelineAction.OnFilterEventTypeChange -> _state.update { it.copy(filterEventType = action.eventType) }
             is LeadPipelineAction.OnFilterMonthChange -> _state.update { it.copy(filterDateMonth = action.month) }
             is LeadPipelineAction.OnFilterYearChange -> _state.update { it.copy(filterDateYear = action.year) }
             is LeadPipelineAction.OnFilterStatusesChange -> _state.update { it.copy(filterStatusIds = action.statusIds) }
@@ -85,11 +92,47 @@ class LeadPipelineViewModel(
                     searchQuery = "",
                     filterPriority = null,
                     filterSource = null,
+                    filterEventType = null,
                     filterDateMonth = null,
                     filterDateYear = null,
                     filterStatusIds = emptySet()
                 )
             }
+            LeadPipelineAction.ToggleViewLayout -> {
+                val next = if (_state.value.viewLayout == PipelineViewLayout.BOARD)
+                    PipelineViewLayout.LIST else PipelineViewLayout.BOARD
+                _state.update { it.copy(viewLayout = next) }
+                viewModelScope.launch { tokenStorage.savePipelineViewLayout(next.name) }
+            }
+            is LeadPipelineAction.OnColumnWidthChange -> {
+                _state.update {
+                    it.copy(columnWidths = it.columnWidths + (action.statusId to action.widthDp))
+                }
+                scheduleSaveColumnWidths()
+            }
+        }
+    }
+
+    private fun loadPipelinePrefs() {
+        viewModelScope.launch {
+            val layoutName = tokenStorage.getPipelineViewLayout()
+            val layout = layoutName?.let {
+                runCatching { PipelineViewLayout.valueOf(it) }.getOrNull()
+            } ?: PipelineViewLayout.BOARD
+
+            val widthsEncoded = tokenStorage.getPipelineColumnWidths()
+            val widths = decodeColumnWidths(widthsEncoded)
+
+            _state.update { it.copy(viewLayout = layout, columnWidths = widths) }
+        }
+    }
+
+    private fun scheduleSaveColumnWidths() {
+        saveWidthsJob?.cancel()
+        saveWidthsJob = viewModelScope.launch {
+            delay(600)
+            val encoded = encodeColumnWidths(_state.value.columnWidths)
+            tokenStorage.savePipelineColumnWidths(encoded)
         }
     }
 
@@ -154,7 +197,6 @@ class LeadPipelineViewModel(
         val leadId = s.selectedLead?.id ?: return
         val stageName = s.selectedLead.statusName
         if (s.newTaskTitle.isBlank()) return
-
         viewModelScope.launch {
             createTaskUseCase(
                 CreateTaskRequest(leadId = leadId, title = s.newTaskTitle, stageName = stageName)
@@ -253,6 +295,23 @@ class LeadPipelineViewModel(
                 .onFailure { error ->
                     _state.update { it.copy(error = ErrorMessages.forGeneric(error.message)) }
                 }
+        }
+    }
+
+    companion object {
+        fun encodeColumnWidths(widths: Map<String, Float>): String =
+            widths.entries.joinToString(",") { "${it.key}:${it.value}" }
+
+        fun decodeColumnWidths(encoded: String?): Map<String, Float> {
+            if (encoded.isNullOrBlank()) return emptyMap()
+            return encoded.split(",").mapNotNull { entry ->
+                val idx = entry.indexOf(':')
+                if (idx > 0) {
+                    val id = entry.substring(0, idx)
+                    val width = entry.substring(idx + 1).toFloatOrNull()
+                    width?.let { id to it }
+                } else null
+            }.toMap()
         }
     }
 }

@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -23,6 +24,8 @@ class TokenStorage(
         val TEAM_NAME_KEY     = stringPreferencesKey("team_name")
         val TEAM_INVITE_CODE_KEY = stringPreferencesKey("team_invite_code")
         val HAS_LAUNCHED_BEFORE_KEY = booleanPreferencesKey("has_launched_before")
+        val PIPELINE_VIEW_LAYOUT_KEY = stringPreferencesKey("pipeline_view_layout")
+        val PIPELINE_COLUMN_WIDTHS_KEY = stringPreferencesKey("pipeline_column_widths")
     }
 
     val token: Flow<String?> = dataStore.data.map { it[TOKEN_KEY] }
@@ -70,5 +73,19 @@ class TokenStorage(
 
     suspend fun markLaunchedBefore() {
         dataStore.edit { it[HAS_LAUNCHED_BEFORE_KEY] = true }
+    }
+
+    suspend fun getPipelineViewLayout(): String? =
+        dataStore.data.firstOrNull()?.get(PIPELINE_VIEW_LAYOUT_KEY)
+
+    suspend fun savePipelineViewLayout(layout: String) {
+        dataStore.edit { it[PIPELINE_VIEW_LAYOUT_KEY] = layout }
+    }
+
+    suspend fun getPipelineColumnWidths(): String? =
+        dataStore.data.firstOrNull()?.get(PIPELINE_COLUMN_WIDTHS_KEY)
+
+    suspend fun savePipelineColumnWidths(encoded: String) {
+        dataStore.edit { it[PIPELINE_COLUMN_WIDTHS_KEY] = encoded }
     }
 }

@@ -1,9 +1,12 @@
 package com.nxzef.wc.presentation.screens.leads
 
+import com.nxzef.wc.shared.model.EventType
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadSource
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.Task
+
+enum class PipelineViewLayout { BOARD, LIST }
 
 data class LeadPipelineState(
     val isLoading: Boolean = false,
@@ -22,9 +25,12 @@ data class LeadPipelineState(
     val searchQuery: String = "",
     val filterPriority: Int? = null,
     val filterSource: LeadSource? = null,
-    val filterDateMonth: Int? = null, // 1-12
+    val filterEventType: EventType? = null,
+    val filterDateMonth: Int? = null,
     val filterDateYear: Int? = null,
-    val filterStatusIds: Set<String> = emptySet()
+    val filterStatusIds: Set<String> = emptySet(),
+    val viewLayout: PipelineViewLayout = PipelineViewLayout.BOARD,
+    val columnWidths: Map<String, Float> = emptyMap()
 )
 
 sealed interface LeadPipelineAction {
@@ -52,13 +58,18 @@ sealed interface LeadPipelineAction {
     data class RequestDeleteStatus(val status: LeadStatus) : LeadPipelineAction
     data object ConfirmDeleteStatus : LeadPipelineAction
     data object DismissDeleteStatusDialog : LeadPipelineAction
+
     data class OnSearchQueryChange(val query: String) : LeadPipelineAction
     data class OnFilterPriorityChange(val priority: Int?) : LeadPipelineAction
     data class OnFilterSourceChange(val source: LeadSource?) : LeadPipelineAction
+    data class OnFilterEventTypeChange(val eventType: EventType?) : LeadPipelineAction
     data class OnFilterMonthChange(val month: Int?) : LeadPipelineAction
     data class OnFilterYearChange(val year: Int?) : LeadPipelineAction
     data class OnFilterStatusesChange(val statusIds: Set<String>) : LeadPipelineAction
     data object ClearFilters : LeadPipelineAction
+
+    data object ToggleViewLayout : LeadPipelineAction
+    data class OnColumnWidthChange(val statusId: String, val widthDp: Float) : LeadPipelineAction
 }
 
 sealed interface LeadPipelineUiEvent {

@@ -6,16 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -24,6 +20,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.FilterAltOff
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -31,7 +28,6 @@ import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -51,16 +47,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineAction
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineState
+import com.nxzef.wc.shared.model.EventType
 import com.nxzef.wc.shared.model.LeadSource
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.util.DateUtils
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+private val StarGold = Color(0xFFFFC107)
+
 @Composable
 fun LeadFilterBar(
     state: LeadPipelineState,
@@ -68,102 +66,101 @@ fun LeadFilterBar(
     modifier: Modifier = Modifier
 ) {
     val currentYear = remember { DateUtils.getCurrentYear() }
-    
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Search Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            OutlinedTextField(
-                value = state.searchQuery,
-                onValueChange = { onAction(LeadPipelineAction.OnSearchQueryChange(it)) },
-                placeholder = { Text("Search leads...", style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) },
-                trailingIcon = if (state.searchQuery.isNotEmpty()) {
-                    {
-                        IconButton(onClick = { onAction(LeadPipelineAction.OnSearchQueryChange("")) }) {
-                            Icon(Icons.Default.Close, null, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                } else null,
-                modifier = Modifier
-                    .widthIn(max = 600.dp)
-                    .fillMaxWidth()
-                    .height(52.dp),
-                singleLine = true,
-                shape = MaterialTheme.shapes.large,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                ),
-                textStyle = MaterialTheme.typography.bodyMedium
-            )
-        }
 
-        // Filters Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+    // Derive available years from actual lead event dates
+    val availableYears = remember(state.leads) {
+        val years = state.leads.mapNotNull { DateUtils.getYear(it.eventDate) }.toSortedSet()
+        if (years.isEmpty()) listOf(currentYear) else years.toList()
+    }
+
+    Row(
+        modifier = modifier.height(48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        // ── Search (start) ───────────────────────────────────────────────────
+        OutlinedTextField(
+            value = state.searchQuery,
+            onValueChange = { onAction(LeadPipelineAction.OnSearchQueryChange(it)) },
+            placeholder = {
+                Text("Search leads…", style = MaterialTheme.typography.bodySmall)
+            },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Search, null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            trailingIcon = if (state.searchQuery.isNotEmpty()) {
+                {
+                    IconButton(
+                        onClick = { onAction(LeadPipelineAction.OnSearchQueryChange("")) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Default.Close, null, modifier = Modifier.size(15.dp))
+                    }
+                }
+            } else null,
+            modifier = Modifier.width(220.dp).height(48.dp),
+            singleLine = true,
+            shape = MaterialTheme.shapes.large,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+            ),
+            textStyle = MaterialTheme.typography.bodySmall
+        )
+
+        // ── Chips (centred in remaining middle space) ─────────────────────
+        Box(
+            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center
         ) {
             Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(horizontal = 4.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Status Filter (God Chip)
+                // God chip — status column selector
                 StatusMultiSelectChip(
                     allStatuses = state.statuses,
                     selectedStatusIds = state.filterStatusIds,
                     onSelectionChange = { onAction(LeadPipelineAction.OnFilterStatusesChange(it)) }
                 )
 
-                VerticalDivider(modifier = Modifier.height(24.dp).padding(horizontal = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
-
-                // Priority Filter
-                FilterChipItem(
-                    selected = state.filterPriority != null,
-                    onClick = {
-                        val next = when (state.filterPriority) {
-                            null -> 3
-                            3 -> 2
-                            2 -> 1
-                            else -> null
-                        }
-                        onAction(LeadPipelineAction.OnFilterPriorityChange(next))
-                    },
-                    label = if (state.filterPriority == null) "Priority" else "${state.filterPriority}★",
-                    icon = Icons.Default.Star
+                VerticalDivider(
+                    modifier = Modifier.height(24.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
                 )
 
-                // Source Filter
+                // Priority — gold star, 5 levels
+                PriorityFilterChip(
+                    filterPriority = state.filterPriority,
+                    onPriorityChange = { onAction(LeadPipelineAction.OnFilterPriorityChange(it)) }
+                )
+
+                // Source
                 SourceFilterChip(
                     selectedSource = state.filterSource,
                     onSourceSelected = { onAction(LeadPipelineAction.OnFilterSourceChange(it)) }
                 )
 
-                // Month Filter
+                // Event Type
+                EventTypeFilterChip(
+                    selectedEventType = state.filterEventType,
+                    onEventTypeSelected = { onAction(LeadPipelineAction.OnFilterEventTypeChange(it)) }
+                )
+
+                // Month
                 MonthFilterChip(
                     selectedMonth = state.filterDateMonth,
                     onMonthSelected = { onAction(LeadPipelineAction.OnFilterMonthChange(it)) }
                 )
 
-                // Year Filter (at the right side of this scrollable row)
-                YearFilterChip(
-                    selectedYear = state.filterDateYear ?: currentYear,
-                    onYearSelected = { onAction(LeadPipelineAction.OnFilterYearChange(it)) }
-                )
-
+                // Clear all filters
                 if (hasActiveFilters(state)) {
                     IconButton(
                         onClick = { onAction(LeadPipelineAction.ClearFilters) },
@@ -171,16 +168,27 @@ fun LeadFilterBar(
                     ) {
                         Icon(
                             Icons.Default.FilterAltOff,
-                            contentDescription = "Clear All",
+                            contentDescription = "Clear All Filters",
                             tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
         }
+
+        // ── Year (end, pinned) ───────────────────────────────────────────────
+        YearFilterChip(
+            selectedYear = state.filterDateYear,
+            availableYears = availableYears,
+            onYearSelected = { onAction(LeadPipelineAction.OnFilterYearChange(it)) }
+        )
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Status "God Chip"
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun StatusMultiSelectChip(
@@ -189,21 +197,27 @@ fun StatusMultiSelectChip(
     onSelectionChange: (Set<String>) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val label = if (selectedStatusIds.isEmpty() || selectedStatusIds.size == allStatuses.size) {
-        "All Columns"
-    } else {
-        "${selectedStatusIds.size} Columns"
-    }
+    val isFiltered = selectedStatusIds.isNotEmpty() && selectedStatusIds.size < allStatuses.size
 
-    val isSelected = selectedStatusIds.isNotEmpty() && selectedStatusIds.size < allStatuses.size
+    val label = when {
+        isFiltered -> "(${selectedStatusIds.size}) selected"
+        else -> "All Columns"
+    }
 
     Box {
         Surface(
             modifier = Modifier
                 .clip(MaterialTheme.shapes.large)
                 .clickable { expanded = true },
-            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+            color = if (isFiltered)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+            border = BorderStroke(
+                1.5.dp,
+                if (isFiltered) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            ),
             shape = MaterialTheme.shapes.large
         ) {
             Row(
@@ -214,20 +228,20 @@ fun StatusMultiSelectChip(
                 Icon(
                     imageVector = Icons.Default.ViewColumn,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Icon(
                     imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -237,8 +251,9 @@ fun StatusMultiSelectChip(
             onDismissRequest = { expanded = false },
             modifier = Modifier.width(200.dp).background(MaterialTheme.colorScheme.surface)
         ) {
-            val allSelected = selectedStatusIds.isEmpty() || selectedStatusIds.size == allStatuses.size
-            
+            val allSelected =
+                selectedStatusIds.isEmpty() || selectedStatusIds.size == allStatuses.size
+
             DropdownMenuItem(
                 text = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -257,9 +272,9 @@ fun StatusMultiSelectChip(
                     expanded = false
                 }
             )
-            
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            
+
             allStatuses.forEach { status ->
                 val selected = selectedStatusIds.contains(status.id)
                 DropdownMenuItem(
@@ -268,27 +283,29 @@ fun StatusMultiSelectChip(
                             Checkbox(
                                 checked = selected,
                                 onCheckedChange = { isChecked ->
-                                    val newSet = if (isChecked) {
-                                        selectedStatusIds + status.id
-                                    } else {
-                                        selectedStatusIds - status.id
-                                    }
-                                    onSelectionChange(newSet)
+                                    onSelectionChange(
+                                        if (isChecked) selectedStatusIds + status.id
+                                        else selectedStatusIds - status.id
+                                    )
                                 }
                             )
-                            Spacer(Modifier.width(8.dp))
-                            Box(modifier = Modifier.size(10.dp).background(status.color.toComposeColor(), MaterialTheme.shapes.extraSmall))
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(
+                                        status.color.toComposeColor(),
+                                        MaterialTheme.shapes.extraSmall
+                                    )
+                            )
                             Spacer(Modifier.width(8.dp))
                             Text(status.name, style = MaterialTheme.typography.bodyMedium)
                         }
                     },
                     onClick = {
-                        val newSet = if (selected) {
-                            selectedStatusIds - status.id
-                        } else {
-                            selectedStatusIds + status.id
-                        }
-                        onSelectionChange(newSet)
+                        onSelectionChange(
+                            if (selected) selectedStatusIds - status.id
+                            else selectedStatusIds + status.id
+                        )
                     }
                 )
             }
@@ -296,34 +313,54 @@ fun StatusMultiSelectChip(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Priority chip — gold star, 5 levels
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
-fun FilterChipItem(
-    selected: Boolean,
-    onClick: () -> Unit,
-    label: String,
-    icon: ImageVector
+fun PriorityFilterChip(
+    filterPriority: Int?,
+    onPriorityChange: (Int?) -> Unit
 ) {
+    val isActive = filterPriority != null
+    val label = if (filterPriority == null) "Priority" else "${filterPriority}★"
+
     FilterChip(
-        selected = selected,
-        onClick = onClick,
+        selected = isActive,
+        onClick = {
+            val next = when (filterPriority) {
+                null -> 5; 5 -> 4; 4 -> 3; 3 -> 2; 2 -> 1; else -> null
+            }
+            onPriorityChange(next)
+        },
         label = { Text(label, style = MaterialTheme.typography.labelLarge) },
-        leadingIcon = { Icon(icon, null, modifier = Modifier.size(16.dp)) },
+        leadingIcon = {
+            Icon(
+                Icons.Default.Star, null,
+                modifier = Modifier.size(16.dp),
+                tint = StarGold
+            )
+        },
         shape = MaterialTheme.shapes.large,
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.primary,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.primary
+            selectedContainerColor = StarGold.copy(alpha = 0.12f),
+            selectedLabelColor = StarGold,
+            selectedLeadingIconColor = StarGold
         ),
         border = FilterChipDefaults.filterChipBorder(
-            borderColor = MaterialTheme.colorScheme.outlineVariant,
-            selectedBorderColor = MaterialTheme.colorScheme.primary,
-            borderWidth = 1.dp,
-            selectedBorderWidth = 1.dp,
             enabled = true,
-            selected = selected
+            selected = isActive,
+            borderColor = MaterialTheme.colorScheme.outlineVariant,
+            selectedBorderColor = StarGold,
+            borderWidth = 1.dp,
+            selectedBorderWidth = 1.dp
         )
     )
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Source chip
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun SourceFilterChip(
@@ -335,10 +372,24 @@ fun SourceFilterChip(
         FilterChip(
             selected = selectedSource != null,
             onClick = { expanded = true },
-            label = { Text(selectedSource?.name ?: "Source", style = MaterialTheme.typography.labelLarge) },
-            leadingIcon = { Icon(Icons.Default.Share, null, modifier = Modifier.size(16.dp)) },
-            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp)) },
-            shape = MaterialTheme.shapes.large
+            label = {
+                Text(
+                    selectedSource?.name ?: "Source",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            },
+            leadingIcon = {
+                Icon(Icons.Default.Share, null, modifier = Modifier.size(16.dp))
+            },
+            trailingIcon = {
+                Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(16.dp))
+            },
+            shape = MaterialTheme.shapes.large,
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                selectedLeadingIconColor = MaterialTheme.colorScheme.primary
+            )
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
@@ -355,6 +406,58 @@ fun SourceFilterChip(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Event type chip
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun EventTypeFilterChip(
+    selectedEventType: EventType?,
+    onEventTypeSelected: (EventType?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = selectedEventType != null,
+            onClick = { expanded = true },
+            label = {
+                Text(
+                    selectedEventType?.name ?: "Event",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            },
+            leadingIcon = {
+                Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(16.dp))
+            },
+            trailingIcon = {
+                Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(16.dp))
+            },
+            shape = MaterialTheme.shapes.large,
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                selectedLeadingIconColor = MaterialTheme.colorScheme.primary
+            )
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text("All Events") },
+                onClick = { onEventTypeSelected(null); expanded = false }
+            )
+            EventType.entries.forEach { type ->
+                DropdownMenuItem(
+                    text = { Text(type.name) },
+                    onClick = { onEventTypeSelected(type); expanded = false }
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Month chip
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
 fun MonthFilterChip(
     selectedMonth: Int?,
@@ -365,10 +468,24 @@ fun MonthFilterChip(
         FilterChip(
             selected = selectedMonth != null,
             onClick = { expanded = true },
-            label = { Text(if (selectedMonth == null) "Month" else DateUtils.getMonthName(selectedMonth), style = MaterialTheme.typography.labelLarge) },
-            leadingIcon = { Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(16.dp)) },
-            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp)) },
-            shape = MaterialTheme.shapes.large
+            label = {
+                Text(
+                    if (selectedMonth == null) "Month" else DateUtils.getMonthName(selectedMonth),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            },
+            leadingIcon = {
+                Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(16.dp))
+            },
+            trailingIcon = {
+                Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(16.dp))
+            },
+            shape = MaterialTheme.shapes.large,
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                selectedLeadingIconColor = MaterialTheme.colorScheme.primary
+            )
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
@@ -385,28 +502,57 @@ fun MonthFilterChip(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Year chip — only shows years present in leads
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
 fun YearFilterChip(
-    selectedYear: Int,
+    selectedYear: Int?,
+    availableYears: List<Int>,
     onYearSelected: (Int?) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val currentYear = remember { DateUtils.getCurrentYear() }
-    val years = (currentYear - 2..currentYear + 2).toList()
-
+    val isActive = selectedYear != null
     Box {
         FilterChip(
-            selected = true,
+            selected = isActive,
             onClick = { expanded = true },
-            label = { Text(selectedYear.toString(), style = MaterialTheme.typography.labelLarge) },
-            leadingIcon = { Icon(Icons.Default.Event, null, modifier = Modifier.size(16.dp)) },
-            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp)) },
-            shape = MaterialTheme.shapes.large
+            label = {
+                Text(
+                    selectedYear?.toString() ?: "Year",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            },
+            leadingIcon = {
+                Icon(Icons.Default.Event, null, modifier = Modifier.size(16.dp))
+            },
+            trailingIcon = {
+                Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(16.dp))
+            },
+            shape = MaterialTheme.shapes.large,
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                selectedLeadingIconColor = MaterialTheme.colorScheme.primary
+            )
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            years.forEach { year ->
+            if (isActive) {
                 DropdownMenuItem(
-                    text = { Text(year.toString()) },
+                    text = { Text("All Years") },
+                    onClick = { onYearSelected(null); expanded = false }
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+            }
+            availableYears.forEach { year ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            year.toString(),
+                            fontWeight = if (year == selectedYear) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
                     onClick = { onYearSelected(year); expanded = false }
                 )
             }
@@ -414,11 +560,11 @@ fun YearFilterChip(
     }
 }
 
-private fun hasActiveFilters(state: LeadPipelineState): Boolean {
-    return state.searchQuery.isNotEmpty() || 
-           state.filterPriority != null || 
-           state.filterSource != null || 
-           state.filterDateMonth != null || 
-           state.filterStatusIds.isNotEmpty() ||
-           state.filterDateYear != null
-}
+internal fun hasActiveFilters(state: LeadPipelineState): Boolean =
+    state.searchQuery.isNotEmpty() ||
+    state.filterPriority != null ||
+    state.filterSource != null ||
+    state.filterEventType != null ||
+    state.filterDateMonth != null ||
+    state.filterStatusIds.isNotEmpty() ||
+    state.filterDateYear != null
