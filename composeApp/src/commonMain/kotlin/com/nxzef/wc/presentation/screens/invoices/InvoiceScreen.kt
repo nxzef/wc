@@ -179,13 +179,13 @@ fun InvoiceScreen(
                                         ) {
                                             Icon(
                                                 Icons.Default.Receipt, null,
-                                                modifier = Modifier.size(40.dp),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                                modifier = Modifier.size(48.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                                             )
                                             Text(
                                                 "No invoices match your search",
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                             )
                                         }
                                     }
@@ -253,18 +253,21 @@ fun InvoiceSummaryRow(invoices: List<Invoice>) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        SummaryCard(Modifier.weight(1f), "Total Revenue", CurrencyUtils.formatINR(totalRevenue), MaterialTheme.colorScheme.primary)
-        SummaryCard(Modifier.weight(1f), "Collected", CurrencyUtils.formatINR(collected), WCTheme.colors.statusWon)
-        SummaryCard(Modifier.weight(1f), "Pending", CurrencyUtils.formatINR(pending), WCTheme.colors.statusLost)
+        SummaryCard(Modifier.weight(1f), "Total Revenue", CurrencyUtils.formatINR(totalRevenue), MaterialTheme.colorScheme.primary, true)
+        SummaryCard(Modifier.weight(1f), "Collected", CurrencyUtils.formatINR(collected), WCTheme.colors.statusWon, false)
+        SummaryCard(Modifier.weight(1f), "Pending", CurrencyUtils.formatINR(pending), WCTheme.colors.statusLost, false)
     }
 }
 
 @Composable
-fun SummaryCard(modifier: Modifier = Modifier, label: String, value: String, color: Color) {
+fun SummaryCard(modifier: Modifier = Modifier, label: String, value: String, color: Color, isPrimary: Boolean) {
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isPrimary) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+            else MaterialTheme.colorScheme.surfaceContainerLow
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {

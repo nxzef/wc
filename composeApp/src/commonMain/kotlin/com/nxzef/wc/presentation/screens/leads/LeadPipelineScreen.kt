@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,6 +31,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
@@ -42,11 +42,8 @@ import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ViewColumn
-import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AlertDialog
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -91,6 +88,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.data.session.SessionManager
@@ -101,11 +100,11 @@ import com.nxzef.wc.presentation.components.RefreshButton
 import com.nxzef.wc.presentation.components.TaskCheckItem
 import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.presentation.components.toComposeColor
-import com.nxzef.wc.shared.util.DateUtils
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.Task
 import com.nxzef.wc.shared.model.UserRole
+import com.nxzef.wc.shared.util.DateUtils
 import com.nxzef.wc.util.RefreshManager
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
@@ -120,21 +119,21 @@ val STATUS_COLORS = listOf(
 
 private const val BOARD_COL_DEFAULT = 300f
 
-private const val COL_NAME     = "list_name"
-private const val COL_STATUS   = "list_status"
-private const val COL_DATE     = "list_date"
-private const val COL_PHONE    = "list_phone"
-private const val COL_EVENT    = "list_event"
-private const val COL_SOURCE   = "list_source"
+private const val COL_NAME = "list_name"
+private const val COL_STATUS = "list_status"
+private const val COL_DATE = "list_date"
+private const val COL_PHONE = "list_phone"
+private const val COL_EVENT = "list_event"
+private const val COL_SOURCE = "list_source"
 private const val COL_PRIORITY = "list_priority"
 
 private val LIST_COL_DEFAULTS = mapOf(
-    COL_NAME     to 200f,
-    COL_STATUS   to 130f,
-    COL_DATE     to 110f,
-    COL_PHONE    to 140f,
-    COL_EVENT    to 100f,
-    COL_SOURCE   to 110f,
+    COL_NAME to 200f,
+    COL_STATUS to 130f,
+    COL_DATE to 110f,
+    COL_PHONE to 140f,
+    COL_EVENT to 100f,
+    COL_SOURCE to 110f,
     COL_PRIORITY to 90f
 )
 
@@ -161,14 +160,14 @@ private fun SegmentTab(
                 icon, null,
                 modifier = Modifier.size(15.dp),
                 tint = if (selected) MaterialTheme.colorScheme.primary
-                       else MaterialTheme.colorScheme.onSurfaceVariant
+                else MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 label,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                 color = if (selected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
+                else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -231,7 +230,7 @@ fun LeadPipelineScreen(
                                 }
                             )
                             SegmentTab(
-                                icon = Icons.Default.ViewList,
+                                icon = Icons.AutoMirrored.Filled.ViewList,
                                 label = "List",
                                 selected = !isBoardActive,
                                 onClick = {
@@ -281,11 +280,11 @@ fun LeadPipelineScreen(
             ) {
                 state.leads.filter { lead ->
                     val matchesQuery = state.searchQuery.isBlank() ||
-                        lead.fullName.contains(state.searchQuery, ignoreCase = true) ||
-                        lead.phone.contains(state.searchQuery) ||
-                        (lead.email?.contains(state.searchQuery, ignoreCase = true) == true) ||
-                        lead.eventType.name.contains(state.searchQuery, ignoreCase = true) ||
-                        lead.source.name.contains(state.searchQuery, ignoreCase = true)
+                            lead.fullName.contains(state.searchQuery, ignoreCase = true) ||
+                            lead.phone.contains(state.searchQuery) ||
+                            (lead.email?.contains(state.searchQuery, ignoreCase = true) == true) ||
+                            lead.eventType.name.contains(state.searchQuery, ignoreCase = true) ||
+                            lead.source.name.contains(state.searchQuery, ignoreCase = true)
 
                     val matchesPriority =
                         state.filterPriority == null || lead.priority == state.filterPriority
@@ -294,14 +293,15 @@ fun LeadPipelineScreen(
                     val matchesEventType =
                         state.filterEventType == null || lead.eventType == state.filterEventType
                     val matchesStatus = state.filterStatusIds.isEmpty() ||
-                        (lead.customStatus?.id?.let { state.filterStatusIds.contains(it) } ?: false)
+                            (lead.customStatus?.id?.let { state.filterStatusIds.contains(it) }
+                                ?: false)
                     val matchesMonth = state.filterDateMonth == null ||
-                        DateUtils.getMonth(lead.eventDate) == state.filterDateMonth
+                            DateUtils.getMonth(lead.eventDate) == state.filterDateMonth
                     val matchesYear = state.filterDateYear == null ||
-                        DateUtils.getYear(lead.eventDate) == state.filterDateYear
+                            DateUtils.getYear(lead.eventDate) == state.filterDateYear
 
                     matchesQuery && matchesPriority && matchesSource && matchesEventType &&
-                        matchesMonth && matchesYear && matchesStatus
+                            matchesMonth && matchesYear && matchesStatus
                 }
             }
 
@@ -309,6 +309,7 @@ fun LeadPipelineScreen(
                 state.isLoading -> Box(contentModifier, contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
+
                 state.error != null -> Column(
                     modifier = contentModifier,
                     verticalArrangement = Arrangement.Center,
@@ -320,6 +321,7 @@ fun LeadPipelineScreen(
                         Text("Retry")
                     }
                 }
+
                 state.statuses.isEmpty() -> Column(
                     modifier = contentModifier,
                     verticalArrangement = Arrangement.Center,
@@ -340,6 +342,7 @@ fun LeadPipelineScreen(
                         Text("Add Status")
                     }
                 }
+
                 else -> {
                     val horizontalPadding = if (isCompact) 16.dp else 24.dp
 
@@ -362,13 +365,19 @@ fun LeadPipelineScreen(
                                     leads = filteredLeads,
                                     columnWidths = state.columnWidths,
                                     onColumnWidthChange = { key, width ->
-                                        viewModel.onAction(LeadPipelineAction.OnColumnWidthChange(key, width))
+                                        viewModel.onAction(
+                                            LeadPipelineAction.OnColumnWidthChange(
+                                                key,
+                                                width
+                                            )
+                                        )
                                     },
                                     modifier = Modifier.fillMaxSize(),
                                     onLeadClick = { lead ->
                                         viewModel.onAction(LeadPipelineAction.SelectLead(lead))
                                     }
                                 )
+
                                 PipelineViewLayout.BOARD -> {
                                     var columnBounds by remember {
                                         mutableStateOf(mapOf<String, androidx.compose.ui.layout.LayoutCoordinates>())
@@ -396,13 +405,13 @@ fun LeadPipelineScreen(
                                         state.statuses
                                             .filter { status ->
                                                 state.filterStatusIds.isEmpty() ||
-                                                    state.filterStatusIds.contains(status.id)
+                                                        state.filterStatusIds.contains(status.id)
                                             }
                                             .forEach { status ->
                                                 key(status.id) {
                                                     val isDraggingFromThisColumn = state.leads.any {
                                                         it.id == draggingLeadId &&
-                                                            it.customStatus?.id == status.id
+                                                                it.customStatus?.id == status.id
                                                     }
                                                     Box(
                                                         modifier = Modifier
@@ -414,7 +423,8 @@ fun LeadPipelineScreen(
                                                             modifier = Modifier
                                                                 .fillMaxSize()
                                                                 .onGloballyPositioned { coords ->
-                                                                    columnBounds = columnBounds + (status.id to coords)
+                                                                    columnBounds =
+                                                                        columnBounds + (status.id to coords)
                                                                 },
                                                             status = status,
                                                             leads = filteredLeads.filter {
@@ -423,13 +433,17 @@ fun LeadPipelineScreen(
                                                             taskCounts = state.taskCounts,
                                                             onLeadClick = { lead ->
                                                                 viewModel.onAction(
-                                                                    LeadPipelineAction.SelectLead(lead)
+                                                                    LeadPipelineAction.SelectLead(
+                                                                        lead
+                                                                    )
                                                                 )
                                                             },
                                                             onDeleteStatus = if (status.isDefault) null else {
                                                                 {
                                                                     viewModel.onAction(
-                                                                        LeadPipelineAction.RequestDeleteStatus(status)
+                                                                        LeadPipelineAction.RequestDeleteStatus(
+                                                                            status
+                                                                        )
                                                                     )
                                                                 }
                                                             },
@@ -439,7 +453,10 @@ fun LeadPipelineScreen(
                                                                 var found = false
                                                                 columnBounds.forEach { (sid, coords) ->
                                                                     if (coords.isAttached &&
-                                                                        coords.boundsInWindow().contains(currentPosition)
+                                                                        coords.boundsInWindow()
+                                                                            .contains(
+                                                                                currentPosition
+                                                                            )
                                                                     ) {
                                                                         hoveredStatusId = sid
                                                                         found = true
@@ -452,10 +469,14 @@ fun LeadPipelineScreen(
                                                                 hoveredStatusId = null
                                                                 columnBounds.forEach { (sid, coords) ->
                                                                     if (coords.isAttached &&
-                                                                        coords.boundsInWindow().contains(finalPosition)
+                                                                        coords.boundsInWindow()
+                                                                            .contains(finalPosition)
                                                                     ) {
                                                                         viewModel.onAction(
-                                                                            LeadPipelineAction.UpdateStatus(leadId, sid)
+                                                                            LeadPipelineAction.UpdateStatus(
+                                                                                leadId,
+                                                                                sid
+                                                                            )
                                                                         )
                                                                     }
                                                                 }
@@ -472,7 +493,11 @@ fun LeadPipelineScreen(
                                             shape = MaterialTheme.shapes.medium,
                                             modifier = Modifier.width(160.dp).padding(top = 8.dp)
                                         ) {
-                                            Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                                            Icon(
+                                                Icons.Default.Add,
+                                                null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
                                             Spacer(Modifier.width(4.dp))
                                             Text("Add Status")
                                         }
@@ -594,15 +619,16 @@ fun LeadListView(
                     )
                 }
                 listOf(
-                    COL_NAME     to "Name",
-                    COL_STATUS   to "Status",
-                    COL_DATE     to "Event Date",
-                    COL_PHONE    to "Phone",
-                    COL_EVENT    to "Event",
-                    COL_SOURCE   to "Source",
+                    COL_NAME to "Name",
+                    COL_STATUS to "Status",
+                    COL_DATE to "Event Date",
+                    COL_PHONE to "Phone",
+                    COL_EVENT to "Event",
+                    COL_SOURCE to "Source",
                     COL_PRIORITY to "Priority"
                 ).forEach { (key, label) ->
-                    val currentWidth = resizingWidths[key] ?: columnWidths[key] ?: LIST_COL_DEFAULTS.getValue(key)
+                    val currentWidth =
+                        resizingWidths[key] ?: columnWidths[key] ?: LIST_COL_DEFAULTS.getValue(key)
                     ResizableHeaderCell(
                         text = label,
                         widthDp = currentWidth,
@@ -665,7 +691,10 @@ fun LeadListView(
                             )
                         }
                         Box(Modifier.width(colW(COL_STATUS))) {
-                            LeadStatusBadge(statusName = lead.statusName, color = lead.customStatus?.color)
+                            LeadStatusBadge(
+                                statusName = lead.statusName,
+                                color = lead.customStatus?.color
+                            )
                         }
                         Box(Modifier.width(colW(COL_DATE))) {
                             Text(
@@ -698,16 +727,29 @@ fun LeadListView(
                             if (lead.priority > 0) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                     repeat(lead.priority) {
-                                        Icon(Icons.Default.Star, null, Modifier.size(13.dp), tint = StarGold)
+                                        Icon(
+                                            Icons.Default.Star,
+                                            null,
+                                            Modifier.size(13.dp),
+                                            tint = StarGold
+                                        )
                                     }
                                 }
                             } else {
-                                Text("—", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    "—",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
                     if (index < leads.size - 1) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                alpha = 0.3f
+                            )
+                        )
                     }
                 }
             }
@@ -754,7 +796,8 @@ private fun ResizableHeaderCell(
                         onDragStart = { isResizing = true; current = widthRef.value },
                         onDrag = { change, dragAmount ->
                             change.consume()
-                            current = (current + dragAmount.x.toDp().value).coerceIn(minWidth, maxWidth)
+                            current =
+                                (current + dragAmount.x.toDp().value).coerceIn(minWidth, maxWidth)
                             onResizingRef.value(current)
                         },
                         onDragEnd = { isResizing = false; onResizeEndRef.value(current) },
@@ -918,6 +961,7 @@ fun CreateStatusDialog(
                         trimmed.isEmpty() -> onValidationError("Status name is required")
                         existingStatuses.any { it.name.equals(trimmed, ignoreCase = true) } ->
                             onValidationError("A status with this name already exists")
+
                         else -> onConfirm(trimmed, selectedColor)
                     }
                 },
@@ -962,14 +1006,19 @@ fun DraggableLeadCard(
             .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
             .zIndex(if (isDragging) 1000f else 0f)
             .graphicsLayer {
-                if (isDragging) { clip = false; scaleX = 1.02f; scaleY = 1.02f }
+                if (isDragging) {
+                    clip = false
+                    scaleX = 1.02f
+                    scaleY = 1.02f
+                    alpha = 0.9f
+                }
             }
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = { isDragging = true; onDragStart() },
                     onDragEnd = {
                         val centerPos = globalPosition + offset +
-                            Offset(cardSize.width / 2f, cardSize.height / 2f)
+                                Offset(cardSize.width / 2f, cardSize.height / 2f)
                         isDragging = false; offset = Offset.Zero; onDragEnd(centerPos)
                     },
                     onDragCancel = { isDragging = false; offset = Offset.Zero },
@@ -977,7 +1026,7 @@ fun DraggableLeadCard(
                         change.consume()
                         offset += dragAmount
                         val centerPos = globalPosition + offset +
-                            Offset(cardSize.width / 2f, cardSize.height / 2f)
+                                Offset(cardSize.width / 2f, cardSize.height / 2f)
                         onDrag(centerPos)
                     }
                 )
@@ -1239,7 +1288,11 @@ fun LeadDetailDialog(
                         }
 
                         if (availableStatuses.isNotEmpty()) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                    alpha = 0.4f
+                                )
+                            )
                             DialogSectionLabel("Update Status")
                             androidx.compose.foundation.layout.FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1249,7 +1302,11 @@ fun LeadDetailDialog(
                                     val isCurrentStatus = status.id == lead.customStatus?.id
                                     val statusColor = status.color.toComposeColor()
                                     OutlinedButton(
-                                        onClick = { onUpdateStatus(status.id, notes.ifBlank { null }) },
+                                        onClick = {
+                                            onUpdateStatus(
+                                                status.id,
+                                                notes.ifBlank { null })
+                                        },
                                         colors = ButtonDefaults.outlinedButtonColors(
                                             contentColor = statusColor,
                                             containerColor = if (isCurrentStatus)
@@ -1264,13 +1321,20 @@ fun LeadDetailDialog(
                                         modifier = Modifier.height(36.dp),
                                         contentPadding = PaddingValues(horizontal = 12.dp)
                                     ) {
-                                        Text(text = status.name, style = MaterialTheme.typography.labelSmall)
+                                        Text(
+                                            text = status.name,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
                                     }
                                 }
                             }
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                alpha = 0.4f
+                            )
+                        )
                         DialogSectionLabel("Notes")
                         OutlinedTextField(
                             value = notes,
@@ -1292,7 +1356,10 @@ fun LeadDetailDialog(
                             ) {
                                 Icon(Icons.Default.Payments, null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("Quotes & Financials", style = MaterialTheme.typography.labelMedium)
+                                Text(
+                                    "Quotes & Financials",
+                                    style = MaterialTheme.typography.labelMedium
+                                )
                             }
                             Button(
                                 onClick = { onDismiss(); onViewBooking() },
@@ -1303,7 +1370,11 @@ fun LeadDetailDialog(
                                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             ) {
-                                Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    null,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(Modifier.width(6.dp))
                                 Text("View Booking", style = MaterialTheme.typography.labelMedium)
                             }
@@ -1327,12 +1398,27 @@ fun LeadDetailDialog(
                                 isTasksLoading -> CircularProgressIndicator(
                                     modifier = Modifier.align(Alignment.Center)
                                 )
-                                tasks.isEmpty() -> Text(
-                                    "No tasks yet",
+
+                                tasks.isEmpty() -> Column(
                                     modifier = Modifier.align(Alignment.Center),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CheckCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(40.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                    )
+                                    Text(
+                                        "No tasks yet",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                            alpha = 0.6f
+                                        )
+                                    )
+                                }
+
                                 else -> LazyColumn(
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                     contentPadding = PaddingValues(bottom = 8.dp)

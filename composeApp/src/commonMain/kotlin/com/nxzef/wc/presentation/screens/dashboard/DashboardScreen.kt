@@ -1102,7 +1102,7 @@ fun RevenueChart(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val width = size.width
             val height = size.height
-            val paddingLeft = 40.dp.toPx()
+            val paddingLeft = 48.dp.toPx() // Increased padding for currency labels
             val paddingBottom = 28.dp.toPx()
             val chartWidth = width - paddingLeft
             val chartHeight = height - paddingBottom
@@ -1122,7 +1122,7 @@ fun RevenueChart(
 
                 val labelValue = (i * maxVal / gridLines).toDouble()
                 val labelLayout = textMeasurer.measure(
-                    text = formatCurrency(labelValue),
+                    text = CurrencyUtils.formatINRShort(labelValue),
                     style = labelStyle
                 )
                 drawText(
@@ -1158,10 +1158,11 @@ fun RevenueChart(
                 )
                 
                 // Goal label
-                val goalLabel = textMeasurer.measure("Target", style = labelStyle.copy(color = Color.Red.copy(alpha = 0.7f)))
+                val goalLabelText = "Target: ${CurrencyUtils.formatINRShort(goal.toDouble())}"
+                val goalLabel = textMeasurer.measure(goalLabelText, style = labelStyle.copy(color = Color.Red.copy(alpha = 0.7f)))
                 drawText(
                     textLayoutResult = goalLabel,
-                    topLeft = Offset(width - goalLabel.size.width, yGoal - goalLabel.size.height - 2.dp.toPx())
+                    topLeft = Offset(width - goalLabel.size.width - 8.dp.toPx(), yGoal - goalLabel.size.height - 2.dp.toPx())
                 )
             }
 

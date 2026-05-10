@@ -95,12 +95,7 @@ class LeadRepository {
                 .where { (LeadStatusesTable.isDefault eq true) and (LeadStatusesTable.teamId eq tUuid) }
                 .firstOrNull()
                 ?.get(LeadStatusesTable.id)
-                ?: LeadStatusesTable
-                    .selectAll()
-                    .where { LeadStatusesTable.isDefault eq true }
-                    .firstOrNull()
-                    ?.get(LeadStatusesTable.id)
-                ?: error("No default lead status found — seed lead_statuses before creating leads")
+                ?: error("No default lead status found for team $teamId")
 
             val id = LeadsTable.insert {
                 it[fullName] = request.fullName
@@ -127,11 +122,21 @@ class LeadRepository {
 
     fun updateStatus(id: String, request: UpdateLeadStatusRequest, teamId: String): Lead? {
         val tUuid = UUID.fromString(teamId)
+        val sUuid = try { UUID.fromString(request.customStatusId) } catch (_: Exception) { return null }
+
         return transaction {
+            // Validate that the custom status belongs to the same team
+            val statusExists = LeadStatusesTable
+                .selectAll()
+                .where { (LeadStatusesTable.id eq sUuid) and (LeadStatusesTable.teamId eq tUuid) }
+                .any()
+
+            if (!statusExists) return@transaction null
+
             LeadsTable.update(
                 { (LeadsTable.id eq UUID.fromString(id)) and (LeadsTable.teamId eq tUuid) }
             ) {
-                it[customStatusId] = UUID.fromString(request.customStatusId)
+                it[customStatusId] = sUuid
                 it[lostReason] = request.lostReason
                 if (request.notes != null) {
                     it[notes] = request.notes

@@ -69,8 +69,8 @@ fun LeadFilterBar(
 
     // Derive available years from actual lead event dates
     val availableYears = remember(state.leads) {
-        val years = state.leads.mapNotNull { DateUtils.getYear(it.eventDate) }.toSortedSet()
-        if (years.isEmpty()) listOf(currentYear) else years.toList()
+        val years = state.leads.mapNotNull { DateUtils.getYear(it.eventDate) }.distinct().sorted()
+        years.ifEmpty { listOf(currentYear) }
     }
 
     Row(
@@ -562,9 +562,9 @@ fun YearFilterChip(
 
 internal fun hasActiveFilters(state: LeadPipelineState): Boolean =
     state.searchQuery.isNotEmpty() ||
-    state.filterPriority != null ||
-    state.filterSource != null ||
-    state.filterEventType != null ||
-    state.filterDateMonth != null ||
-    state.filterStatusIds.isNotEmpty() ||
-    state.filterDateYear != null
+            state.filterPriority != null ||
+            state.filterSource != null ||
+            state.filterEventType != null ||
+            state.filterDateMonth != null ||
+            state.filterStatusIds.isNotEmpty() ||
+            state.filterDateYear != null

@@ -521,12 +521,23 @@ fun BookingDetailDialog(
                             if (isTasksLoading) {
                                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                             } else if (tasks.isEmpty()) {
-                                Text(
-                                    "No tasks for this booking",
+                                Column(
                                     modifier = Modifier.align(Alignment.Center),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AddCircleOutline,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(40.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                    )
+                                    Text(
+                                        "No tasks for this booking",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                }
                             } else {
                                 LazyColumn(
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
