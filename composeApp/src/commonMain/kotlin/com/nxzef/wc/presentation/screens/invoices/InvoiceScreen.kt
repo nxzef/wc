@@ -103,7 +103,7 @@ fun InvoiceScreen(
                 .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.TopCenter
         ) {
-            Column(modifier = Modifier.fillMaxSize().widthIn(max = 1000.dp)) {
+            Column(modifier = Modifier.widthIn(max = 1000.dp).fillMaxSize()) {
                 when {
                     state.isLoading -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -149,19 +149,21 @@ fun InvoiceScreen(
                             }
                         }
 
+                        WCSearchBar(
+                            query = state.searchQuery,
+                            onQueryChange = { viewModel.onAction(InvoiceAction.OnSearchQueryChange(it)) },
+                            placeholder = "Search invoices…",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(24.dp),
+                            contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            item {
-                                WCSearchBar(
-                                    query = state.searchQuery,
-                                    onQueryChange = { viewModel.onAction(InvoiceAction.OnSearchQueryChange(it)) },
-                                    placeholder = "Search invoices…",
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
                             item {
                                 InvoiceSummaryRow(invoices = state.invoices)
                             }

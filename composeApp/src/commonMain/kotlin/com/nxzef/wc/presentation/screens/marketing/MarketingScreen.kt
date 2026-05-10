@@ -115,8 +115,8 @@ fun MarketingScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
                     .widthIn(max = 1000.dp)
+                    .fillMaxSize()
             ) {
                 when {
                     state.isLoading -> {

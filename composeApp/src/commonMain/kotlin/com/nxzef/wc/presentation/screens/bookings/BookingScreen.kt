@@ -115,8 +115,8 @@ fun BookingScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
                     .widthIn(max = 1000.dp)
+                    .fillMaxSize()
             ) {
                 // ── Search bar ──────────────────────────────────────────────
                 WCSearchBar(

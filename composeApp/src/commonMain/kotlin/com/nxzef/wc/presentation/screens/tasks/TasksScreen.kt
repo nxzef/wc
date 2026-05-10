@@ -168,7 +168,7 @@ fun TasksScreen(
                     val leadTaskGroups    = visibleTasks.filter { it.leadId != null }.groupBy { it.leadId!! }
                     val bookingTaskGroups = visibleTasks.filter { it.bookingId != null }.groupBy { it.bookingId!! }
 
-                    Column(modifier = Modifier.fillMaxSize().widthIn(max = 1000.dp)) {
+                    Column(modifier = Modifier.widthIn(max = 1000.dp).fillMaxSize()) {
                         WCSearchBar(
                             query = state.searchQuery,
                             onQueryChange = { viewModel.onAction(TasksAction.OnSearchQueryChange(it)) },
