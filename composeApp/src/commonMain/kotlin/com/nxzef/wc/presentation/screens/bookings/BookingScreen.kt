@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -43,6 +44,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -357,194 +360,214 @@ fun BookingDetailDialog(
 ) {
     val lead = leads.find { it.id == booking.leadId }
     val leadName = lead?.fullName ?: "Unknown Lead"
+    val photographers = team.filter { it.role == UserRole.PHOTOGRAPHER }
+    val editors = team.filter { it.role == UserRole.EDITOR }
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        modifier = modifier.widthIn(max = 800.dp),
-        shape = MaterialTheme.shapes.large,
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = leadName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "${booking.eventType} — ${DateUtils.formatDisplayDate(booking.eventDate)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                BookingStatusBadge(status = booking.status)
-            }
-        },
-        text = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 400.dp, max = 600.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                // Left Side: Details & Assignments
-                Column(
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = modifier
+                .fillMaxWidth(0.88f)
+                .widthIn(min = 680.dp, max = 1100.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 3.dp,
+            shadowElevation = 8.dp
+        ) {
+            Column {
+                // ── Header ────────────────────────────────────────────────────
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(horizontal = 28.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Booking Details",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DetailItem("📍 Location", booking.location)
-                        DetailItem("📅 Date", DateUtils.formatDisplayDate(booking.eventDate))
-                        DetailItem("📱 Phone", lead?.phone ?: "N/A")
-                        booking.notes?.takeIf { it.isNotBlank() }?.let {
-                            DetailItem("📝 Notes", it)
-                        }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = leadName,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${booking.eventType} — ${DateUtils.formatDisplayDate(booking.eventDate)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                    Text(
-                        text = "Team Assignments",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    val photographers = team.filter { it.role == UserRole.PHOTOGRAPHER }
-                    val editors = team.filter { it.role == UserRole.EDITOR }
-
-                    WCDropdown(
-                        label = "Photographer",
-                        selected = team.find { it.id == booking.photographerId }?.name
-                            ?: "Unassigned",
-                        options = listOf("Unassigned") + photographers.map { it.name },
-                        onSelect = { name ->
-                            if (name == "Unassigned") onAssignPhotographer(null)
-                            else photographers.find { it.name == name }
-                                ?.let { onAssignPhotographer(it.id) }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    WCDropdown(
-                        label = "Editor",
-                        selected = team.find { it.id == booking.editorId }?.name ?: "Unassigned",
-                        options = listOf("Unassigned") + editors.map { it.name },
-                        onSelect = { name ->
-                            if (name == "Unassigned") onAssignEditor(null)
-                            else editors.find { it.name == name }?.let { onAssignEditor(it.id) }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                    Text(
-                        text = "Update Status",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.horizontalScroll(rememberScrollState())
-                    ) {
-                        BookingStatus.entries.filter { it != booking.status }.forEach { status ->
-                            val color = when (status) {
-                                BookingStatus.BOOKED -> WCTheme.colors.statusBooked
-                                BookingStatus.SHOOT_DONE -> WCTheme.colors.statusShootDone
-                                BookingStatus.EDITING -> WCTheme.colors.statusEditing
-                                BookingStatus.DELIVERED -> WCTheme.colors.statusDelivered
-                                BookingStatus.CLOSED -> WCTheme.colors.statusClosed
-                            }
-                            OutlinedButton(
-                                onClick = { onUpdateStatus(status) },
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = color),
-                                shape = MaterialTheme.shapes.medium
-                            ) {
-                                Text(
-                                    status.name.replace("_", " "),
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                        }
-                    }
+                    BookingStatusBadge(status = booking.status)
                 }
 
-                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                // Right Side: Tasks
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                // ── Body: two-panel landscape layout ─────────────────────────
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(500.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    // LEFT: Details + team assignments + status
+                    Column(
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState())
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            text = "Project Tasks",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        IconButton(onClick = onAddTaskClick) {
-                            Icon(
-                                Icons.Default.AddCircleOutline,
-                                null,
-                                tint = MaterialTheme.colorScheme.primary
+                        BookingDialogSectionLabel("Booking Details")
+
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            DetailItem("📍 Location", booking.location)
+                            DetailItem("📅 Date", DateUtils.formatDisplayDate(booking.eventDate))
+                            DetailItem("📱 Phone", lead?.phone ?: "N/A")
+                            booking.notes?.takeIf { it.isNotBlank() }?.let {
+                                DetailItem("📝 Notes", it)
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        BookingDialogSectionLabel("Team Assignments")
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            WCDropdown(
+                                label = "Photographer",
+                                selected = team.find { it.id == booking.photographerId }?.name ?: "Unassigned",
+                                options = listOf("Unassigned") + photographers.map { it.name },
+                                onSelect = { name ->
+                                    if (name == "Unassigned") onAssignPhotographer(null)
+                                    else photographers.find { it.name == name }
+                                        ?.let { onAssignPhotographer(it.id) }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            WCDropdown(
+                                label = "Editor",
+                                selected = team.find { it.id == booking.editorId }?.name ?: "Unassigned",
+                                options = listOf("Unassigned") + editors.map { it.name },
+                                onSelect = { name ->
+                                    if (name == "Unassigned") onAssignEditor(null)
+                                    else editors.find { it.name == name }?.let { onAssignEditor(it.id) }
+                                },
+                                modifier = Modifier.weight(1f)
                             )
                         }
-                    }
 
-                    Box(modifier = Modifier.weight(1f)) {
-                        if (isTasksLoading) {
-                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                        } else if (tasks.isEmpty()) {
-                            Text(
-                                "No tasks for this booking",
-                                modifier = Modifier.align(Alignment.Center),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        } else {
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(bottom = 16.dp)
-                            ) {
-                                items(tasks) { task ->
-                                    TaskCheckItem(
-                                        task = task,
-                                        onToggle = { onTaskToggle(task.id, it) },
-                                        onDelete = { onDeleteTask(task.id) }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        BookingDialogSectionLabel("Update Status")
+
+                        androidx.compose.foundation.layout.FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            BookingStatus.entries.filter { it != booking.status }.forEach { status ->
+                                val statusColor = when (status) {
+                                    BookingStatus.BOOKED     -> WCTheme.colors.statusBooked
+                                    BookingStatus.SHOOT_DONE -> WCTheme.colors.statusShootDone
+                                    BookingStatus.EDITING    -> WCTheme.colors.statusEditing
+                                    BookingStatus.DELIVERED  -> WCTheme.colors.statusDelivered
+                                    BookingStatus.CLOSED     -> WCTheme.colors.statusClosed
+                                }
+                                OutlinedButton(
+                                    onClick = { onUpdateStatus(status) },
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = statusColor,
+                                        containerColor = statusColor.copy(alpha = 0.08f)
+                                    ),
+                                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.6f)),
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Text(
+                                        status.name.replace("_", " "),
+                                        style = MaterialTheme.typography.labelSmall
                                     )
                                 }
                             }
                         }
                     }
+
+                    VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // RIGHT: Tasks
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            BookingDialogSectionLabel("Project Tasks")
+                            IconButton(onClick = onAddTaskClick) {
+                                Icon(
+                                    Icons.Default.AddCircleOutline,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (isTasksLoading) {
+                                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                            } else if (tasks.isEmpty()) {
+                                Text(
+                                    "No tasks for this booking",
+                                    modifier = Modifier.align(Alignment.Center),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(bottom = 16.dp)
+                                ) {
+                                    items(tasks) { task ->
+                                        TaskCheckItem(
+                                            task = task,
+                                            onToggle = { onTaskToggle(task.id, it) },
+                                            onDelete = { onDeleteTask(task.id) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                // ── Footer ────────────────────────────────────────────────────
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = { onDismiss(); onExpenses() },
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text("Expenses & P&L")
+                    }
+                    TextButton(onClick = onDismiss, shape = MaterialTheme.shapes.medium) {
+                        Text("Close")
+                    }
                 }
             }
-        },
-        confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onExpenses) { Text("Expenses & P&L") }
-                TextButton(onClick = onDismiss) { Text("Close") }
-            }
         }
-    )
+    }
 }
 
 @Composable
@@ -565,4 +588,14 @@ private fun DetailItem(label: String, value: String) {
             fontWeight = FontWeight.Medium
         )
     }
+}
+
+@Composable
+private fun BookingDialogSectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary
+    )
 }

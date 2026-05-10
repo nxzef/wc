@@ -45,6 +45,8 @@ import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -1137,241 +1139,255 @@ fun LeadDetailDialog(
 ) {
     var notes by remember { mutableStateOf(lead.notes ?: "") }
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        modifier = modifier.widthIn(max = 800.dp),
-        shape = MaterialTheme.shapes.large,
-        title = {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = lead.fullName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "${lead.eventType} — ${lead.eventDate ?: "Date TBD"}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                LeadStatusBadge(statusName = lead.statusName, color = lead.customStatus?.color)
-            }
-        },
-        text = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 400.dp, max = 600.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                Column(
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = modifier
+                .fillMaxWidth(0.88f)
+                .widthIn(min = 680.dp, max = 1100.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 3.dp,
+            shadowElevation = 8.dp
+        ) {
+            Column {
+                // ── Header ────────────────────────────────────────────────────
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(horizontal = 28.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Lead Information",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = lead.fullName,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${lead.eventType.name} — ${lead.eventDate ?: "Date TBD"}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    LeadStatusBadge(statusName = lead.statusName, color = lead.customStatus?.color)
+                }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DetailRow("📱 Phone", lead.phone)
-                        lead.email?.let { DetailRow("📧 Email", it) }
-                        DetailRow("🎉 Event", lead.eventType.name)
-                        lead.eventDate?.let { DetailRow("📅 Date", it) }
-                        lead.location?.let { DetailRow("📍 Location", it) }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            Text(
-                                text = "📣 Source",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.width(90.dp)
-                            )
-                            LeadSourceBadge(source = lead.source)
-                        }
+                // ── Body: two-panel landscape layout ─────────────────────────
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(520.dp)
+                ) {
+                    // LEFT: Lead info + status chips + notes + action buttons
+                    Column(
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState())
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        DialogSectionLabel("Lead Information")
 
-                        if (lead.priority > 0) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            DetailRow("📱 Phone", lead.phone)
+                            lead.email?.let { DetailRow("📧 Email", it) }
+                            DetailRow("🎉 Event", lead.eventType.name)
+                            lead.eventDate?.let { DetailRow("📅 Date", it) }
+                            lead.location?.let { DetailRow("📍 Location", it) }
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "⭐ Priority",
+                                    text = "📣 Source",
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.width(90.dp)
                                 )
-                                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    repeat(lead.priority) {
-                                        Icon(
-                                            Icons.Default.Star, null,
-                                            modifier = Modifier.size(16.dp),
-                                            tint = StarGold
+                                LeadSourceBadge(source = lead.source)
+                            }
+                            if (lead.priority > 0) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "⭐ Priority",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.width(90.dp)
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        repeat(lead.priority) {
+                                            Icon(
+                                                Icons.Default.Star, null,
+                                                modifier = Modifier.size(16.dp),
+                                                tint = StarGold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (availableStatuses.isNotEmpty()) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            DialogSectionLabel("Update Status")
+                            androidx.compose.foundation.layout.FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                availableStatuses.forEach { status ->
+                                    val isCurrentStatus = status.id == lead.customStatus?.id
+                                    val statusColor = status.color.toComposeColor()
+                                    OutlinedButton(
+                                        onClick = { onUpdateStatus(status.id, notes.ifBlank { null }) },
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = statusColor,
+                                            containerColor = if (isCurrentStatus)
+                                                statusColor.copy(alpha = 0.1f) else Color.Transparent
+                                        ),
+                                        border = BorderStroke(
+                                            if (isCurrentStatus) 2.dp else 1.dp,
+                                            if (isCurrentStatus) statusColor
+                                            else MaterialTheme.colorScheme.outline
+                                        ),
+                                        shape = MaterialTheme.shapes.medium,
+                                        modifier = Modifier.height(36.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp)
+                                    ) {
+                                        Text(text = status.name, style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        DialogSectionLabel("Notes")
+                        OutlinedTextField(
+                            value = notes,
+                            onValueChange = { notes = it },
+                            label = { Text("Lead Notes") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            minLines = 3
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Button(
+                                onClick = { onDismiss(); onViewQuotes() },
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Icon(Icons.Default.Payments, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Quotes & Financials", style = MaterialTheme.typography.labelMedium)
+                            }
+                            Button(
+                                onClick = { onDismiss(); onViewBooking() },
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.medium,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            ) {
+                                Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("View Booking", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
+
+                    VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // RIGHT: Tasks
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        DialogSectionLabel("My Tasks")
+
+                        Box(modifier = Modifier.weight(1f)) {
+                            when {
+                                isTasksLoading -> CircularProgressIndicator(
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
+                                tasks.isEmpty() -> Text(
+                                    "No tasks yet",
+                                    modifier = Modifier.align(Alignment.Center),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                else -> LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(bottom = 8.dp)
+                                ) {
+                                    items(tasks) { task ->
+                                        TaskCheckItem(
+                                            task = task,
+                                            onToggle = { onTaskToggle(task.id, it) },
+                                            onDelete = { onDeleteTask(task.id) }
                                         )
                                     }
                                 }
                             }
                         }
-                    }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                    Button(
-                        onClick = onViewQuotes,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Icon(Icons.Default.Payments, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("View Quotes & Financials")
-                    }
-
-                    Button(
-                        onClick = { onViewBooking() },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    ) {
-                        Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("View Booking")
-                    }
-
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        label = { Text("Lead Notes") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        minLines = 3
-                    )
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                    if (availableStatuses.isNotEmpty()) {
-                        Text(
-                            text = "Update Status",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        androidx.compose.foundation.layout.FlowRow(
+                        Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            availableStatuses.forEach { status ->
-                                val isCurrentStatus = status.id == lead.customStatus?.id
-                                val statusColor = status.color.toComposeColor()
-                                OutlinedButton(
-                                    onClick = { onUpdateStatus(status.id, notes.ifBlank { null }) },
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = statusColor,
-                                        containerColor = if (isCurrentStatus)
-                                            statusColor.copy(alpha = 0.1f) else Color.Transparent
-                                    ),
-                                    border = BorderStroke(
-                                        if (isCurrentStatus) 2.dp else 1.dp,
-                                        if (isCurrentStatus) statusColor
-                                        else MaterialTheme.colorScheme.outline
-                                    ),
-                                    shape = MaterialTheme.shapes.medium,
-                                    modifier = Modifier.height(36.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp)
-                                ) {
-                                    Text(
-                                        text = status.name,
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                            }
+                            OutlinedTextField(
+                                value = newTaskTitle,
+                                onValueChange = onTaskTitleChange,
+                                placeholder = {
+                                    Text("New task…", style = MaterialTheme.typography.bodySmall)
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.medium,
+                                singleLine = true
+                            )
+                            Button(
+                                onClick = onAddTask,
+                                enabled = newTaskTitle.isNotBlank(),
+                                shape = MaterialTheme.shapes.medium,
+                                contentPadding = PaddingValues(horizontal = 12.dp)
+                            ) { Text("Add") }
                         }
                     }
                 }
 
-                VerticalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                // ── Footer ────────────────────────────────────────────────────
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Text(
-                        text = "My Tasks",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Box(modifier = Modifier.weight(1f)) {
-                        when {
-                            isTasksLoading -> CircularProgressIndicator(
-                                modifier = Modifier.align(Alignment.Center)
-                            )
-                            tasks.isEmpty() -> Text(
-                                "No tasks yet",
-                                modifier = Modifier.align(Alignment.Center),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            else -> LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(bottom = 8.dp)
-                            ) {
-                                items(tasks) { task ->
-                                    TaskCheckItem(
-                                        task = task,
-                                        onToggle = { onTaskToggle(task.id, it) },
-                                        onDelete = { onDeleteTask(task.id) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = newTaskTitle,
-                            onValueChange = onTaskTitleChange,
-                            placeholder = {
-                                Text("New task…", style = MaterialTheme.typography.bodySmall)
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.medium,
-                            singleLine = true
-                        )
-                        Button(
-                            onClick = onAddTask,
-                            enabled = newTaskTitle.isNotBlank(),
-                            shape = MaterialTheme.shapes.medium,
-                            contentPadding = PaddingValues(horizontal = 12.dp)
-                        ) { Text("Add") }
+                    TextButton(onClick = onDismiss, shape = MaterialTheme.shapes.medium) {
+                        Text("Close")
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss, shape = MaterialTheme.shapes.medium) { Text("Close") }
         }
-    )
+    }
 }
 
 @Composable
@@ -1392,4 +1408,14 @@ fun DetailRow(label: String, value: String) {
             fontWeight = FontWeight.SemiBold
         )
     }
+}
+
+@Composable
+private fun DialogSectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary
+    )
 }
