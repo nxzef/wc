@@ -178,10 +178,8 @@ fun TeamScreen(
                                 items(members) { member ->
                                     TeamMemberCard(
                                         member = member,
-                                        onDelete = {
-                                            viewModel.onAction(
-                                                TeamAction.ShowDeleteDialog(member)
-                                            )
+                                        onDelete = if (member.role == UserRole.OWNER) null else {
+                                            { viewModel.onAction(TeamAction.ShowDeleteDialog(member)) }
                                         }
                                     )
                                 }
@@ -283,7 +281,7 @@ fun TeamScreen(
 @Composable
 fun TeamMemberCard(
     member: User,
-    onDelete: () -> Unit
+    onDelete: (() -> Unit)?
 ) {
     val roleColor = when (member.role) {
         UserRole.OWNER ->
@@ -375,17 +373,19 @@ fun TeamMemberCard(
                 modifier = Modifier.size(10.dp)
             ) {}
 
-            IconButton(
-                onClick = onDelete,
-                colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Remove Member",
-                    modifier = Modifier.size(20.dp)
-                )
+            if (onDelete != null) {
+                IconButton(
+                    onClick = onDelete,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Remove Member",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }

@@ -2,25 +2,32 @@ package com.nxzef.wc.presentation.screens.settings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -62,22 +70,14 @@ fun SettingsScreen(
     val user = viewModel.user
     val serverConnected by viewModel.serverConnected.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-
     var showChangePasswordDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.message.collect {
-            snackbarHostState.showSnackbar(it)
-        }
+        viewModel.message.collect { snackbarHostState.showSnackbar(it) }
     }
 
     Scaffold(
-        topBar = {
-            WCTopBar(
-                title = "Settings",
-                onBack = onBack
-            )
-        },
+        topBar = { WCTopBar(title = "Settings", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Box(
@@ -92,104 +92,101 @@ fun SettingsScreen(
                     .widthIn(max = 1000.dp)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(24.dp)
             ) {
-                // Section 1: Profile
-                Text(
-                    text = "Profile",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
-
+                // ── Profile hero ─────────────────────────────────────────────
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = MaterialTheme.shapes.extraLarge,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     ),
-                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(24.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         Surface(
                             shape = MaterialTheme.shapes.extraLarge,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.size(76.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = user?.name?.first()?.uppercase() ?: "?",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
                         }
-                        Column {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
                                 text = user?.name ?: "Unknown",
                                 style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
                                 text = user?.email ?: "",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.65f)
                             )
+                            Spacer(Modifier.height(2.dp))
                             Surface(
-                                modifier = Modifier.padding(top = 4.dp),
-                                shape = MaterialTheme.shapes.small,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                shape = MaterialTheme.shapes.extraLarge,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
                             ) {
                                 Text(
                                     text = user?.role?.name?.replace("_", " ") ?: "",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                                 )
                             }
                         }
                     }
                 }
 
-                SettingsItem(
-                    icon = Icons.Default.Lock,
-                    title = "Change Password",
-                    value = "Security",
-                    onClick = { showChangePasswordDialog = true }
-                )
+                Spacer(Modifier.height(24.dp))
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                // ── Account ───────────────────────────────────────────────────
+                SettingsSectionLabel("Account")
+                Spacer(Modifier.height(6.dp))
+                SettingsGroup {
+                    SettingsRow(
+                        icon = Icons.Default.Lock,
+                        iconColor = Color(0xFFFF9800),
+                        title = "Change Password",
+                        subtitle = "Update your security credentials",
+                        showArrow = true,
+                        onClick = { showChangePasswordDialog = true }
+                    )
+                }
 
-                // Section 2: Role-specific
+                // ── Role-specific ─────────────────────────────────────────────
                 user?.role?.let { role ->
                     val sectionData = when (role) {
                         UserRole.OWNER -> RoleSection(
-                            "Company Settings",
+                            "Company",
                             listOf(
                                 RoleItem("Company Name", "The Wedding Clouds", true),
                                 RoleItem("Export Data", "Coming soon", false),
                                 RoleItem("Backup", "Coming soon", false)
                             )
                         )
-
                         UserRole.LEAD_MANAGER -> RoleSection(
-                            "Notification Preferences",
+                            "Notifications",
                             listOf(
                                 RoleItem("Lead assigned to me", "Enabled", false),
                                 RoleItem("Quote accepted", "Enabled", false)
                             )
                         )
-
                         UserRole.PHOTOGRAPHER -> RoleSection(
                             "My Work",
                             listOf(
@@ -197,7 +194,6 @@ fun SettingsScreen(
                                 RoleItem("Preferred shoot types", "None", false)
                             )
                         )
-
                         UserRole.EDITOR -> RoleSection(
                             "My Work",
                             listOf(
@@ -205,60 +201,86 @@ fun SettingsScreen(
                                 RoleItem("Delivery format preferences", "JPEG", false)
                             )
                         )
-
                         UserRole.MARKETING -> RoleSection(
                             "Analytics",
-                            listOf(
-                                RoleItem("My leads count", "0", true) // Static for now as per instructions
+                            listOf(RoleItem("My leads count", "0", true))
+                        )
+                    }
+
+                    val roleIcon = when (role) {
+                        UserRole.OWNER        -> Icons.Default.Business
+                        UserRole.LEAD_MANAGER -> Icons.Default.Notifications
+                        UserRole.PHOTOGRAPHER -> Icons.Default.PhotoCamera
+                        UserRole.EDITOR       -> Icons.Default.Edit
+                        UserRole.MARKETING    -> Icons.Default.BarChart
+                    }
+                    val roleIconColor = when (role) {
+                        UserRole.OWNER        -> Color(0xFF1E88E5)
+                        UserRole.LEAD_MANAGER -> Color(0xFFE53935)
+                        UserRole.PHOTOGRAPHER -> Color(0xFF8E24AA)
+                        UserRole.EDITOR       -> Color(0xFF00ACC1)
+                        UserRole.MARKETING    -> Color(0xFF00897B)
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+                    SettingsSectionLabel(sectionData.title)
+                    Spacer(Modifier.height(6.dp))
+                    SettingsGroup {
+                        sectionData.items.forEachIndexed { index, item ->
+                            if (index > 0) HorizontalDivider(
+                                modifier = Modifier.padding(start = 74.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                             )
-                        )
+                            SettingsRow(
+                                icon = roleIcon,
+                                iconColor = roleIconColor,
+                                title = item.title,
+                                value = if (item.isActuallyAvailable || item.value != "Coming soon") item.value else null,
+                                comingSoon = !item.isActuallyAvailable && item.value == "Coming soon",
+                                enabled = item.isActuallyAvailable
+                            )
+                        }
                     }
-
-                    Text(
-                        text = sectionData.title,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    sectionData.items.forEach { item ->
-                        SettingsItem(
-                            icon = Icons.Default.Info, // Generic icon for role items
-                            title = item.title,
-                            value = item.value,
-                            enabled = item.isActuallyAvailable
-                        )
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 }
 
-                // Section 3: General
-                Text(
-                    text = "General",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
+                Spacer(Modifier.height(24.dp))
 
-                SettingsItem(
-                    icon = Icons.Default.Info,
-                    title = "App Version",
-                    value = "1.0.0 MVP"
-                )
+                // ── General ───────────────────────────────────────────────────
+                SettingsSectionLabel("General")
+                Spacer(Modifier.height(6.dp))
+                val serverColor = if (serverConnected) Color(0xFF43A047) else MaterialTheme.colorScheme.error
+                SettingsGroup {
+                    SettingsRow(
+                        icon = Icons.Default.Info,
+                        iconColor = MaterialTheme.colorScheme.secondary,
+                        title = "App Version",
+                        value = "1.0.0 MVP"
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 74.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    )
+                    SettingsRow(
+                        icon = Icons.Default.Cloud,
+                        iconColor = serverColor,
+                        title = "Server Status",
+                        value = if (serverConnected) "Connected" else "Disconnected",
+                        valueColor = serverColor
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 74.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    )
+                    SettingsRow(
+                        icon = Icons.Default.DarkMode,
+                        iconColor = Color(0xFF7E57C2),
+                        title = "Dark Mode",
+                        comingSoon = true,
+                        enabled = false
+                    )
+                }
 
-                SettingsItem(
-                    icon = Icons.Default.Cloud,
-                    title = "Server Status",
-                    value = if (serverConnected) "Connected" else "Disconnected"
-                )
-
-                SettingsItem(
-                    icon = Icons.Default.DarkMode,
-                    title = "Dark Mode",
-                    value = "Coming soon",
-                    enabled = false
-                )
+                Spacer(Modifier.height(16.dp))
             }
         }
     }
@@ -271,6 +293,122 @@ fun SettingsScreen(
                 showChangePasswordDialog = false
             }
         )
+    }
+}
+
+@Composable
+private fun SettingsSectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.ExtraBold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 4.dp)
+    )
+}
+
+@Composable
+private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth(), content = content)
+    }
+}
+
+@Composable
+private fun SettingsRow(
+    icon: ImageVector,
+    iconColor: Color,
+    title: String,
+    subtitle: String? = null,
+    value: String? = null,
+    valueColor: Color? = null,
+    showArrow: Boolean = false,
+    comingSoon: Boolean = false,
+    enabled: Boolean = true,
+    onClick: (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null && enabled)
+                    Modifier.clickable { onClick() }
+                else
+                    Modifier
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = iconColor.copy(alpha = if (enabled) 0.14f else 0.07f),
+            modifier = Modifier.size(44.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (enabled) iconColor else iconColor.copy(alpha = 0.4f),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            subtitle?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                )
+            }
+        }
+
+        when {
+            comingSoon -> Surface(
+                shape = MaterialTheme.shapes.extraSmall,
+                color = Color(0xFFFF9800).copy(alpha = 0.14f)
+            ) {
+                Text(
+                    text = "SOON",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFFF9800),
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                )
+            }
+            value != null -> Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            showArrow -> Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 
@@ -288,7 +426,7 @@ fun ChangePasswordDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = MaterialTheme.shapes.medium,
+            shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = 8.dp,
             modifier = Modifier.widthIn(max = 400.dp)
         ) {
@@ -307,6 +445,7 @@ fun ChangePasswordDialog(
                     onValueChange = { currentPassword = it },
                     label = { Text("Current Password") },
                     visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -315,6 +454,7 @@ fun ChangePasswordDialog(
                     onValueChange = { newPassword = it },
                     label = { Text("New Password") },
                     visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -323,6 +463,7 @@ fun ChangePasswordDialog(
                     onValueChange = { confirmPassword = it },
                     label = { Text("Confirm New Password") },
                     visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     isError = newPassword != confirmPassword && confirmPassword.isNotEmpty()
                 )
@@ -332,87 +473,16 @@ fun ChangePasswordDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
                     Button(
                         onClick = { onConfirm(currentPassword, newPassword) },
-                        enabled = currentPassword.isNotEmpty() && newPassword.isNotEmpty() && newPassword == confirmPassword
+                        enabled = currentPassword.isNotEmpty() && newPassword.isNotEmpty() && newPassword == confirmPassword,
+                        shape = MaterialTheme.shapes.large
                     ) {
                         Text("Update")
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun SettingsItem(
-    icon: ImageVector,
-    title: String,
-    value: String,
-    enabled: Boolean = true,
-    onClick: (() -> Unit)? = null
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = { if (enabled) onClick?.invoke() },
-        shape = MaterialTheme.shapes.medium,
-        enabled = enabled && onClick != null,
-        colors = CardDefaults.cardColors(
-            containerColor = if (enabled)
-                MaterialTheme.colorScheme.surfaceContainerLow
-            else
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Surface(
-                color = if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (!enabled && value == "Coming soon") {
-                    Text(
-                        text = "Coming soon",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Text(
-                text = if (!enabled && value == "Coming soon") "" else value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Normal
-            )
         }
     }
 }
