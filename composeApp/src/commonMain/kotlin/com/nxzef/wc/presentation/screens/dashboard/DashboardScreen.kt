@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -68,9 +69,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.components.LeadSourceBadge
@@ -407,7 +413,7 @@ fun DashboardContent(
                 )
                 KpiMetricCard(
                     modifier = Modifier.weight(1f),
-                    label = "Pending Invoices",
+                    label = "Pending Deliveries",
                     value = stats.pendingDeliveries.toString(),
                     icon = Icons.AutoMirrored.Filled.ReceiptLong,
                     color = MaterialTheme.colorScheme.error
@@ -520,17 +526,26 @@ fun DashboardContent(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        TextButton(onClick = onViewLeads) {
-                            Text("View All")
+                        if (stats.recentLeads.isNotEmpty()) {
+                            TextButton(onClick = onViewLeads) {
+                                Text("View All")
+                            }
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        stats.recentLeads.take(3).forEach { lead ->
-                            PremiumLeadCard(
-                                lead = lead,
-                                onClick = onViewLeads
-                            )
+                    if (stats.recentLeads.isEmpty()) {
+                        EmptySectionPlaceholder(
+                            message = "No recent leads",
+                            icon = Icons.Default.PersonSearch
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            stats.recentLeads.take(3).forEach { lead ->
+                                PremiumLeadCard(
+                                    lead = lead,
+                                    onClick = onViewLeads
+                                )
+                            }
                         }
                     }
                 }
@@ -547,15 +562,24 @@ fun DashboardContent(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        TextButton(onClick = onNavigateToBookings) {
-                            Text("Calendar")
+                        if (stats.upcomingBookings.isNotEmpty()) {
+                            TextButton(onClick = onNavigateToBookings) {
+                                Text("Calendar")
+                            }
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        stats.upcomingBookings.take(3).forEach { booking ->
-                            val lead = stats.recentLeads.find { it.id == booking.leadId }
-                            BookingSummaryCard(booking = booking, clientName = lead?.fullName ?: "Client")
+                    if (stats.upcomingBookings.isEmpty()) {
+                        EmptySectionPlaceholder(
+                            message = "No upcoming bookings",
+                            icon = Icons.Default.EventAvailable
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            stats.upcomingBookings.take(3).forEach { booking ->
+                                val lead = stats.recentLeads.find { it.id == booking.leadId }
+                                BookingSummaryCard(booking = booking, clientName = lead?.fullName ?: "Client")
+                            }
                         }
                     }
                 }
@@ -1013,11 +1037,50 @@ fun PremiumLeadCard(
 }
 
 @Composable
+fun EmptySectionPlaceholder(
+    message: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+@Composable
 fun RevenueChart(
     data: List<Float>,
     color: Color,
     targetGoal: Float? = null
 ) {
+    val textMeasurer = rememberTextMeasurer()
+    val labelStyle = MaterialTheme.typography.labelSmall.copy(
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        fontSize = 10.sp
+    )
+
     // Use rememberSaveable to ensure animation only runs once per screen session
     var animationPlayed by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val progress = remember { Animatable(if (animationPlayed) 1f else 0f) }
@@ -1032,100 +1095,157 @@ fun RevenueChart(
         }
     }
 
-    val maxVal = (data.maxOrNull() ?: 1f).coerceAtLeast(targetGoal ?: 0f)
+    val maxVal = (data.maxOrNull() ?: 1f).coerceAtLeast(targetGoal ?: 0f).coerceAtLeast(1f)
+    val hasData = data.any { it > 0 }
 
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val width = size.width
-        val height = size.height
-        val spacing = width / (data.size - 1).coerceAtLeast(1)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            val paddingLeft = 40.dp.toPx()
+            val paddingBottom = 28.dp.toPx()
+            val chartWidth = width - paddingLeft
+            val chartHeight = height - paddingBottom
 
-        // Draw horizontal grid lines
-        val gridLines = 5
-        for (i in 0..gridLines) {
-            val y = height - (i * height / gridLines)
-            drawLine(
-                color = Color.LightGray.copy(alpha = 0.3f),
-                start = Offset(0f, y),
-                end = Offset(width, y),
-                strokeWidth = 1.dp.toPx()
-            )
-        }
+            val spacing = chartWidth / (data.size - 1).coerceAtLeast(1)
 
-        // Draw Target Goal Line (Red)
-        targetGoal?.let { goal ->
-            val yGoal = height - (goal / maxVal * height)
-            drawLine(
-                color = Color.Red.copy(alpha = 0.6f),
-                start = Offset(0f, yGoal),
-                end = Offset(width, yGoal),
-                strokeWidth = 2.dp.toPx(),
-                cap = StrokeCap.Round,
-                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-            )
-        }
-
-        val path = Path()
-        val fillPath = Path()
-
-        data.forEachIndexed { index, value ->
-            val x = index * spacing
-            val normalizedValue = if (maxVal > 0) value / maxVal else 0f
-            val y = height - (normalizedValue * height)
-
-            if (index == 0) {
-                path.moveTo(x, y)
-                fillPath.moveTo(x, height)
-                fillPath.lineTo(x, y)
-            } else {
-                path.lineTo(x, y)
-                fillPath.lineTo(x, y)
-            }
-
-            if (index == data.size - 1) {
-                fillPath.lineTo(x, height)
-                fillPath.close()
-            }
-        }
-
-        val clipWidth = width * progress.value
-        
-        drawContext.canvas.save()
-        drawContext.canvas.clipRect(0f, 0f, clipWidth, height)
-
-        drawPath(
-            path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(color.copy(alpha = 0.2f), Color.Transparent)
-            )
-        )
-
-        drawPath(
-            path = path,
-            color = color,
-            style = Stroke(
-                width = 3.5.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-        )
-        
-        data.forEachIndexed { index, value ->
-            val x = index * spacing
-            val normalizedValue = if (maxVal > 0) value / maxVal else 0f
-            if (x <= clipWidth) {
-                drawCircle(
-                    color = color,
-                    radius = 4.dp.toPx(),
-                    center = Offset(x, height - (normalizedValue * height))
+            // Draw horizontal grid lines and Y-axis labels
+            val gridLines = 5
+            for (i in 0..gridLines) {
+                val y = chartHeight - (i * chartHeight / gridLines)
+                drawLine(
+                    color = Color.LightGray.copy(alpha = 0.3f),
+                    start = Offset(paddingLeft, y),
+                    end = Offset(width, y),
+                    strokeWidth = 1.dp.toPx()
                 )
-                drawCircle(
-                    color = Color.White,
-                    radius = 2.dp.toPx(),
-                    center = Offset(x, height - (normalizedValue * height))
+
+                val labelValue = (i * maxVal / gridLines).toDouble()
+                val labelLayout = textMeasurer.measure(
+                    text = formatCurrency(labelValue),
+                    style = labelStyle
+                )
+                drawText(
+                    textLayoutResult = labelLayout,
+                    topLeft = Offset(paddingLeft - labelLayout.size.width - 8.dp.toPx(), y - labelLayout.size.height / 2)
                 )
             }
+
+            // Draw X-axis day labels every 5 days
+            val dayStep = if (data.size <= 15) 3 else 5
+            data.indices.filter { it == 0 || (it + 1) % dayStep == 0 || it == data.size - 1 }.forEach { index ->
+                val x = paddingLeft + (index * spacing)
+                val dayLabel = textMeasurer.measure(
+                    text = "${index + 1}",
+                    style = labelStyle
+                )
+                drawText(
+                    textLayoutResult = dayLabel,
+                    topLeft = Offset(x - dayLabel.size.width / 2f, chartHeight + 6.dp.toPx())
+                )
+            }
+
+            // Draw Target Goal Line (Red)
+            targetGoal?.let { goal ->
+                val yGoal = chartHeight - (goal / maxVal * chartHeight)
+                drawLine(
+                    color = Color.Red.copy(alpha = 0.6f),
+                    start = Offset(paddingLeft, yGoal),
+                    end = Offset(width, yGoal),
+                    strokeWidth = 2.dp.toPx(),
+                    cap = StrokeCap.Round,
+                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                )
+                
+                // Goal label
+                val goalLabel = textMeasurer.measure("Target", style = labelStyle.copy(color = Color.Red.copy(alpha = 0.7f)))
+                drawText(
+                    textLayoutResult = goalLabel,
+                    topLeft = Offset(width - goalLabel.size.width, yGoal - goalLabel.size.height - 2.dp.toPx())
+                )
+            }
+
+            if (!hasData) return@Canvas
+
+            val path = Path()
+            val fillPath = Path()
+
+            data.forEachIndexed { index, value ->
+                val x = paddingLeft + (index * spacing)
+                val normalizedValue = value / maxVal
+                val y = chartHeight - (normalizedValue * chartHeight)
+
+                if (index == 0) {
+                    path.moveTo(x, y)
+                    fillPath.moveTo(x, chartHeight)
+                    fillPath.lineTo(x, y)
+                } else {
+                    path.lineTo(x, y)
+                    fillPath.lineTo(x, y)
+                }
+
+                if (index == data.size - 1) {
+                    fillPath.lineTo(x, chartHeight)
+                    fillPath.close()
+                }
+            }
+
+            val clipWidth = paddingLeft + (chartWidth * progress.value)
+            
+            drawContext.canvas.save()
+            drawContext.canvas.clipRect(paddingLeft, 0f, clipWidth, height)
+
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(color.copy(alpha = 0.2f), Color.Transparent)
+                )
+            )
+
+            drawPath(
+                path = path,
+                color = color,
+                style = Stroke(
+                    width = 3.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+            )
+            
+            // Draw points for days with revenue
+            data.forEachIndexed { index, value ->
+                if (value > 0) {
+                    val x = paddingLeft + (index * spacing)
+                    val normalizedValue = value / maxVal
+                    if (x <= clipWidth) {
+                        drawCircle(
+                            color = color,
+                            radius = 3.dp.toPx(),
+                            center = Offset(x, chartHeight - (normalizedValue * chartHeight))
+                        )
+                        drawCircle(
+                            color = Color.White,
+                            radius = 1.5.dp.toPx(),
+                            center = Offset(x, chartHeight - (normalizedValue * chartHeight))
+                        )
+                    }
+                }
+            }
+            
+            drawContext.canvas.restore()
         }
-        
-        drawContext.canvas.restore()
+
+        if (!hasData) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(start = 40.dp, bottom = 20.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "No revenue data for this month",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+        }
     }
 }
 

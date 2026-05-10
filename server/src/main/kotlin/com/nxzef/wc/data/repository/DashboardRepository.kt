@@ -72,11 +72,11 @@ class DashboardRepository {
                 }
                 .count().toInt()
 
-            val invoicesThisMonth = InvoicesTable
+            val allTeamInvoices = InvoicesTable
                 .selectAll()
                 .where { InvoicesTable.teamId eq tUuid }
                 .toList()
-            val totalRevenueThisMonth = invoicesThisMonth
+            val totalRevenueThisMonth = allTeamInvoices
                 .filter { row ->
                     val createdAt = row[InvoicesTable.createdAt]
                     createdAt in monthStart..monthEnd
@@ -166,9 +166,8 @@ class DashboardRepository {
                     )
                 }
 
-            val teamInvoices = InvoicesTable.selectAll().where { InvoicesTable.teamId eq tUuid }.toList()
-            val totalInvoices = teamInvoices.size.toLong()
-            val totalRevenue = teamInvoices.sumOf { it[InvoicesTable.totalAmount].toDouble() }
+            val totalInvoices = allTeamInvoices.size.toLong()
+            val totalRevenue = allTeamInvoices.sumOf { it[InvoicesTable.totalAmount].toDouble() }
             val avgOrderValue = if (totalInvoices > 0) totalRevenue / totalInvoices else 0.0
             val totalCollected = ReceiptsTable.selectAll()
                 .where { ReceiptsTable.teamId eq tUuid }
@@ -185,8 +184,8 @@ class DashboardRepository {
             // Calculate Revenue Trend (Daily for current month)
             val daysInMonth = now.lengthOfMonth()
             val dailyRevenue = DoubleArray(daysInMonth) { 0.0 }
-            
-            invoicesThisMonth.forEach { row ->
+
+            allTeamInvoices.forEach { row ->
                 val date = row[InvoicesTable.createdAt].atZone(ZoneOffset.UTC).toLocalDate()
                 if (date.monthValue == now.monthValue && date.year == now.year) {
                     dailyRevenue[date.dayOfMonth - 1] += row[InvoicesTable.totalAmount].toDouble()
