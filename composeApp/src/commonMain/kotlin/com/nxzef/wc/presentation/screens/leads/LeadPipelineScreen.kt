@@ -305,6 +305,7 @@ fun LeadPipelineScreen(
                                         isCompact = isCompact,
                                         columnWidth = colWidth.dp,
                                         horizontalPadding = horizontalPadding,
+                                        syncingLeadIds = state.syncingLeadIds,
                                         onAddStatus = {
                                             viewModel.onAction(
                                                 LeadPipelineAction.ShowCreateStatusDialog

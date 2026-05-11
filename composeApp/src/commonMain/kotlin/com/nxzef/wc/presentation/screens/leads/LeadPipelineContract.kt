@@ -30,7 +30,8 @@ data class LeadPipelineState(
     val filterDateYear: Int? = null,
     val filterStatusIds: Set<String> = emptySet(),
     val viewLayout: PipelineViewLayout = PipelineViewLayout.BOARD,
-    val columnWidths: Map<String, Float> = emptyMap()
+    val columnWidths: Map<String, Float> = emptyMap(),
+    val syncingLeadIds: Set<String> = emptySet()
 )
 
 sealed interface LeadPipelineAction {

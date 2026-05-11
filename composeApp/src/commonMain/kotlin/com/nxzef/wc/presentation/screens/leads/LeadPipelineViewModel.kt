@@ -249,9 +249,6 @@ class LeadPipelineViewModel(
             if (!silent) _state.update { it.copy(isLoading = true, error = null) }
             getAllLeadsUseCase()
                 .onSuccess { leads ->
-                    if (silent && leads.size != oldLeads.size) {
-                        _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Updated"))
-                    }
                     _state.update { it.copy(leads = leads, isLoading = false, isRefreshing = false) }
                     loadTaskCounts(leads)
                 }
@@ -286,14 +283,47 @@ class LeadPipelineViewModel(
     }
 
     private fun updateStatus(leadId: String, customStatusId: String, notes: String?) {
+        val snapshot = _state.value
+        val newStatus = snapshot.statuses.find { it.id == customStatusId }
+
+        // Optimistic update — move the card into the target column immediately
+        _state.update { s ->
+            s.copy(
+                leads = s.leads.map { lead ->
+                    if (lead.id == leadId)
+                        lead.copy(
+                            customStatus = newStatus,
+                            statusName = newStatus?.name ?: lead.statusName,
+                            notes = notes ?: lead.notes
+                        )
+                    else lead
+                },
+                syncingLeadIds = s.syncingLeadIds + leadId
+            )
+        }
+
         viewModelScope.launch {
             updateLeadStatusUseCase(leadId, customStatusId, notes)
                 .onSuccess {
+                    _state.update { it.copy(syncingLeadIds = it.syncingLeadIds - leadId) }
                     RefreshManager.triggerRefresh()
-                    loadLeads()
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(error = ErrorMessages.forGeneric(error.message)) }
+                    // Revert the optimistic change on failure
+                    val original = snapshot.leads.find { it.id == leadId }
+                    _state.update { s ->
+                        s.copy(
+                            leads = if (original != null)
+                                s.leads.map { if (it.id == leadId) original else it }
+                            else s.leads,
+                            syncingLeadIds = s.syncingLeadIds - leadId
+                        )
+                    }
+                    _uiEvent.send(
+                        LeadPipelineUiEvent.ShowSnackbar(
+                            ErrorMessages.forGeneric(error.message)
+                        )
+                    )
                 }
         }
     }

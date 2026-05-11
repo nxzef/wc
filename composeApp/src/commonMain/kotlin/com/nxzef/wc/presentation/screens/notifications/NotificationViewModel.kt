@@ -90,21 +90,53 @@ class NotificationViewModel(
     }
 
     private fun markRead(id: String) {
+        val prev = _state.value
+        _state.update { s ->
+            s.copy(
+                notifications = s.notifications.map {
+                    if (it.id == id) it.copy(isRead = true) else it
+                },
+                unreadCount = (s.unreadCount - 1).coerceAtLeast(0)
+            )
+        }
+        previousUnreadCount = _state.value.unreadCount
         viewModelScope.launch {
             repository.markAsRead(id)
-                .onSuccess { load() }
+                .onSuccess { load(silent = true) }
                 .onFailure {
-                    _uiEvent.send(NotificationUiEvent.ShowSnackbar("Failed to load notifications."))
+                    _state.update { s ->
+                        s.copy(
+                            notifications = prev.notifications,
+                            unreadCount = prev.unreadCount
+                        )
+                    }
+                    previousUnreadCount = prev.unreadCount
+                    _uiEvent.send(NotificationUiEvent.ShowSnackbar("Failed to mark as read."))
                 }
         }
     }
 
     private fun markAllRead() {
+        val prev = _state.value
+        _state.update { s ->
+            s.copy(
+                notifications = s.notifications.map { it.copy(isRead = true) },
+                unreadCount = 0
+            )
+        }
+        previousUnreadCount = 0
         viewModelScope.launch {
             repository.markAllAsRead()
-                .onSuccess { load() }
+                .onSuccess { load(silent = true) }
                 .onFailure {
-                    _uiEvent.send(NotificationUiEvent.ShowSnackbar("Failed to load notifications."))
+                    _state.update { s ->
+                        s.copy(
+                            notifications = prev.notifications,
+                            unreadCount = prev.unreadCount
+                        )
+                    }
+                    previousUnreadCount = prev.unreadCount
+                    _uiEvent.send(NotificationUiEvent.ShowSnackbar("Failed to mark all as read."))
                 }
         }
     }

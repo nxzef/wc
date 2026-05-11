@@ -49,6 +49,7 @@ fun KanbanBoard(
     isCompact: Boolean,
     columnWidth: Dp,
     horizontalPadding: Dp,
+    syncingLeadIds: Set<String> = emptySet(),
     onAddStatus: () -> Unit,
     onDeleteStatus: (LeadStatus) -> Unit,
     onLeadClick: (Lead) -> Unit,
@@ -89,6 +90,7 @@ fun KanbanBoard(
                         taskCounts = taskCounts,
                         draggingLeadId = if (dragState.isDragging) dragState.lead?.id else null,
                         isHighlighted = hoveredStatusId == status.id,
+                        syncingLeadIds = syncingLeadIds,
                         onLeadClick = onLeadClick,
                         onDeleteStatus = if (status.isDefault) null else ({ onDeleteStatus(status) }),
                         onDragStart = { lead, count, windowPos, size ->

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -58,6 +59,7 @@ fun DraggableLeadCard(
     lead: Lead,
     taskCount: Int,
     isDragging: Boolean,
+    isSyncing: Boolean = false,
     onClick: () -> Unit,
     onDragStart: (windowPos: Offset, size: IntSize) -> Unit,
     onDrag: (delta: Offset) -> Unit,
@@ -97,12 +99,11 @@ fun DraggableLeadCard(
             }
     ) {
         if (isDragging) {
-            // Preserve the column space with a styled placeholder
             DragPlaceholder(
                 height = with(density) { cardSize.height.toDp() }.coerceAtLeast(56.dp)
             )
         } else {
-            LeadCard(lead = lead, taskCount = taskCount, onClick = onClick)
+            LeadCard(lead = lead, taskCount = taskCount, isSyncing = isSyncing, onClick = onClick)
         }
     }
 }
@@ -133,6 +134,7 @@ private fun DragPlaceholder(height: Dp) {
 fun LeadCard(
     lead: Lead,
     taskCount: Int = 0,
+    isSyncing: Boolean = false,
     onClick: () -> Unit,
     elevation: Dp = 0.dp
 ) {
@@ -158,7 +160,13 @@ fun LeadCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 LeadSourceBadge(source = lead.source)
-                if (lead.priority > 0) {
+                if (isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        strokeWidth = 1.5.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else if (lead.priority > 0) {
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         repeat(lead.priority) {
                             Icon(

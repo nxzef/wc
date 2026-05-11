@@ -38,6 +38,7 @@ fun KanbanColumn(
     taskCounts: Map<String, Int>,
     draggingLeadId: String?,
     isHighlighted: Boolean,
+    syncingLeadIds: Set<String> = emptySet(),
     onLeadClick: (Lead) -> Unit,
     onDeleteStatus: (() -> Unit)?,
     onDragStart: (lead: Lead, taskCount: Int, windowPos: Offset, size: IntSize) -> Unit,
@@ -116,6 +117,7 @@ fun KanbanColumn(
                     lead = lead,
                     taskCount = count,
                     isDragging = lead.id == draggingLeadId,
+                    isSyncing = lead.id in syncingLeadIds,
                     onClick = { onLeadClick(lead) },
                     onDragStart = { windowPos, size ->
                         onDragStart(lead, count, windowPos, size)

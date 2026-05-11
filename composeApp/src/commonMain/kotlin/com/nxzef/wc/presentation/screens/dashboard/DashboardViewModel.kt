@@ -78,9 +78,6 @@ class DashboardViewModel(
             if (!silent) _state.update { it.copy(isLoading = true, error = null) }
             getDashboardStatsUseCase()
                 .onSuccess { stats ->
-                    if (silent && stats != oldStats) {
-                        _uiEvent.send(DashboardUiEvent.ShowSnackbar("Updated"))
-                    }
                     _state.update { it.copy(
                         stats = stats,
                         isLoading = false,
