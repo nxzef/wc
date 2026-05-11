@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.components.LeadStatusBadge
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Lead
 
 const val COL_NAME = "list_name"
@@ -205,7 +206,7 @@ fun LeadListView(
                                         Icon(
                                             Icons.Default.Star, null,
                                             Modifier.size(13.dp),
-                                            tint = StarGold
+                                            tint = WCTheme.colors.starGold
                                         )
                                     }
                                 }

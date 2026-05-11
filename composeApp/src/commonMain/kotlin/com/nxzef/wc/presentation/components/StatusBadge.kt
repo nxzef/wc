@@ -36,6 +36,8 @@ fun StatusBadge(
     }
 }
 
+private val FallbackStatusColor = Color(0xFF2196F3)
+
 fun String.toComposeColor(): Color {
     val hex = removePrefix("#")
     return try {
@@ -43,10 +45,10 @@ fun String.toComposeColor(): Color {
         when (hex.length) {
             6 -> Color((0xFF000000L or value).toInt())
             8 -> Color(value.toInt())
-            else -> Color(0xFF2196F3.toInt())
+            else -> FallbackStatusColor
         }
-    } catch (e: Exception) {
-        Color(0xFF2196F3.toInt())
+    } catch (_: Exception) {
+        FallbackStatusColor
     }
 }
 

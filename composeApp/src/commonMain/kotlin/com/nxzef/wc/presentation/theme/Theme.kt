@@ -1,13 +1,24 @@
 package com.nxzef.wc.presentation.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+enum class AppTheme { LIGHT, DARK, SYSTEM }
+
+object ThemeManager {
+    private val _theme = MutableStateFlow(AppTheme.SYSTEM)
+    val theme: StateFlow<AppTheme> = _theme.asStateFlow()
+
+    fun setTheme(theme: AppTheme) { _theme.value = theme }
+    fun getTheme(): AppTheme = _theme.value
+}
 
 internal val lightScheme = lightColorScheme(
     primary = primaryLight,
@@ -100,8 +111,8 @@ val unspecified_scheme = ColorFamily(
 
 @Composable
 expect fun WCTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    appTheme: AppTheme = AppTheme.SYSTEM,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 )
 

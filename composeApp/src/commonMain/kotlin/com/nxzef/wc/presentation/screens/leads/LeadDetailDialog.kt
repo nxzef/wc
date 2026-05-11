@@ -54,6 +54,7 @@ import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.components.LeadStatusBadge
 import com.nxzef.wc.presentation.components.TaskCheckItem
 import com.nxzef.wc.presentation.components.toComposeColor
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.Task
@@ -165,7 +166,7 @@ fun LeadDetailDialog(
                                             Icon(
                                                 Icons.Default.Star, null,
                                                 modifier = Modifier.size(16.dp),
-                                                tint = StarGold
+                                                tint = WCTheme.colors.starGold
                                             )
                                         }
                                     }

@@ -16,7 +16,7 @@ data class WCColors(
     val statusEditing: Color,
     val statusDelivered: Color,
     val statusClosed: Color,
-    
+
     val sourceInstagram: Color,
     val sourceFacebook: Color,
     val sourceGoogle: Color,
@@ -31,7 +31,19 @@ data class WCColors(
 
     val invoicePaid: Color,
     val invoicePartial: Color,
-    val invoiceUnpaid: Color
+    val invoiceUnpaid: Color,
+
+    val warning: Color,
+    val onWarning: Color,
+    val warningContainer: Color,
+    val onWarningContainer: Color,
+
+    val success: Color,
+    val onSuccess: Color,
+    val successContainer: Color,
+    val onSuccessContainer: Color,
+
+    val starGold: Color
 )
 
 val lightWCColors = WCColors(
@@ -45,7 +57,7 @@ val lightWCColors = WCColors(
     statusEditing = Color(0xFF8B5000),
     statusDelivered = Color(0xFF3B6939),
     statusClosed = Color(0xFF006D32),
-    
+
     sourceInstagram = Color(0xFF91004E),
     sourceFacebook = Color(0xFF0056D2),
     sourceGoogle = Color(0xFF006E1C),
@@ -60,7 +72,19 @@ val lightWCColors = WCColors(
 
     invoicePaid = Color(0xFF006D32),
     invoicePartial = Color(0xFF8B5000),
-    invoiceUnpaid = Color(0xFFBA1A1A)
+    invoiceUnpaid = Color(0xFFBA1A1A),
+
+    warning = Color(0xFF7D5700),
+    onWarning = Color(0xFFFFFFFF),
+    warningContainer = Color(0xFFFFDF99),
+    onWarningContainer = Color(0xFF271900),
+
+    success = Color(0xFF006D32),
+    onSuccess = Color(0xFFFFFFFF),
+    successContainer = Color(0xFF9BF6B5),
+    onSuccessContainer = Color(0xFF002111),
+
+    starGold = Color(0xFFB8860B)
 )
 
 val darkWCColors = WCColors(
@@ -74,7 +98,7 @@ val darkWCColors = WCColors(
     statusEditing = Color(0xFFFFB866),
     statusDelivered = Color(0xFFA1D39A),
     statusClosed = Color(0xFF66DF82),
-    
+
     sourceInstagram = Color(0xFFFFB1C8),
     sourceFacebook = Color(0xFFB1C5FF),
     sourceGoogle = Color(0xFF76DE74),
@@ -89,7 +113,19 @@ val darkWCColors = WCColors(
 
     invoicePaid = Color(0xFF66DF82),
     invoicePartial = Color(0xFFFFB866),
-    invoiceUnpaid = Color(0xFFFFB4AB)
+    invoiceUnpaid = Color(0xFFFFB4AB),
+
+    warning = Color(0xFFFFBF00),
+    onWarning = Color(0xFF412D00),
+    warningContainer = Color(0xFF5D4200),
+    onWarningContainer = Color(0xFFFFDF99),
+
+    success = Color(0xFF66DF82),
+    onSuccess = Color(0xFF003919),
+    successContainer = Color(0xFF005227),
+    onSuccessContainer = Color(0xFF9BF6B5),
+
+    starGold = Color(0xFFFFD700)
 )
 
 val LocalWCColors = staticCompositionLocalOf {

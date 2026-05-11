@@ -55,13 +55,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.EventType
 import com.nxzef.wc.shared.model.LeadSource
 import kotlinx.datetime.TimeZone
@@ -302,7 +302,7 @@ fun AddLeadScreen(
                         Icon(
                             imageVector = if (isFilled) Icons.Default.Star else Icons.Default.StarBorder,
                             contentDescription = "Priority $starIndex",
-                            tint = if (isFilled) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (isFilled) WCTheme.colors.starGold else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .size(36.dp)
                                 .pointerInput(starIndex) {

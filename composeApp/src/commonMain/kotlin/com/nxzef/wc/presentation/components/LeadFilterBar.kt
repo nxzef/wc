@@ -47,17 +47,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineAction
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineState
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.EventType
 import com.nxzef.wc.shared.model.LeadSource
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.util.DateUtils
-
-private val StarGold = Color(0xFFFFC107)
 
 @Composable
 fun LeadFilterBar(
@@ -335,23 +333,24 @@ fun PriorityFilterChip(
         },
         label = { Text(label, style = MaterialTheme.typography.labelLarge) },
         leadingIcon = {
+            val starGold = WCTheme.colors.starGold
             Icon(
                 Icons.Default.Star, null,
                 modifier = Modifier.size(16.dp),
-                tint = StarGold
+                tint = starGold
             )
         },
         shape = MaterialTheme.shapes.large,
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = StarGold.copy(alpha = 0.12f),
-            selectedLabelColor = StarGold,
-            selectedLeadingIconColor = StarGold
+            selectedContainerColor = WCTheme.colors.starGold.copy(alpha = 0.12f),
+            selectedLabelColor = WCTheme.colors.starGold,
+            selectedLeadingIconColor = WCTheme.colors.starGold
         ),
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
             selected = isActive,
             borderColor = MaterialTheme.colorScheme.outlineVariant,
-            selectedBorderColor = StarGold,
+            selectedBorderColor = WCTheme.colors.starGold,
             borderWidth = 1.dp,
             selectedBorderWidth = 1.dp
         )

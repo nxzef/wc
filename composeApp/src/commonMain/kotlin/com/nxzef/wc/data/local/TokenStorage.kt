@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.nxzef.wc.presentation.theme.AppTheme
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -26,6 +27,7 @@ class TokenStorage(
         val HAS_LAUNCHED_BEFORE_KEY = booleanPreferencesKey("has_launched_before")
         val PIPELINE_VIEW_LAYOUT_KEY = stringPreferencesKey("pipeline_view_layout")
         val PIPELINE_COLUMN_WIDTHS_KEY = stringPreferencesKey("pipeline_column_widths")
+        val APP_THEME_KEY = stringPreferencesKey("app_theme")
     }
 
     val token: Flow<String?> = dataStore.data.map { it[TOKEN_KEY] }
@@ -87,5 +89,14 @@ class TokenStorage(
 
     suspend fun savePipelineColumnWidths(encoded: String) {
         dataStore.edit { it[PIPELINE_COLUMN_WIDTHS_KEY] = encoded }
+    }
+
+    suspend fun getAppTheme(): AppTheme {
+        val stored = dataStore.data.firstOrNull()?.get(APP_THEME_KEY) ?: return AppTheme.SYSTEM
+        return try { AppTheme.valueOf(stored) } catch (_: Exception) { AppTheme.SYSTEM }
+    }
+
+    suspend fun saveAppTheme(theme: AppTheme) {
+        dataStore.edit { it[APP_THEME_KEY] = theme.name }
     }
 }

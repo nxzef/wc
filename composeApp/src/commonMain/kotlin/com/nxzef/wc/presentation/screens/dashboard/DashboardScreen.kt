@@ -1095,6 +1095,10 @@ fun RevenueChart(
         }
     }
 
+    val gridLineColor = MaterialTheme.colorScheme.outlineVariant
+    val goalLineColor = MaterialTheme.colorScheme.error
+    val dotCenterColor = MaterialTheme.colorScheme.surface
+
     val maxVal = (data.maxOrNull() ?: 1f).coerceAtLeast(targetGoal ?: 0f).coerceAtLeast(1f)
     val hasData = data.any { it > 0 }
 
@@ -1114,7 +1118,7 @@ fun RevenueChart(
             for (i in 0..gridLines) {
                 val y = chartHeight - (i * chartHeight / gridLines)
                 drawLine(
-                    color = Color.LightGray.copy(alpha = 0.3f),
+                    color = gridLineColor.copy(alpha = 0.3f),
                     start = Offset(paddingLeft, y),
                     end = Offset(width, y),
                     strokeWidth = 1.dp.toPx()
@@ -1149,7 +1153,7 @@ fun RevenueChart(
             targetGoal?.let { goal ->
                 val yGoal = chartHeight - (goal / maxVal * chartHeight)
                 drawLine(
-                    color = Color.Red.copy(alpha = 0.6f),
+                    color = goalLineColor.copy(alpha = 0.6f),
                     start = Offset(paddingLeft, yGoal),
                     end = Offset(width, yGoal),
                     strokeWidth = 2.dp.toPx(),
@@ -1159,7 +1163,7 @@ fun RevenueChart(
                 
                 // Goal label
                 val goalLabelText = "Target: ${CurrencyUtils.formatINRShort(goal.toDouble())}"
-                val goalLabel = textMeasurer.measure(goalLabelText, style = labelStyle.copy(color = Color.Red.copy(alpha = 0.7f)))
+                val goalLabel = textMeasurer.measure(goalLabelText, style = labelStyle.copy(color = goalLineColor.copy(alpha = 0.7f)))
                 drawText(
                     textLayoutResult = goalLabel,
                     topLeft = Offset(width - goalLabel.size.width - 8.dp.toPx(), yGoal - goalLabel.size.height - 2.dp.toPx())
@@ -1224,7 +1228,7 @@ fun RevenueChart(
                             center = Offset(x, chartHeight - (normalizedValue * chartHeight))
                         )
                         drawCircle(
-                            color = Color.White,
+                            color = dotCenterColor,
                             radius = 1.5.dp.toPx(),
                             center = Offset(x, chartHeight - (normalizedValue * chartHeight))
                         )

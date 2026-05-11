@@ -48,6 +48,7 @@ import com.nxzef.wc.presentation.screens.quotes.QuoteScreen
 import com.nxzef.wc.presentation.screens.settings.SettingsScreen
 import com.nxzef.wc.presentation.screens.tasks.TasksScreen
 import com.nxzef.wc.presentation.screens.team.TeamScreen
+import com.nxzef.wc.presentation.theme.ThemeManager
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.UserRole
 import kotlinx.coroutines.launch
@@ -119,7 +120,9 @@ fun WCNavigation(isFreshInstall: Boolean = false) {
         }
     }
 
-    WCTheme {
+    val appTheme by ThemeManager.theme.collectAsStateWithLifecycle()
+
+    WCTheme(appTheme = appTheme) {
         Surface {
             if (isAuthRoute(currentRoute)) {
                 AppNavHost(

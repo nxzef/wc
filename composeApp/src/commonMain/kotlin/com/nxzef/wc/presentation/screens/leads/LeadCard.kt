@@ -34,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -46,9 +45,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import com.nxzef.wc.presentation.components.LeadSourceBadge
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Lead
-
-internal val StarGold = Color(0xFFFFC107)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Draggable wrapper — manages drag callbacks; shows placeholder while dragging
@@ -173,7 +171,7 @@ fun LeadCard(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
-                                tint = StarGold
+                                tint = WCTheme.colors.starGold
                             )
                         }
                     }

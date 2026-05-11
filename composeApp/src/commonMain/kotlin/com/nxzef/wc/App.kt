@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import com.nxzef.wc.data.local.TokenStorage
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.navigation.WCNavigation
+import com.nxzef.wc.presentation.theme.ThemeManager
 import com.nxzef.wc.shared.model.Team
 import com.nxzef.wc.shared.model.User
 import com.nxzef.wc.shared.model.UserRole
@@ -23,6 +24,7 @@ fun App() {
 
     LaunchedEffect(Unit) {
         restoreSession(tokenStorage)
+        ThemeManager.setTheme(tokenStorage.getAppTheme())
         val launched = tokenStorage.hasLaunchedBefore()
         isFreshInstall = !launched
         if (!launched) {

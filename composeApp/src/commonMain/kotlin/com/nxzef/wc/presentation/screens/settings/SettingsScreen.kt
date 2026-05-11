@@ -58,6 +58,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.nxzef.wc.presentation.components.WCTopBar
+import com.nxzef.wc.presentation.theme.AppTheme
+import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.UserRole
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -69,6 +71,7 @@ fun SettingsScreen(
 ) {
     val user = viewModel.user
     val serverConnected by viewModel.serverConnected.collectAsState()
+    val appTheme by viewModel.appTheme.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
 
@@ -161,7 +164,7 @@ fun SettingsScreen(
                 SettingsGroup {
                     SettingsRow(
                         icon = Icons.Default.Lock,
-                        iconColor = Color(0xFFFF9800),
+                        iconColor = WCTheme.colors.warning,
                         title = "Change Password",
                         subtitle = "Update your security credentials",
                         showArrow = true,
@@ -215,11 +218,11 @@ fun SettingsScreen(
                         UserRole.MARKETING    -> Icons.Default.BarChart
                     }
                     val roleIconColor = when (role) {
-                        UserRole.OWNER        -> Color(0xFF1E88E5)
-                        UserRole.LEAD_MANAGER -> Color(0xFFE53935)
-                        UserRole.PHOTOGRAPHER -> Color(0xFF8E24AA)
-                        UserRole.EDITOR       -> Color(0xFF00ACC1)
-                        UserRole.MARKETING    -> Color(0xFF00897B)
+                        UserRole.OWNER        -> MaterialTheme.colorScheme.primary
+                        UserRole.LEAD_MANAGER -> MaterialTheme.colorScheme.error
+                        UserRole.PHOTOGRAPHER -> MaterialTheme.colorScheme.tertiary
+                        UserRole.EDITOR       -> MaterialTheme.colorScheme.secondary
+                        UserRole.MARKETING    -> WCTheme.colors.success
                     }
 
                     Spacer(Modifier.height(24.dp))
@@ -248,7 +251,7 @@ fun SettingsScreen(
                 // ── General ───────────────────────────────────────────────────
                 SettingsSectionLabel("General")
                 Spacer(Modifier.height(6.dp))
-                val serverColor = if (serverConnected) Color(0xFF43A047) else MaterialTheme.colorScheme.error
+                val serverColor = if (serverConnected) WCTheme.colors.success else MaterialTheme.colorScheme.error
                 SettingsGroup {
                     SettingsRow(
                         icon = Icons.Default.Info,
@@ -271,12 +274,9 @@ fun SettingsScreen(
                         modifier = Modifier.padding(start = 74.dp),
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                     )
-                    SettingsRow(
-                        icon = Icons.Default.DarkMode,
-                        iconColor = Color(0xFF7E57C2),
-                        title = "Dark Mode",
-                        comingSoon = true,
-                        enabled = false
+                    AppearanceRow(
+                        currentTheme = appTheme,
+                        onThemeChange = { viewModel.setTheme(it) }
                     )
                 }
 
@@ -293,6 +293,78 @@ fun SettingsScreen(
                 showChangePasswordDialog = false
             }
         )
+    }
+}
+
+@Composable
+private fun AppearanceRow(
+    currentTheme: AppTheme,
+    onThemeChange: (AppTheme) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
+            modifier = Modifier.size(44.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.DarkMode,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+
+        Text(
+            text = "Appearance",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AppTheme.entries.forEach { theme ->
+                val selected = theme == currentTheme
+                val label = when (theme) {
+                    AppTheme.SYSTEM -> "Auto"
+                    AppTheme.LIGHT -> "Light"
+                    AppTheme.DARK -> "Dark"
+                }
+                Surface(
+                    onClick = { onThemeChange(theme) },
+                    shape = MaterialTheme.shapes.medium,
+                    color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    border = if (selected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                    modifier = Modifier.height(30.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.padding(horizontal = 10.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -384,17 +456,20 @@ private fun SettingsRow(
         }
 
         when {
-            comingSoon -> Surface(
-                shape = MaterialTheme.shapes.extraSmall,
-                color = Color(0xFFFF9800).copy(alpha = 0.14f)
-            ) {
-                Text(
-                    text = "SOON",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFFF9800),
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                )
+            comingSoon -> {
+                val warningColor = WCTheme.colors.warning
+                Surface(
+                    shape = MaterialTheme.shapes.extraSmall,
+                    color = warningColor.copy(alpha = 0.14f)
+                ) {
+                    Text(
+                        text = "SOON",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = warningColor,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                    )
+                }
             }
             value != null -> Text(
                 text = value,
