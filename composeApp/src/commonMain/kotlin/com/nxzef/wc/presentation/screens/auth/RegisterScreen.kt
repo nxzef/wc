@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,18 +12,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Business
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,6 +42,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.shared.model.UserRole
 import org.koin.compose.viewmodel.koinViewModel
@@ -69,9 +76,9 @@ fun RegisterScreen(
         ) {
             Card(
                 modifier = Modifier
-                    .widthIn(max = 460.dp)
+                    .widthIn(max = 480.dp)
                     .padding(24.dp),
-                shape = MaterialTheme.shapes.large,
+                shape = MaterialTheme.shapes.extraLarge,
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -79,48 +86,80 @@ fun RegisterScreen(
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(40.dp)
+                        .padding(horizontal = 40.dp, vertical = 40.dp)
                         .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Surface(
+                        modifier = Modifier.size(60.dp),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Business,
+                                contentDescription = null,
+                                modifier = Modifier.size(30.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(20.dp))
+
                     Text(
-                        text = "Create Your Company",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        text = "STUDIO OWNER",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 2.sp
                     )
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Set up your studio's workspace",
+                        text = "Create Your Studio",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "Set up your company's workspace",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(Modifier.height(28.dp))
 
                     OutlinedTextField(
                         value = state.name,
                         onValueChange = { viewModel.onAction(RegisterAction.OnNameChange(it)) },
                         label = { Text("Your Name") },
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                     )
+
+                    Spacer(Modifier.height(12.dp))
 
                     OutlinedTextField(
                         value = state.teamName,
                         onValueChange = { viewModel.onAction(RegisterAction.OnTeamNameChange(it)) },
                         label = { Text("Company Name") },
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                     )
 
+                    Spacer(Modifier.height(12.dp))
+
                     OutlinedTextField(
                         value = state.email,
                         onValueChange = { viewModel.onAction(RegisterAction.OnEmailChange(it)) },
-                        label = { Text("Email") },
+                        label = { Text("Email Address") },
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
@@ -128,11 +167,14 @@ fun RegisterScreen(
                         )
                     )
 
+                    Spacer(Modifier.height(12.dp))
+
                     OutlinedTextField(
                         value = state.password,
                         onValueChange = { viewModel.onAction(RegisterAction.OnPasswordChange(it)) },
                         label = { Text("Password") },
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
@@ -141,11 +183,14 @@ fun RegisterScreen(
                         )
                     )
 
+                    Spacer(Modifier.height(12.dp))
+
                     OutlinedTextField(
                         value = state.confirmPassword,
                         onValueChange = { viewModel.onAction(RegisterAction.OnConfirmPasswordChange(it)) },
                         label = { Text("Confirm Password") },
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
@@ -154,11 +199,13 @@ fun RegisterScreen(
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(Modifier.height(24.dp))
 
                     Button(
                         onClick = { viewModel.onAction(RegisterAction.OnSubmit) },
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
                         enabled = !state.isLoading,
                         shape = MaterialTheme.shapes.medium
                     ) {
@@ -170,22 +217,44 @@ fun RegisterScreen(
                             )
                         } else {
                             Text(
-                                text = "Create Company",
+                                text = "Create Studio",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
 
-                    TextButton(onClick = onSignIn) {
+                    Spacer(Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                        Text(
+                            "  or  ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+
+                    TextButton(
+                        onClick = onSignIn,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
                             text = "Already have an account? Sign In",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                    }
-
-                    TextButton(onClick = onBack) {
-                        Text("Back")
                     }
                 }
             }

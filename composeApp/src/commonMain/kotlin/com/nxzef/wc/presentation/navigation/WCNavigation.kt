@@ -32,7 +32,7 @@ import com.nxzef.wc.domain.repository.AuthRepository
 import com.nxzef.wc.presentation.components.WCPermanentSidebar
 import com.nxzef.wc.presentation.screens.auth.ForgotPasswordScreen
 import com.nxzef.wc.presentation.screens.auth.JoinTeamScreen
-import com.nxzef.wc.presentation.screens.auth.LoginScreen
+import com.nxzef.wc.presentation.screens.auth.MemberLoginScreen
 import com.nxzef.wc.presentation.screens.auth.RegisterScreen
 import com.nxzef.wc.presentation.screens.auth.WelcomeScreen
 import com.nxzef.wc.presentation.screens.bookings.BookingScreen
@@ -62,7 +62,8 @@ private fun roleHome(role: UserRole): Route = when (role) {
 }
 
 private fun isAuthRoute(route: Route): Boolean = when (route) {
-    Route.Welcome, Route.Register, Route.JoinTeam, Route.Login, Route.ForgotPassword -> true
+    Route.Welcome, Route.Register, Route.JoinTeam,
+    Route.MemberLogin, Route.ForgotPassword -> true
     else -> false
 }
 
@@ -77,27 +78,33 @@ fun WCNavigation(isFreshInstall: Boolean = false) {
 
     val initialRoute = remember {
         val user = SessionManager.getUser()
-        when {
-            user != null -> roleHome(user.role)
-            isFreshInstall -> Route.Welcome
-            else -> Route.Login
-        }
+        if (user != null) roleHome(user.role) else Route.Welcome
     }
 
     var isSidebarCollapsed by remember { mutableStateOf(false) }
+
+    // Track the last known role so we know where to route after logout
+    val currentUserState by SessionManager.currentUser.collectAsStateWithLifecycle()
+    var lastKnownRole: UserRole? by remember { mutableStateOf(SessionManager.getRole()) }
+    LaunchedEffect(currentUserState) {
+        currentUserState?.role?.let { lastKnownRole = it }
+    }
 
     val isLoggedIn by SessionManager.isLoggedIn.collectAsStateWithLifecycle()
     LaunchedEffect(isLoggedIn) {
         if (!isLoggedIn) {
             val dest = navController.currentBackStackEntry?.destination
-            if (dest != null && !dest.hasRoute<Route.Welcome>() &&
-                !dest.hasRoute<Route.Login>() &&
+            if (dest != null &&
+                !dest.hasRoute<Route.Welcome>() &&
+                !dest.hasRoute<Route.MemberLogin>() &&
                 !dest.hasRoute<Route.Register>() &&
                 !dest.hasRoute<Route.JoinTeam>() &&
                 !dest.hasRoute<Route.ForgotPassword>()
             ) {
                 tokenStorage.clearSession()
-                navController.navigate(Route.Login) {
+                val loginRoute: Route =
+                    if (lastKnownRole == UserRole.OWNER) Route.Welcome else Route.MemberLogin
+                navController.navigate(loginRoute) {
                     popUpTo(0) { inclusive = true }
                 }
             }
@@ -194,29 +201,6 @@ fun AppNavHost(
     ) {
         composable<Route.Welcome> {
             WelcomeScreen(
-                onCreateCompany = { navController.navigate(Route.Register) },
-                onJoinTeam = { navController.navigate(Route.JoinTeam) },
-                onSignIn = { navController.navigate(Route.Login) }
-            )
-        }
-
-        composable<Route.Register> {
-            RegisterScreen(
-                onRegistered = onAuthSuccess,
-                onBack = { navController.popBackStack() },
-                onSignIn = { navController.navigate(Route.Login) }
-            )
-        }
-
-        composable<Route.JoinTeam> {
-            JoinTeamScreen(
-                onJoined = onAuthSuccess,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable<Route.Login> {
-            LoginScreen(
                 onLoginSuccess = onAuthSuccess,
                 onCreateCompany = { navController.navigate(Route.Register) },
                 onJoinTeam = { navController.navigate(Route.JoinTeam) },
@@ -224,14 +208,44 @@ fun AppNavHost(
             )
         }
 
+        composable<Route.Register> {
+            RegisterScreen(
+                onRegistered = onAuthSuccess,
+                onBack = { navController.popBackStack() },
+                onSignIn = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.JoinTeam> {
+            JoinTeamScreen(
+                onJoined = onAuthSuccess,
+                onBack = { navController.popBackStack() },
+                onAlreadyMember = { navController.navigate(Route.MemberLogin) }
+            )
+        }
+
+        composable<Route.MemberLogin> {
+            MemberLoginScreen(
+                onLoginSuccess = onAuthSuccess,
+                onBack = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Route.Welcome) { popUpTo(0) { inclusive = true } }
+                    }
+                },
+                onJoinTeam = {
+                    navController.navigate(Route.JoinTeam) {
+                        popUpTo(Route.Welcome) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
+                onForgotPassword = { navController.navigate(Route.ForgotPassword) }
+            )
+        }
+
         composable<Route.ForgotPassword> {
             ForgotPasswordScreen(
                 onBack = { navController.popBackStack() },
-                onResetSuccess = {
-                    navController.navigate(Route.Login) {
-                        popUpTo(Route.Login) { inclusive = true }
-                    }
-                }
+                onResetSuccess = { navController.popBackStack() }
             )
         }
 
@@ -339,7 +353,7 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
         destination.hasRoute<Route.Welcome>() -> Route.Welcome
         destination.hasRoute<Route.Register>() -> Route.Register
         destination.hasRoute<Route.JoinTeam>() -> Route.JoinTeam
-        destination.hasRoute<Route.Login>() -> Route.Login
+        destination.hasRoute<Route.MemberLogin>() -> Route.MemberLogin
         destination.hasRoute<Route.ForgotPassword>() -> Route.ForgotPassword
         destination.hasRoute<Route.OwnerDashboard>() -> Route.OwnerDashboard
         destination.hasRoute<Route.LeadPipeline>() -> Route.LeadPipeline
@@ -360,7 +374,6 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
             val q = backStackEntry.toRoute<Route.Quotes>()
             Route.Quotes(q.leadId, q.clientName, q.clientEmail)
         }
-
         else -> Route.Welcome
     }
 }

@@ -1,7 +1,6 @@
 package com.nxzef.wc.presentation.screens.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +13,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -25,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,6 +40,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -59,9 +62,9 @@ fun ForgotPasswordScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { padding ->
+    val isStep1 = state.step == 1
+
+    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -73,31 +76,80 @@ fun ForgotPasswordScreen(
                 modifier = Modifier
                     .widthIn(max = 440.dp)
                     .padding(24.dp),
-                shape = MaterialTheme.shapes.large,
+                shape = MaterialTheme.shapes.extraLarge,
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 )
             ) {
                 Column(
-                    modifier = Modifier.padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 32.dp)
+                        .padding(top = 12.dp, bottom = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.align(Alignment.CenterStart)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
 
+                    Spacer(Modifier.height(4.dp))
+
+                    Surface(
+                        modifier = Modifier.size(60.dp),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                if (isStep1) Icons.Default.Email else Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
                     Text(
-                        text = if (state.step == 1) "Forgot Password" else "Reset Password",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        text = if (isStep1) "FORGOT PASSWORD" else "RESET PASSWORD",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 2.sp,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = if (isStep1) "Reset Your Password" else "Create New Password",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = if (isStep1)
+                            "Enter your email and we'll send you a 6-digit reset code."
+                        else
+                            "Enter the code we sent to ${state.email} and choose a new password.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
                     )
 
-                    if (state.step == 1) {
+                    Spacer(Modifier.height(24.dp))
+
+                    if (isStep1) {
                         EmailStep(state, viewModel)
                     } else {
                         ResetStep(state, viewModel)
@@ -110,14 +162,6 @@ fun ForgotPasswordScreen(
 
 @Composable
 private fun EmailStep(state: ForgotPasswordState, viewModel: ForgotPasswordViewModel) {
-    Text(
-        text = "Enter your email address and we'll send you a 6-digit code to reset your password.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-
-    Spacer(modifier = Modifier.height(8.dp))
-
     OutlinedTextField(
         value = state.email,
         onValueChange = { viewModel.onEmailChange(it) },
@@ -125,31 +169,40 @@ private fun EmailStep(state: ForgotPasswordState, viewModel: ForgotPasswordViewM
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done)
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Email,
+            imeAction = ImeAction.Done
+        )
     )
+
+    Spacer(Modifier.height(20.dp))
 
     Button(
         onClick = { viewModel.sendCode() },
-        modifier = Modifier.fillMaxWidth().height(50.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp),
         enabled = !state.isLoading && state.email.isNotBlank(),
         shape = MaterialTheme.shapes.medium
     ) {
         if (state.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = MaterialTheme.colorScheme.onPrimary,
+                strokeWidth = 2.dp
+            )
         } else {
-            Text("Send Reset Code")
+            Text(
+                text = "Send Reset Code",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
 
 @Composable
 private fun ResetStep(state: ForgotPasswordState, viewModel: ForgotPasswordViewModel) {
-    Text(
-        text = "We sent a code to ${state.email}. Enter it below along with your new password.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-
     OutlinedTextField(
         value = state.code,
         onValueChange = { if (it.length <= 6) viewModel.onCodeChange(it) },
@@ -157,8 +210,13 @@ private fun ResetStep(state: ForgotPasswordState, viewModel: ForgotPasswordViewM
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Next
+        )
     )
+
+    Spacer(Modifier.height(12.dp))
 
     OutlinedTextField(
         value = state.newPassword,
@@ -168,8 +226,13 @@ private fun ResetStep(state: ForgotPasswordState, viewModel: ForgotPasswordViewM
         visualTransformation = PasswordVisualTransformation(),
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next)
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            imeAction = ImeAction.Next
+        )
     )
+
+    Spacer(Modifier.height(12.dp))
 
     OutlinedTextField(
         value = state.confirmPassword,
@@ -179,23 +242,47 @@ private fun ResetStep(state: ForgotPasswordState, viewModel: ForgotPasswordViewM
         visualTransformation = PasswordVisualTransformation(),
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            imeAction = ImeAction.Done
+        )
     )
+
+    Spacer(Modifier.height(20.dp))
 
     Button(
         onClick = { viewModel.resetPassword() },
-        modifier = Modifier.fillMaxWidth().height(50.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp),
         enabled = !state.isLoading && state.code.length == 6 && state.newPassword.isNotBlank(),
         shape = MaterialTheme.shapes.medium
     ) {
         if (state.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = MaterialTheme.colorScheme.onPrimary,
+                strokeWidth = 2.dp
+            )
         } else {
-            Text("Reset Password")
+            Text(
+                text = "Reset Password",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 
-    TextButton(onClick = { viewModel.sendCode() }, enabled = !state.isLoading) {
-        Text("Didn't receive code? Resend")
+    Spacer(Modifier.height(4.dp))
+
+    TextButton(
+        onClick = { viewModel.sendCode() },
+        enabled = !state.isLoading
+    ) {
+        Text(
+            text = "Didn't receive a code? Resend",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }

@@ -11,9 +11,9 @@ sealed interface Route {
     @Serializable
     data object JoinTeam : Route
     @Serializable
-    data object Login : Route
-    @Serializable
     data object ForgotPassword : Route
+    @Serializable
+    data object MemberLogin : Route
     @Serializable
     data object OwnerDashboard : Route
     @Serializable

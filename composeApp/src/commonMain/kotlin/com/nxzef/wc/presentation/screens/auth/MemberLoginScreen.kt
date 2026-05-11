@@ -1,7 +1,6 @@
 package com.nxzef.wc.presentation.screens.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,13 +14,16 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -34,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -46,31 +49,44 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nxzef.wc.domain.repository.AuthRepository
 import com.nxzef.wc.shared.model.UserRole
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun LoginScreen(
+fun MemberLoginScreen(
     onLoginSuccess: (UserRole) -> Unit,
-    onCreateCompany: () -> Unit,
+    onBack: () -> Unit,
+    onJoinTeam: () -> Unit,
     onForgotPassword: () -> Unit,
     viewModel: LoginViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val authRepository: AuthRepository = koinInject()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(true) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is LoginUiEvent.NavigateToHome -> onLoginSuccess(event.role)
+                is LoginUiEvent.NavigateToHome -> {
+                    if (event.role != UserRole.OWNER) {
+                        onLoginSuccess(event.role)
+                    } else {
+                        scope.launch { authRepository.logout() }
+                        snackbarHostState.showSnackbar(
+                            "This login is for team members only. Studio Owners sign in from the first screen."
+                        )
+                    }
+                }
                 is LoginUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
             }
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { padding ->
+    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -89,48 +105,68 @@ fun LoginScreen(
                 )
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 40.dp, vertical = 40.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 32.dp)
+                        .padding(top = 12.dp, bottom = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Surface(
-                        modifier = Modifier.size(60.dp),
-                        shape = MaterialTheme.shapes.extraLarge,
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.align(Alignment.CenterStart)
+                        ) {
                             Icon(
-                                Icons.Default.Lock,
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(4.dp))
+
+                    Surface(
+                        modifier = Modifier.size(60.dp),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Group,
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
 
                     Text(
-                        text = "STUDIO OWNER",
+                        text = "TEAM MEMBER",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 2.sp
+                        color = MaterialTheme.colorScheme.secondary,
+                        letterSpacing = 2.sp,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "Sign In",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = "Welcome back to your dashboard",
+                        text = "Access your team workspace",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(Modifier.height(28.dp))
+                    Spacer(Modifier.height(24.dp))
 
                     OutlinedTextField(
                         value = state.email,
@@ -186,12 +222,10 @@ fun LoginScreen(
                             Text(
                                 text = "Forgot password?",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }
-
-                    Spacer(Modifier.height(8.dp))
 
                     Button(
                         onClick = { viewModel.onAction(LoginAction.OnLoginClick) },
@@ -199,12 +233,16 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(54.dp),
                         enabled = !state.isLoading,
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        )
                     ) {
                         if (state.isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.onSecondary,
                                 strokeWidth = 2.dp
                             )
                         } else {
@@ -216,7 +254,7 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(20.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -240,12 +278,13 @@ fun LoginScreen(
                     Spacer(Modifier.height(4.dp))
 
                     TextButton(
-                        onClick = onCreateCompany,
+                        onClick = onJoinTeam,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "New here? Create studio account",
-                            style = MaterialTheme.typography.bodyMedium
+                            text = "New member? Join with invite code →",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary
                         )
                     }
                 }

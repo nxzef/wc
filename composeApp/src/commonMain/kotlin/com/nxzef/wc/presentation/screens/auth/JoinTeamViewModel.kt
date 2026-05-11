@@ -48,7 +48,7 @@ class JoinTeamViewModel(
                 confirmPassword = s.confirmPassword
             )) {
                 is AppResult.Success -> {
-                    _uiEvent.send(JoinTeamUiEvent.ShowSnackbar("Welcome! You can sign in with your email and password next time."))
+                    _uiEvent.send(JoinTeamUiEvent.ShowSnackbar("Welcome! Use 'Already a member? Sign In' next time you open the app."))
                     _uiEvent.send(JoinTeamUiEvent.NavigateToHome(result.data.user.role))
                 }
                 is AppResult.Failure ->
