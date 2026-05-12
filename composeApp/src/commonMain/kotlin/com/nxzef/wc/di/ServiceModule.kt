@@ -4,6 +4,7 @@ import com.nxzef.wc.data.local.TokenStorage
 import com.nxzef.wc.data.local.createDataStore
 import com.nxzef.wc.data.remote.ApiClient
 import com.nxzef.wc.data.remote.ApiService
+import com.nxzef.wc.data.remote.AppVersionService
 import com.nxzef.wc.data.remote.AuthService
 import com.nxzef.wc.data.remote.BookingService
 import com.nxzef.wc.data.remote.DashboardService
@@ -42,6 +43,7 @@ val serviceModule = module {
     single { QuoteService(get()) }
     single { LeadStatusService(get()) }
     single { ApiService(get()) }
+    single { AppVersionService(get()) }
     single { createDataStore() }
     single { TokenStorage(get()) }
 }

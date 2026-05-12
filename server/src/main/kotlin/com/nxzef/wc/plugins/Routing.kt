@@ -17,6 +17,7 @@ import com.nxzef.wc.data.repository.UserRepository
 import com.nxzef.wc.domain.service.AuthService
 import com.nxzef.wc.domain.service.EmailService
 import com.nxzef.wc.domain.service.NotificationService
+import com.nxzef.wc.routes.appRoutes
 import com.nxzef.wc.routes.authRoutes
 import com.nxzef.wc.routes.bookingRoutes
 import com.nxzef.wc.routes.dashboardRoutes
@@ -69,6 +70,9 @@ fun Application.configureRouting() {
         get("/health") {
             call.respond(mapOf("status" to "ok"))
         }
+
+        // App version — public, no JWT required
+        appRoutes()
 
         // Debug-only email test endpoint — only mounted outside production
         if (!ServerConfig.isProduction) {

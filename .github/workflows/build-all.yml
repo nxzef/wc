@@ -1,0 +1,175 @@
+name: Build All Platforms
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    runs-on: macos-13
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: mac-gradle-${{ hashFiles('**/*.gradle.kts') }}
+          restore-keys: mac-gradle-
+      - run: chmod +x gradlew
+      - name: Build Mac DMG
+        run: |
+          ./gradlew :composeApp:packageDmg --no-daemon \
+            -x :androidApp:assembleDebug \
+            -x :androidApp:assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-dmg
+          path: composeApp/build/compose/binaries/main/dmg/*.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: windows-gradle-${{ hashFiles('**/*.gradle.kts') }}
+          restore-keys: windows-gradle-
+      - name: Build Windows MSI
+        run: ./gradlew :composeApp:packageMsi --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi
+          path: composeApp/build/compose/binaries/main/msi/*.msi
+
+  build-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: linux-gradle-${{ hashFiles('**/*.gradle.kts') }}
+          restore-keys: linux-gradle-
+      - run: chmod +x gradlew
+      - name: Build Linux DEB
+        run: ./gradlew :composeApp:packageDeb --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb
+          path: composeApp/build/compose/binaries/main/deb/*.deb
+
+  publish-page:
+    needs: [build-mac, build-windows, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download mac artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-dmg
+          path: dist/mac
+
+      - name: Download windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-msi
+          path: dist/windows
+
+      - name: Download linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-deb
+          path: dist/linux
+
+      - name: Build download page
+        run: |
+          mkdir -p docs
+          cp dist/mac/*.dmg docs/ 2>/dev/null || true
+          cp dist/windows/*.msi docs/ 2>/dev/null || true
+          cp dist/linux/*.deb docs/ 2>/dev/null || true
+
+          MAC=$(ls docs/*.dmg 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
+          WIN=$(ls docs/*.msi 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
+          LIN=$(ls docs/*.deb 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
+          VER="1.0.${{ github.run_number }}"
+
+          cat > docs/index.html << HTMLEOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>The Wedding Clouds — Download</title>
+            <style>
+              *{margin:0;padding:0;box-sizing:border-box}
+              body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fdf2f8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+              .card{background:white;border-radius:24px;padding:48px;max-width:480px;width:100%;box-shadow:0 8px 40px rgba(233,30,99,0.12);text-align:center}
+              .logo{width:88px;height:88px;background:linear-gradient(135deg,#E91E63,#9C27B0);border-radius:22px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:40px}
+              h1{font-size:26px;font-weight:800;color:#1a1a1a;margin-bottom:6px}
+              .sub{color:#888;font-size:15px;margin-bottom:6px}
+              .ver{color:#E91E63;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:36px}
+              .btn{display:flex;align-items:center;gap:14px;width:100%;padding:18px 24px;border-radius:14px;text-decoration:none;margin-bottom:10px;transition:all 0.15s}
+              .btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.15)}
+              .btn:active{transform:translateY(0)}
+              .mac{background:#1a1a1a;color:white}
+              .win{background:#0078D4;color:white}
+              .lin{background:#E95420;color:white}
+              .bi{font-size:28px}
+              .bt{text-align:left}
+              .bt strong{display:block;font-size:15px}
+              .bt span{font-size:12px;opacity:0.75;font-weight:400}
+              hr{border:none;border-top:1px solid #f5f5f5;margin:24px 0}
+              .help{font-size:12px;color:#aaa;line-height:1.8}
+            </style>
+          </head>
+          <body>
+          <div class="card">
+            <div class="logo">💍</div>
+            <h1>The Wedding Clouds</h1>
+            <p class="sub">Photography CRM</p>
+            <p class="ver">Version ${VER}</p>
+            $([ -n "$MAC" ] && echo "<a href='${MAC}' class='btn mac'><span class='bi'></span><div class='bt'><strong>Download for Mac</strong><span>macOS 11 or later · .dmg</span></div></a>")
+            $([ -n "$WIN" ] && echo "<a href='${WIN}' class='btn win'><span class='bi'>🪟</span><div class='bt'><strong>Download for Windows</strong><span>Windows 10 or later · .msi</span></div></a>")
+            $([ -n "$LIN" ] && echo "<a href='${LIN}' class='btn lin'><span class='bi'>🐧</span><div class='bt'><strong>Download for Linux</strong><span>Ubuntu / Debian · .deb</span></div></a>")
+            <hr>
+            <p class="help">
+              <strong>Mac:</strong> Open DMG → drag to Applications → double click icon<br>
+              <strong>Windows:</strong> Open MSI → click Install → icon on Desktop<br>
+              <strong>Linux:</strong> Open DEB → install → find in app list
+            </p>
+          </div>
+          </body>
+          </html>
+          HTMLEOF
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          force_orphan: true

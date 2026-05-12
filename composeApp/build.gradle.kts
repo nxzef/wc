@@ -93,12 +93,42 @@ compose.desktop {
         mainClass = "com.nxzef.wc.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg)
+            targetFormats(
+                TargetFormat.Dmg,
+                TargetFormat.Msi,
+                TargetFormat.Deb
+            )
             packageName = "WeddingClouds"
             packageVersion = "1.0.0"
+            description = "Photography CRM"
+            copyright = "© 2025 The Wedding Clouds"
+            vendor = "The Wedding Clouds"
 
             macOS {
                 bundleID = "com.nxzef.wc"
+                packageName = "WeddingClouds"
+                jvmArgs += listOf(
+                    "--add-opens=java.base/sun.misc=ALL-UNNAMED",
+                    "--add-opens=java.base/java.lang=ALL-UNNAMED"
+                )
+            }
+
+            windows {
+                menuGroup = "WeddingClouds"
+                upgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                shortcut = true
+                dirChooser = true
+                jvmArgs += listOf(
+                    "--add-opens=java.base/sun.misc=ALL-UNNAMED",
+                    "--add-opens=java.base/java.lang=ALL-UNNAMED"
+                )
+            }
+
+            linux {
+                packageName = "weddingclouds"
+                debMaintainer = "noreply@weddingclouds.com"
+                menuGroup = "Office"
+                appCategory = "Office"
                 jvmArgs += listOf(
                     "--add-opens=java.base/sun.misc=ALL-UNNAMED",
                     "--add-opens=java.base/java.lang=ALL-UNNAMED"

@@ -1,6 +1,7 @@
 package com.nxzef.wc.data.db
 
 import com.nxzef.wc.config.ServerConfig
+import com.nxzef.wc.routes.AppConfigTable
 import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.InvoicesTable
 import com.nxzef.wc.data.db.tables.LeadStatusesTable
@@ -78,7 +79,8 @@ object DatabaseFactory {
                 ProjectExpensesTable,
                 MonthlyGoalsTable,
                 TasksTable,
-                NotificationsTable
+                NotificationsTable,
+                AppConfigTable
             )
         }
 

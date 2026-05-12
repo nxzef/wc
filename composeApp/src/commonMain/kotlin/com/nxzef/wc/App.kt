@@ -1,13 +1,20 @@
 package com.nxzef.wc
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.local.TokenStorage
+import com.nxzef.wc.data.remote.AppVersionService
 import com.nxzef.wc.data.session.SessionManager
+import com.nxzef.wc.platform.openUrl
 import com.nxzef.wc.presentation.navigation.WCNavigation
 import com.nxzef.wc.presentation.theme.ThemeManager
 import com.nxzef.wc.shared.model.Team
@@ -19,8 +26,11 @@ import org.koin.compose.koinInject
 @Composable
 fun App() {
     val tokenStorage: TokenStorage = koinInject()
+    val appVersionService: AppVersionService = koinInject()
     var isReady by remember { mutableStateOf(false) }
     var isFreshInstall by remember { mutableStateOf(false) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var updateUrl by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         restoreSession(tokenStorage)
@@ -30,11 +40,39 @@ fun App() {
         if (!launched) {
             tokenStorage.markLaunchedBefore()
         }
+        try {
+            val versionInfo = appVersionService.checkVersion()
+            val latest = versionInfo?.get("latest_version")
+            val url = versionInfo?.get("download_url") ?: ""
+            if (latest != null && latest != AppConfig.CURRENT_VERSION) {
+                updateUrl = url
+                showUpdateDialog = true
+            }
+        } catch (_: Exception) { }
         isReady = true
     }
 
     if (isReady) {
         WCNavigation(isFreshInstall = isFreshInstall)
+    }
+
+    if (showUpdateDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = { Text("Update Available") },
+            text = { Text("A new version of WeddingClouds is available. Download and install to get the latest features and fixes.") },
+            confirmButton = {
+                Button(onClick = {
+                    showUpdateDialog = false
+                    openUrl(updateUrl)
+                }) { Text("Download Update") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUpdateDialog = false }) {
+                    Text("Later")
+                }
+            }
+        )
     }
 }
 
