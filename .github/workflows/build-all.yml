@@ -88,35 +88,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download mac artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: mac-dmg
-          path: dist/mac
+          path: dist
 
-      - name: Download windows artifact
-        uses: actions/download-artifact@v4
+      - name: Create GitHub Release and upload installers
+        id: release
+        uses: softprops/action-gh-release@v2
         with:
-          name: windows-msi
-          path: dist/windows
+          tag_name: v1.0.${{ github.run_number }}
+          name: WeddingClouds v1.0.${{ github.run_number }}
+          body: |
+            ## WeddingClouds v1.0.${{ github.run_number }}
 
-      - name: Download linux artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-deb
-          path: dist/linux
+            Download the installer for your platform below.
+
+            | Platform | File |
+            |----------|------|
+            | macOS | `.dmg` |
+            | Windows | `.msi` |
+            | Linux (Debian/Ubuntu) | `.deb` |
+          files: |
+            dist/mac-dmg/*.dmg
+            dist/windows-msi/*.msi
+            dist/linux-deb/*.deb
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build download page
         run: |
           mkdir -p docs
-          cp dist/mac/*.dmg docs/ 2>/dev/null || true
-          cp dist/windows/*.msi docs/ 2>/dev/null || true
-          cp dist/linux/*.deb docs/ 2>/dev/null || true
-
-          MAC=$(ls docs/*.dmg 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
-          WIN=$(ls docs/*.msi 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
-          LIN=$(ls docs/*.deb 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
           VER="1.0.${{ github.run_number }}"
+          REPO="${{ github.repository }}"
+
+          MAC=$(ls dist/mac-dmg/*.dmg 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
+          WIN=$(ls dist/windows-msi/*.msi 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
+          LIN=$(ls dist/linux-deb/*.deb 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
+
+          MAC_URL="https://github.com/${REPO}/releases/download/v${VER}/${MAC}"
+          WIN_URL="https://github.com/${REPO}/releases/download/v${VER}/${WIN}"
+          LIN_URL="https://github.com/${REPO}/releases/download/v${VER}/${LIN}"
 
           cat > docs/index.html << HTMLEOF
           <!DOCTYPE html>
@@ -153,9 +164,9 @@ jobs:
             <h1>The Wedding Clouds</h1>
             <p class="sub">Photography CRM</p>
             <p class="ver">Version ${VER}</p>
-            $([ -n "$MAC" ] && echo "<a href='${MAC}' class='btn mac'><span class='bi'></span><div class='bt'><strong>Download for Mac</strong><span>macOS 11 or later · .dmg</span></div></a>")
-            $([ -n "$WIN" ] && echo "<a href='${WIN}' class='btn win'><span class='bi'>🪟</span><div class='bt'><strong>Download for Windows</strong><span>Windows 10 or later · .msi</span></div></a>")
-            $([ -n "$LIN" ] && echo "<a href='${LIN}' class='btn lin'><span class='bi'>🐧</span><div class='bt'><strong>Download for Linux</strong><span>Ubuntu / Debian · .deb</span></div></a>")
+            $([ -n "$MAC" ] && echo "<a href='${MAC_URL}' class='btn mac'><span class='bi'></span><div class='bt'><strong>Download for Mac</strong><span>macOS 11 or later · .dmg</span></div></a>")
+            $([ -n "$WIN" ] && echo "<a href='${WIN_URL}' class='btn win'><span class='bi'>🪟</span><div class='bt'><strong>Download for Windows</strong><span>Windows 10 or later · .msi</span></div></a>")
+            $([ -n "$LIN" ] && echo "<a href='${LIN_URL}' class='btn lin'><span class='bi'>🐧</span><div class='bt'><strong>Download for Linux</strong><span>Ubuntu / Debian · .deb</span></div></a>")
             <hr>
             <p class="help">
               <strong>Mac:</strong> Open DMG → drag to Applications → double click icon<br>
@@ -167,7 +178,7 @@ jobs:
           </html>
           HTMLEOF
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy download page to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
