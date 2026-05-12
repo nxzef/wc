@@ -92,25 +92,36 @@ compose.desktop {
     application {
         mainClass = "com.nxzef.wc.MainKt"
 
+        // Applied when running via ./gradlew run (dev mode)
+        jvmArgs += listOf(
+            "--add-opens=java.base/sun.misc=ALL-UNNAMED",
+            "--add-opens=java.base/java.lang=ALL-UNNAMED",
+            "--add-exports=java.base/sun.misc=ALL-UNNAMED"
+        )
+
         nativeDistributions {
             targetFormats(
                 TargetFormat.Dmg,
                 TargetFormat.Msi,
-                TargetFormat.Deb
+                TargetFormat.Deb,
+                TargetFormat.Rpm
             )
             packageName = "WeddingClouds"
             packageVersion = "1.0.0"
             description = "Photography CRM"
-            copyright = "© 2025 The Wedding Clouds"
+            copyright = "© 2026 The Wedding Clouds"
             vendor = "The Wedding Clouds"
+
+            // Applied to all packaged installers
+            jvmArgs += listOf(
+                "--add-opens=java.base/sun.misc=ALL-UNNAMED",
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "--add-exports=java.base/sun.misc=ALL-UNNAMED"
+            )
 
             macOS {
                 bundleID = "com.nxzef.wc"
                 packageName = "WeddingClouds"
-                jvmArgs += listOf(
-                    "--add-opens=java.base/sun.misc=ALL-UNNAMED",
-                    "--add-opens=java.base/java.lang=ALL-UNNAMED"
-                )
             }
 
             windows {
@@ -118,10 +129,6 @@ compose.desktop {
                 upgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                 shortcut = true
                 dirChooser = true
-                jvmArgs += listOf(
-                    "--add-opens=java.base/sun.misc=ALL-UNNAMED",
-                    "--add-opens=java.base/java.lang=ALL-UNNAMED"
-                )
             }
 
             linux {
@@ -129,10 +136,6 @@ compose.desktop {
                 debMaintainer = "noreply@weddingclouds.com"
                 menuGroup = "Office"
                 appCategory = "Office"
-                jvmArgs += listOf(
-                    "--add-opens=java.base/sun.misc=ALL-UNNAMED",
-                    "--add-opens=java.base/java.lang=ALL-UNNAMED"
-                )
             }
         }
     }
