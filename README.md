@@ -1,68 +1,84 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Desktop (JVM), Server.
+# The Wedding Clouds
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+A Kotlin Multiplatform desktop + mobile CRM for managing a wedding photography business. Handles leads, bookings, quotes, invoices, tasks, and team management — all from one app.
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
-
-* [/server](./server/src/main/kotlin) is for the Ktor server application.
-
-* [/shared](./shared/src) is for the code that will be shared between all targets in the project.
-  The most important subfolder is [commonMain](./shared/src/commonMain/kotlin). If preferred, you
-  can add code to the platform-specific folders here too.
-
-### Build and Run Android Application
-
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
-
-### Build and Run Desktop (JVM) Application
-
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:run
-  ```
-
-### Build and Run Server
-
-To build and run the development version of the server, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :server:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :server:run
-  ```
-
-### Build and Run iOS Application
-
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+**Targets:** Android · Desktop (JVM) · iOS  
+**Backend:** Ktor + PostgreSQL (self-hosted on Railway)
 
 ---
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
-[Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform/#compose-multiplatform).
+## Download
+
+The latest release is available at:  
+**https://nxzef.github.io/WC**
+
+| Platform | Format |
+|----------|--------|
+| macOS | `.dmg` |
+| Windows | `.msi` |
+| Linux | `.deb` |
+
+---
+
+## Development
+
+### Prerequisites
+- JDK 17
+- Android SDK (for Android target)
+- Xcode (for iOS target, macOS only)
+
+### Run everything (desktop dev)
+```bash
+./run.sh
+```
+Starts the Ktor server on `:8080`, waits for it to be healthy, then launches the desktop app.
+
+### Individual targets
+```bash
+./gradlew :composeApp:run          # Desktop app (requires server running)
+./gradlew :server:run              # Ktor server on port 8080
+./gradlew :androidApp:assembleDebug
+./gradlew :server:buildFatJar      # Production server JAR
+```
+
+### Tests
+```bash
+./gradlew :composeApp:allTests     # Common tests
+./gradlew :server:test             # Server tests
+```
+
+---
+
+## Project Structure
+
+```
+WC/
+├── composeApp/     # Compose Multiplatform UI (Android, Desktop, iOS)
+├── androidApp/     # Android entry point
+├── shared/         # Domain models, DTOs, AppResult (all platforms)
+└── server/         # Ktor backend (JVM, PostgreSQL via Exposed ORM)
+```
+
+### Architecture
+
+```
+Screen (Compose)
+  └── ViewModel (StateFlow + onAction)
+        └── UseCase
+              └── Repository
+                    └── Service (Ktor HTTP) / TokenStorage (DataStore)
+```
+
+- State: `MutableStateFlow` in ViewModels; one-shot events via `Channel`
+- Error handling: `AppResult<T>` (`Success`, `Failure`, `Loading`) from `shared/`
+- DI: Koin — modules in `composeApp/src/commonMain/kotlin/com/nxzef/wc/di/`
+- Auth: JWT + bcrypt, silent refresh via `ApiClient` interceptor
+- Theme: Material 3 with extended `WCColors` (light + dark), persisted via DataStore
+
+---
+
+## CI / Releases
+
+Pushing to `main` triggers GitHub Actions to build all three installers in parallel, then deploy a download page to GitHub Pages automatically.
+
+Jobs: `build-mac` · `build-windows` · `build-linux` → `publish-page`
