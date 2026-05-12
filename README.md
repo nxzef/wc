@@ -10,7 +10,7 @@ A Kotlin Multiplatform desktop + mobile CRM for managing a wedding photography b
 ## Download
 
 The latest release is available at:  
-**https://nxzef.github.io/WC**
+**https://nxzef.github.io/wc**
 
 | Platform | Format |
 |----------|--------|
