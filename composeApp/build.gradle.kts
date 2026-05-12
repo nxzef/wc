@@ -92,13 +92,6 @@ compose.desktop {
     application {
         mainClass = "com.nxzef.wc.MainKt"
 
-        // Applied when running via ./gradlew run (dev mode)
-        jvmArgs += listOf(
-            "--add-opens=java.base/sun.misc=ALL-UNNAMED",
-            "--add-opens=java.base/java.lang=ALL-UNNAMED",
-            "--add-exports=java.base/sun.misc=ALL-UNNAMED"
-        )
-
         nativeDistributions {
             targetFormats(
                 TargetFormat.Dmg,
@@ -112,12 +105,10 @@ compose.desktop {
             copyright = "© 2026 The Wedding Clouds"
             vendor = "The Wedding Clouds"
 
-            // Applied to all packaged installers
-            jvmArgs += listOf(
-                "--add-opens=java.base/sun.misc=ALL-UNNAMED",
-                "--add-opens=java.base/java.lang=ALL-UNNAMED",
-                "--add-exports=java.base/sun.misc=ALL-UNNAMED"
-            )
+            // jlink strips the JRE to only detected modules — explicitly include
+            // jdk.unsupported so sun.misc.Unsafe is present (needed by DataStore/protobuf)
+            // jdk.crypto.ec for TLS/HTTPS (Ktor connecting to the Railway server)
+            modules("jdk.unsupported", "jdk.crypto.ec")
 
             macOS {
                 bundleID = "com.nxzef.wc"

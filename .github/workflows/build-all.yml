@@ -79,10 +79,11 @@ jobs:
         run: ./gradlew :composeApp:packageDeb :composeApp:packageRpm :composeApp:createDistributable --no-daemon
       - name: Create tar.gz for Arch and other distros
         run: |
+          VER=$(grep -oP 'packageVersion\s*=\s*"\K[^"]+' composeApp/build.gradle.kts | head -1)
           APP_DIR="composeApp/build/compose/binaries/main/app"
           APP_NAME=$(ls "$APP_DIR")
           mkdir -p linux-tar
-          tar -czf "linux-tar/WeddingClouds-linux.tar.gz" -C "$APP_DIR" "$APP_NAME"
+          tar -czf "linux-tar/WeddingClouds-${VER}-linux.tar.gz" -C "$APP_DIR" "$APP_NAME"
       - uses: actions/upload-artifact@v4
         with:
           name: linux-deb
