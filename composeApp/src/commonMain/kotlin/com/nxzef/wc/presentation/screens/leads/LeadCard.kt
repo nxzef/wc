@@ -49,6 +49,7 @@ import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.util.CurrencyUtils
+import com.nxzef.wc.shared.util.DateUtils
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Draggable wrapper — manages drag callbacks; shows placeholder while dragging
@@ -195,7 +196,12 @@ fun LeadCard(
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                LeadInfoRow(Icons.Default.CalendarMonth, lead.eventDate ?: "Date not set")
+                LeadInfoRow(
+                    Icons.Default.CalendarMonth,
+                    if (lead.eventDate != null)
+                        DateUtils.formatDateRange(lead.eventDate!!, lead.eventEndDate)
+                    else "Date not set"
+                )
                 LeadInfoRow(Icons.Default.Phone, lead.phone)
             }
 

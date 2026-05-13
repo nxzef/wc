@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +53,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.BookingStatusBadge
@@ -178,6 +181,14 @@ fun ProjectScreen(
                             }
                         }
                         item {
+                            ProjectSection("Analytics") {
+                                ProjectAnalyticsContent(
+                                    invoice = state.invoice,
+                                    expenses = state.expenses
+                                )
+                            }
+                        }
+                        item {
                             ProjectSection("Expenses") {
                                 ProjectExpensesPreview(
                                     expenses = state.expenses,
@@ -271,7 +282,7 @@ private fun ProjectHeaderCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "📅 ${DateUtils.formatDisplayDate(booking.eventDate)}",
+                        text = "📅 ${DateUtils.formatDateRange(booking.eventDate, booking.eventEndDate)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -672,6 +683,186 @@ private fun ExpensePreviewRow(expense: ProjectExpense) {
                 expense.expenseDate,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// ── Section 5.5: Project Analytics ───────────────────────────────────────────
+
+private val PIE_COLORS = listOf(
+    Color(0xFF4CAF50), Color(0xFF2196F3), Color(0xFFFFC107), Color(0xFFE91E63),
+    Color(0xFF9C27B0), Color(0xFFFF5722), Color(0xFF00BCD4), Color(0xFF795548)
+)
+
+@Composable
+private fun ProjectAnalyticsContent(
+    invoice: Invoice?,
+    expenses: List<ProjectExpense>
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        if (expenses.isEmpty() && invoice == null) {
+            Text(
+                "No data to analyse yet",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            return@Column
+        }
+
+        if (expenses.isNotEmpty()) {
+            Text(
+                "Expenses by Category",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            ExpensePieChart(expenses = expenses)
+        }
+
+        if (invoice != null) {
+            Text(
+                "Revenue vs Expenses",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            RevenueExpensesBar(
+                revenue = invoice.totalAmount,
+                totalExpenses = expenses.sumOf { it.actualAmount }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpensePieChart(expenses: List<ProjectExpense>) {
+    val grouped = expenses.groupBy { it.category }
+        .mapValues { (_, v) -> v.sumOf { it.actualAmount } }
+        .entries.sortedByDescending { it.value }
+    val total = grouped.sumOf { it.value }.coerceAtLeast(0.01)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Canvas(modifier = Modifier.size(120.dp)) {
+            var startAngle = -90f
+            grouped.forEachIndexed { idx, (_, amount) ->
+                val sweep = (amount / total * 360f).toFloat()
+                drawArc(
+                    color = PIE_COLORS[idx % PIE_COLORS.size],
+                    startAngle = startAngle,
+                    sweepAngle = sweep,
+                    useCenter = true,
+                    size = Size(size.width, size.height),
+                    style = Fill
+                )
+                startAngle += sweep
+            }
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            grouped.forEachIndexed { idx, (category, amount) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(PIE_COLORS[idx % PIE_COLORS.size], CircleShape)
+                    )
+                    Text(
+                        text = category,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${(amount / total * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RevenueExpensesBar(revenue: Double, totalExpenses: Double) {
+    val wcColors = WCTheme.colors
+    val netProfit = revenue - totalExpenses
+    val maxVal = maxOf(revenue, totalExpenses).coerceAtLeast(1.0)
+    val revFraction = (revenue / maxVal).toFloat().coerceIn(0f, 1f)
+    val expFraction = (totalExpenses / maxVal).toFloat().coerceIn(0f, 1f)
+    val primary = MaterialTheme.colorScheme.primary
+    val error = MaterialTheme.colorScheme.error
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        BarRow(
+            label = "Revenue",
+            value = CurrencyUtils.formatINR(revenue),
+            fraction = revFraction,
+            color = primary
+        )
+        BarRow(
+            label = "Expenses",
+            value = CurrencyUtils.formatINR(totalExpenses),
+            fraction = expFraction,
+            color = error
+        )
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 4.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Net Profit",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                CurrencyUtils.formatINR(netProfit),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (netProfit >= 0) wcColors.success else error
+            )
+        }
+    }
+}
+
+@Composable
+private fun BarRow(label: String, value: String, fraction: Float, color: Color) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(label, style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .background(color.copy(alpha = 0.12f), MaterialTheme.shapes.extraSmall)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fraction)
+                    .height(10.dp)
+                    .background(color, MaterialTheme.shapes.extraSmall)
             )
         }
     }

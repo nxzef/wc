@@ -13,6 +13,7 @@ object BookingsTable : Table("bookings") {
     val photographerId = uuid("photographer_id").references(UsersTable.id).nullable()
     val editorId = uuid("editor_id").references(UsersTable.id).nullable()
     val eventDate = date("event_date")
+    val eventEndDate = date("event_end_date").nullable()
     val eventType = varchar("event_type", 50)
     val location = varchar("location", 200)
     val status = varchar("status", 50).default("BOOKED")

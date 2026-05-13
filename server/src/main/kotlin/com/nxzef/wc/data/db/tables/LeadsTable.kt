@@ -13,6 +13,7 @@ object LeadsTable : Table("leads") {
     val leadSource = varchar("source", 50)
     val eventType = varchar("event_type", 50)
     val eventDate = date("event_date").nullable()
+    val eventEndDate = date("event_end_date").nullable()
     val location = varchar("location", 200).nullable()
     val status = varchar("status", 50).default("NEW")
     val statusId = uuid("status_id").references(LeadStatusesTable.id)

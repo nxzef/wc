@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Switch
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -287,6 +288,74 @@ fun AddLeadScreen(
                             Icon(Icons.Default.LocationOn, null)
                         }
                     )
+                }
+
+                // Multi-day toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Switch(
+                        checked = state.isMultiDay,
+                        onCheckedChange = { viewModel.onAction(AddLeadAction.OnMultiDayToggle(it)) }
+                    )
+                    Text(
+                        text = "Multi-day event",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                // End date picker (only shown when multi-day is on)
+                if (state.isMultiDay) {
+                    var showEndDatePicker by remember { mutableStateOf(false) }
+                    val endDatePickerState = rememberDatePickerState()
+
+                    OutlinedTextField(
+                        value = state.eventEndDate,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("End Date (YYYY-MM-DD)") },
+                        modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    if (event.type == PointerEventType.Release) {
+                                        showEndDatePicker = true
+                                    }
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
+                        leadingIcon = { Icon(Icons.Default.CalendarMonth, null) },
+                        trailingIcon = {
+                            IconButton(onClick = { showEndDatePicker = true }) {
+                                Icon(Icons.Default.CalendarMonth, null)
+                            }
+                        }
+                    )
+
+                    if (showEndDatePicker) {
+                        DatePickerDialog(
+                            onDismissRequest = { showEndDatePicker = false },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    endDatePickerState.selectedDateMillis?.let { millis ->
+                                        val date = kotlin.time.Instant.fromEpochMilliseconds(millis)
+                                            .toLocalDateTime(TimeZone.UTC).date
+                                        viewModel.onAction(AddLeadAction.OnEventEndDateChange(date.toString()))
+                                    }
+                                    showEndDatePicker = false
+                                }) { Text("OK") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showEndDatePicker = false }) { Text("Cancel") }
+                            }
+                        ) {
+                            DatePicker(state = endDatePickerState)
+                        }
+                    }
                 }
 
                 // Priority stars

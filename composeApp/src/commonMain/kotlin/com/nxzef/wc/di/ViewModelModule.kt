@@ -16,6 +16,7 @@ import com.nxzef.wc.presentation.screens.photographer.PhotographerViewModel
 import com.nxzef.wc.presentation.screens.quotes.QuoteViewModel
 import com.nxzef.wc.presentation.screens.settings.SettingsViewModel
 import com.nxzef.wc.presentation.screens.expenses.ProjectExpensesViewModel
+import com.nxzef.wc.presentation.screens.analytics.AnalyticsViewModel
 import com.nxzef.wc.presentation.screens.project.ProjectViewModel
 import com.nxzef.wc.presentation.screens.tasks.TasksViewModel
 import com.nxzef.wc.presentation.screens.team.TeamViewModel
@@ -42,4 +43,5 @@ val viewModelModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::ProjectExpensesViewModel)
     viewModelOf(::ProjectViewModel)
+    viewModelOf(::AnalyticsViewModel)
 }

@@ -30,6 +30,7 @@ import com.nxzef.wc.data.local.TokenStorage
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.domain.repository.AuthRepository
 import com.nxzef.wc.presentation.components.WCPermanentSidebar
+import com.nxzef.wc.presentation.screens.analytics.AnalyticsScreen
 import com.nxzef.wc.presentation.screens.auth.ForgotPasswordScreen
 import com.nxzef.wc.presentation.screens.auth.JoinTeamScreen
 import com.nxzef.wc.presentation.screens.auth.MemberLoginScreen
@@ -356,6 +357,10 @@ fun AppNavHost(
             TasksScreen(onBack = { navController.popBackStack() })
         }
 
+        composable<Route.Analytics> {
+            AnalyticsScreen(onBack = { navController.popBackStack() })
+        }
+
         composable<Route.ProjectExpenses> { backStackEntry ->
             val route: Route.ProjectExpenses = backStackEntry.toRoute()
             ProjectExpensesScreen(
@@ -385,6 +390,7 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
         destination.hasRoute<Route.Bookings>() -> Route.Bookings
         destination.hasRoute<Route.Settings>() -> Route.Settings
         destination.hasRoute<Route.Tasks>() -> Route.Tasks
+        destination.hasRoute<Route.Analytics>() -> Route.Analytics
         destination.hasRoute<Route.ProjectExpenses>() -> {
             val bookingId = backStackEntry.toRoute<Route.ProjectExpenses>().bookingId
             Route.ProjectExpenses(bookingId)

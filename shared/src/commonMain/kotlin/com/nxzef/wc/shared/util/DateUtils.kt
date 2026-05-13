@@ -99,4 +99,25 @@ object DateUtils {
         9 -> "Sep"; 10 -> "Oct"; 11 -> "Nov"; 12 -> "Dec"
         else -> ""
     }
+
+    fun formatDateRange(startIso: String, endIso: String?): String {
+        if (endIso.isNullOrBlank()) return formatDisplayDate(startIso)
+        return try {
+            val start = LocalDate.parse(startIso)
+            val end = LocalDate.parse(endIso)
+            if (start == end) return formatDisplayDate(startIso)
+            val sm = getMonthName(start.month.ordinal + 1)
+            val em = getMonthName(end.month.ordinal + 1)
+            when {
+                start.year == end.year && start.month == end.month ->
+                    "${start.day}–${end.day} $sm ${end.year}"
+                start.year == end.year ->
+                    "${start.day} $sm – ${end.day} $em ${end.year}"
+                else ->
+                    "${start.day} $sm ${start.year} – ${end.day} $em ${end.year}"
+            }
+        } catch (_: Exception) {
+            formatDisplayDate(startIso)
+        }
+    }
 }

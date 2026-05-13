@@ -53,6 +53,7 @@ class LeadRepository {
             source = LeadSource.valueOf(row[LeadsTable.leadSource]),
             eventType = EventType.valueOf(row[LeadsTable.eventType]),
             eventDate = row[LeadsTable.eventDate]?.toString(),
+            eventEndDate = row[LeadsTable.eventEndDate]?.toString(),
             location = row[LeadsTable.location],
             statusName = statusName,
             customStatus = customStatus,
@@ -105,6 +106,7 @@ class LeadRepository {
                 it[leadSource] = request.source.name
                 it[eventType] = request.eventType.name
                 it[eventDate] = request.eventDate?.let { d -> LocalDate.parse(d) }
+                it[eventEndDate] = request.eventEndDate?.let { d -> LocalDate.parse(d) }
                 it[location] = request.location
                 it[priority] = request.priority
                 it[status] = "New"

@@ -71,6 +71,12 @@ class AddLeadViewModel(
             is AddLeadAction.OnEventDateChange ->
                 _state.update { it.copy(eventDate = action.value) }
 
+            is AddLeadAction.OnMultiDayToggle ->
+                _state.update { it.copy(isMultiDay = action.value, eventEndDate = if (!action.value) "" else it.eventEndDate) }
+
+            is AddLeadAction.OnEventEndDateChange ->
+                _state.update { it.copy(eventEndDate = action.value) }
+
             is AddLeadAction.OnLocationChange ->
                 _state.update { it.copy(location = action.value) }
 
@@ -116,6 +122,7 @@ class AddLeadViewModel(
                     source = s.source,
                     eventType = s.eventType,
                     eventDate = s.eventDate.trim().ifBlank { null },
+                    eventEndDate = if (s.isMultiDay) s.eventEndDate.trim().ifBlank { null } else null,
                     location = s.location.trim().ifBlank { null },
                     priority = s.priority,
                     budget = s.budget.trim().toDoubleOrNull() ?: 0.0,

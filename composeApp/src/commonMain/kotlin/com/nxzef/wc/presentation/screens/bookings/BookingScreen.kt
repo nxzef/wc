@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircleOutline
@@ -310,6 +311,38 @@ fun BookingScreen(
     }
 }
 
+// ── Multi-day span support ───────────────────────────────────────────────────
+
+private enum class SpanPosition { SINGLE, FIRST, MIDDLE, LAST }
+private data class BookingSpan(val booking: Booking, val position: SpanPosition)
+
+private fun buildBookingSpanMap(bookings: List<Booking>): Map<String, List<BookingSpan>> {
+    val result = mutableMapOf<String, MutableList<BookingSpan>>()
+    for (booking in bookings) {
+        val start = try { LocalDate.parse(booking.eventDate) } catch (_: Exception) { continue }
+        val end = booking.eventEndDate?.takeIf { it.isNotBlank() }?.let {
+            try { LocalDate.parse(it) } catch (_: Exception) { null }
+        }
+        if (end == null || end == start) {
+            result.getOrPut(start.toString()) { mutableListOf() }
+                .add(BookingSpan(booking, SpanPosition.SINGLE))
+        } else {
+            var cur = start
+            while (cur.toEpochDays() <= end.toEpochDays()) {
+                val pos = when {
+                    cur == start -> SpanPosition.FIRST
+                    cur == end   -> SpanPosition.LAST
+                    else         -> SpanPosition.MIDDLE
+                }
+                result.getOrPut(cur.toString()) { mutableListOf() }
+                    .add(BookingSpan(booking, pos))
+                cur = LocalDate.fromEpochDays(cur.toEpochDays() + 1)
+            }
+        }
+    }
+    return result
+}
+
 // ── Calendar helpers ─────────────────────────────────────────────────────────
 
 private fun daysInMonth(year: Int, month: Int): Int {
@@ -368,7 +401,7 @@ fun BookingCalendarView(
     var calMonth by remember { mutableStateOf(today.month.ordinal + 1) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
 
-    val bookingsByDate = remember(bookings) { bookings.groupBy { it.eventDate } }
+    val bookingSpanMap = remember(bookings) { buildBookingSpanMap(bookings) }
     val calendarCells = remember(calYear, calMonth) { buildCalendarGrid(calYear, calMonth) }
 
     Column(
@@ -430,17 +463,17 @@ fun BookingCalendarView(
         calendarCells.chunked(7).forEach { week ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 week.forEach { (date, isCurrentMonth) ->
-                    val cellBookings = if (isCurrentMonth) {
-                        bookingsByDate[date.toString()] ?: emptyList()
+                    val cellSpans = if (isCurrentMonth) {
+                        bookingSpanMap[date.toString()] ?: emptyList()
                     } else emptyList()
 
                     CalendarDayCell(
                         date = date,
                         isCurrentMonth = isCurrentMonth,
                         isToday = date == today,
-                        bookings = cellBookings,
+                        spans = cellSpans,
                         modifier = Modifier.weight(1f),
-                        onClick = if (isCurrentMonth && cellBookings.isNotEmpty()) {
+                        onClick = if (isCurrentMonth && cellSpans.isNotEmpty()) {
                             { selectedDate = date }
                         } else null
                     )
@@ -451,7 +484,7 @@ fun BookingCalendarView(
 
     // Day bookings dialog
     selectedDate?.let { date ->
-        val dayBookings = bookingsByDate[date.toString()] ?: emptyList()
+        val dayBookings = (bookingSpanMap[date.toString()] ?: emptyList()).map { it.booking }
         DayBookingsDialog(
             date = date,
             bookings = dayBookings,
@@ -470,32 +503,38 @@ private fun CalendarDayCell(
     date: LocalDate,
     isCurrentMonth: Boolean,
     isToday: Boolean,
-    bookings: List<Booking>,
+    spans: List<BookingSpan>,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)?
 ) {
     val colors = WCTheme.colors
     val primary = MaterialTheme.colorScheme.primary
 
+    fun statusColor(span: BookingSpan) = when (span.booking.status) {
+        BookingStatus.BOOKED     -> colors.statusBooked
+        BookingStatus.SHOOT_DONE -> colors.statusShootDone
+        BookingStatus.EDITING    -> colors.statusEditing
+        BookingStatus.DELIVERED  -> colors.statusDelivered
+        BookingStatus.CLOSED     -> colors.statusClosed
+    }
+
     Box(
         modifier = modifier
             .height(68.dp)
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
-            .padding(2.dp),
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         contentAlignment = Alignment.TopCenter
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-            modifier = Modifier.padding(top = 6.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(Modifier.height(4.dp))
+
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(28.dp)
-                    .then(
-                        if (isToday) Modifier.background(primary, CircleShape) else Modifier
-                    )
+                    .then(if (isToday) Modifier.background(primary, CircleShape) else Modifier)
             ) {
                 Text(
                     text = date.day.toString(),
@@ -509,25 +548,55 @@ private fun CalendarDayCell(
                 )
             }
 
-            if (bookings.isNotEmpty()) {
+            Spacer(Modifier.height(3.dp))
+
+            // Up to 3 booking indicators
+            val singles = spans.filter { it.position == SpanPosition.SINGLE }
+            val multiday = spans.filter { it.position != SpanPosition.SINGLE }
+
+            // Single-day bookings: row of dots
+            if (singles.isNotEmpty()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    bookings.take(3).forEach { booking ->
-                        val dotColor = when (booking.status) {
-                            BookingStatus.BOOKED -> colors.statusBooked
-                            BookingStatus.SHOOT_DONE -> colors.statusShootDone
-                            BookingStatus.EDITING -> colors.statusEditing
-                            BookingStatus.DELIVERED -> colors.statusDelivered
-                            BookingStatus.CLOSED -> colors.statusClosed
-                        }
+                    singles.take(3).forEach { span ->
                         Box(
                             modifier = Modifier
                                 .size(6.dp)
-                                .background(dotColor, CircleShape)
+                                .background(statusColor(span), CircleShape)
                         )
                     }
+                }
+            }
+
+            // Multi-day spans: colored strips with appropriate rounding
+            val stripSlots = (3 - singles.size.coerceAtMost(3)).coerceAtLeast(0)
+            multiday.take(stripSlots).forEach { span ->
+                val color = statusColor(span).copy(alpha = 0.30f)
+                Spacer(Modifier.height(1.dp))
+                when (span.position) {
+                    SpanPosition.FIRST -> Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 5.dp)
+                            .height(7.dp)
+                            .background(color, RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp))
+                    )
+                    SpanPosition.MIDDLE -> Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(7.dp)
+                            .background(color)
+                    )
+                    SpanPosition.LAST -> Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 5.dp)
+                            .height(7.dp)
+                            .background(color, RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp))
+                    )
+                    SpanPosition.SINGLE -> { /* handled above */ }
                 }
             }
         }
@@ -666,7 +735,7 @@ fun BookingCard(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = DateUtils.formatDisplayDate(booking.eventDate),
+                        text = DateUtils.formatDateRange(booking.eventDate, booking.eventEndDate),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -733,7 +802,7 @@ fun BookingDetailDialog(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "${booking.eventType} — ${DateUtils.formatDisplayDate(booking.eventDate)}",
+                            text = "${booking.eventType} — ${DateUtils.formatDateRange(booking.eventDate, booking.eventEndDate)}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -762,7 +831,7 @@ fun BookingDetailDialog(
 
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             DetailItem("📍 Location", booking.location)
-                            DetailItem("📅 Date", DateUtils.formatDisplayDate(booking.eventDate))
+                            DetailItem("📅 Date", DateUtils.formatDateRange(booking.eventDate, booking.eventEndDate))
                             DetailItem("📱 Phone", lead?.phone ?: "N/A")
                             booking.notes?.takeIf { it.isNotBlank() }?.let {
                                 DetailItem("📝 Notes", it)

@@ -11,6 +11,8 @@ data class AddLeadState(
     val source: LeadSource = LeadSource.INSTAGRAM,
     val eventType: EventType = EventType.WEDDING,
     val eventDate: String = "",
+    val isMultiDay: Boolean = false,
+    val eventEndDate: String = "",
     val location: String = "",
     val priority: Int = 0,
     val budget: String = "",
@@ -28,6 +30,8 @@ sealed interface AddLeadAction {
     data class OnSourceChange(val value: LeadSource) : AddLeadAction
     data class OnEventTypeChange(val value: EventType) : AddLeadAction
     data class OnEventDateChange(val value: String) : AddLeadAction
+    data class OnMultiDayToggle(val value: Boolean) : AddLeadAction
+    data class OnEventEndDateChange(val value: String) : AddLeadAction
     data class OnLocationChange(val value: String) : AddLeadAction
     data class OnPriorityChange(val value: Int) : AddLeadAction
     data class OnBudgetChange(val value: String) : AddLeadAction

@@ -26,6 +26,7 @@ class BookingRepository {
             photographerId = row[BookingsTable.photographerId]?.toString(),
             editorId = row[BookingsTable.editorId]?.toString(),
             eventDate = row[BookingsTable.eventDate].toString(),
+            eventEndDate = row[BookingsTable.eventEndDate]?.toString(),
             eventType = row[BookingsTable.eventType],
             location = row[BookingsTable.location],
             status = BookingStatus.valueOf(row[BookingsTable.status]),
@@ -95,6 +96,7 @@ class BookingRepository {
                     ?.takeIf { it.isNotBlank() && it != "null" }
                     ?.let { UUID.fromString(it) }
                 statement[eventDate] = LocalDate.parse(request.eventDate)
+                statement[eventEndDate] = request.eventEndDate?.let { LocalDate.parse(it) }
                 statement[eventType] = request.eventType
                 statement[location] = request.location
                 statement[status] = BookingStatus.BOOKED.name

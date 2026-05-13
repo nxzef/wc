@@ -15,6 +15,7 @@ data class Booking(
     val photographerId: String? = null,
     val editorId: String? = null,
     val eventDate: String,
+    val eventEndDate: String? = null,
     val eventType: String,
     val location: String,
     val status: BookingStatus,
@@ -27,6 +28,7 @@ data class CreateBookingRequest(
     val leadId: String,
     val quoteId: String? = null,
     val eventDate: String,
+    val eventEndDate: String? = null,
     val eventType: String,
     val location: String,
     val notes: String? = null

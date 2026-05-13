@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Edit
@@ -119,6 +120,12 @@ val sidebarItems = listOf(
         label = "Editing Queue",
         route = Route.EditingQueue,
         roles = listOf(UserRole.OWNER, UserRole.EDITOR)
+    ),
+    SidebarNavItem(
+        icon = Icons.Default.Analytics,
+        label = "Analytics",
+        route = Route.Analytics,
+        roles = listOf(UserRole.OWNER)
     ),
     SidebarNavItem(
         icon = Icons.Default.Group,
