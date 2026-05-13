@@ -30,7 +30,8 @@ data class Lead(
     val notes: String? = null,
     val addedBy: String,
     val assignedTo: String,
-    val createdAt: String
+    val createdAt: String,
+    val budget: Double = 0.0
 )
 
 @Serializable
@@ -44,7 +45,8 @@ data class CreateLeadRequest(
     val location: String? = null,
     val priority: Int = 0,
     val notes: String? = null,
-    val assignedTo: String
+    val assignedTo: String,
+    val budget: Double = 0.0
 )
 
 @Serializable

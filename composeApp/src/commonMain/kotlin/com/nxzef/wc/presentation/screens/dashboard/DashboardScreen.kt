@@ -389,7 +389,8 @@ fun DashboardContent(
                             .height(280.dp)
                     ) {
                         RevenueChart(
-                            data = stats.revenueTrend.map { it.toFloat() },
+                            data = stats.monthlyRevenue.map { it.amount.toFloat() },
+                            labels = stats.monthlyRevenue.map { it.month },
                             color = MaterialTheme.colorScheme.primary,
                             targetGoal = stats.currentMonthGoal?.targetRevenue?.toFloat()
                         )
@@ -424,6 +425,15 @@ fun DashboardContent(
                     value = stats.openLeads.toString(),
                     icon = Icons.Default.PersonSearch,
                     color = MaterialTheme.colorScheme.primary
+                )
+                KpiMetricCard(
+                    modifier = Modifier.weight(1f),
+                    label = "Cost Per Booking",
+                    value = if (stats.cpaThisMonth > 0)
+                        CurrencyUtils.formatINRShort(stats.cpaThisMonth)
+                    else "—",
+                    icon = Icons.Default.Analytics,
+                    color = MaterialTheme.colorScheme.tertiary
                 )
             }
         }
@@ -1072,6 +1082,7 @@ fun EmptySectionPlaceholder(
 @Composable
 fun RevenueChart(
     data: List<Float>,
+    labels: List<String> = emptyList(),
     color: Color,
     targetGoal: Float? = null
 ) {
@@ -1135,18 +1146,26 @@ fun RevenueChart(
                 )
             }
 
-            // Draw X-axis day labels every 5 days
-            val dayStep = if (data.size <= 15) 3 else 5
-            data.indices.filter { it == 0 || (it + 1) % dayStep == 0 || it == data.size - 1 }.forEach { index ->
-                val x = paddingLeft + (index * spacing)
-                val dayLabel = textMeasurer.measure(
-                    text = "${index + 1}",
-                    style = labelStyle
-                )
-                drawText(
-                    textLayoutResult = dayLabel,
-                    topLeft = Offset(x - dayLabel.size.width / 2f, chartHeight + 6.dp.toPx())
-                )
+            // Draw X-axis labels (month names if provided, otherwise day numbers)
+            if (labels.isNotEmpty()) {
+                labels.forEachIndexed { index, label ->
+                    val x = paddingLeft + (index * spacing)
+                    val labelLayout = textMeasurer.measure(text = label, style = labelStyle)
+                    drawText(
+                        textLayoutResult = labelLayout,
+                        topLeft = Offset(x - labelLayout.size.width / 2f, chartHeight + 6.dp.toPx())
+                    )
+                }
+            } else {
+                val dayStep = if (data.size <= 15) 3 else 5
+                data.indices.filter { it == 0 || (it + 1) % dayStep == 0 || it == data.size - 1 }.forEach { index ->
+                    val x = paddingLeft + (index * spacing)
+                    val dayLabel = textMeasurer.measure(text = "${index + 1}", style = labelStyle)
+                    drawText(
+                        textLayoutResult = dayLabel,
+                        topLeft = Offset(x - dayLabel.size.width / 2f, chartHeight + 6.dp.toPx())
+                    )
+                }
             }
 
             // Draw Target Goal Line (Red)
@@ -1245,7 +1264,7 @@ fun RevenueChart(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "No revenue data for this month",
+                    "No data yet",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )

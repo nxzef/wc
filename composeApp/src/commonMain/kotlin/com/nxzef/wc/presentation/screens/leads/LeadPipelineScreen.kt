@@ -306,6 +306,12 @@ fun LeadPipelineScreen(
                                         columnWidth = colWidth.dp,
                                         horizontalPadding = horizontalPadding,
                                         syncingLeadIds = state.syncingLeadIds,
+                                        isReordering = state.isReordering,
+                                        onReorderStatuses = { newOrder ->
+                                            viewModel.onAction(
+                                                LeadPipelineAction.ReorderStatuses(newOrder)
+                                            )
+                                        },
                                         onAddStatus = {
                                             viewModel.onAction(
                                                 LeadPipelineAction.ShowCreateStatusDialog
@@ -314,6 +320,16 @@ fun LeadPipelineScreen(
                                         onDeleteStatus = { status ->
                                             viewModel.onAction(
                                                 LeadPipelineAction.RequestDeleteStatus(status)
+                                            )
+                                        },
+                                        onRenameStatus = { statusId, newName ->
+                                            viewModel.onAction(
+                                                LeadPipelineAction.RenameStatus(statusId, newName)
+                                            )
+                                        },
+                                        onChangeColor = { statusId, newColor ->
+                                            viewModel.onAction(
+                                                LeadPipelineAction.ChangeStatusColor(statusId, newColor)
                                             )
                                         },
                                         onLeadClick = { lead ->
@@ -385,7 +401,7 @@ fun LeadPipelineScreen(
             onDismissRequest = { viewModel.onAction(LeadPipelineAction.DismissDeleteStatusDialog) },
             title = { Text("Delete status?") },
             text = {
-                Text("Delete '${target.name}'? Leads in this status will be moved to the default status.")
+                Text("Delete '${target.name}'? Leads will move to New.")
             },
             confirmButton = {
                 TextButton(

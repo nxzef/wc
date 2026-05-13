@@ -15,3 +15,12 @@ data class CreateLeadStatusRequest(
     val name: String,
     val color: String
 )
+
+@Serializable
+data class UpdateLeadStatusPatchRequest(
+    val name: String? = null,
+    val color: String? = null
+)
+
+@Serializable
+data class ReorderLeadStatusesRequest(val orderedIds: List<String>)

@@ -36,6 +36,8 @@ class QuoteViewModel(
                 _state.value = _state.value.copy(
                     amountInput = action.value.filter { it.isDigit() || it == '.' }
                 )
+            is QuoteContract.Action.OnNotesChange ->
+                _state.value = _state.value.copy(notesInput = action.value)
             is QuoteContract.Action.SendQuote -> sendQuote()
             is QuoteContract.Action.UpdateStatus -> updateStatus(action.id, action.status)
         }
@@ -91,7 +93,8 @@ class QuoteViewModel(
                 clientEmail = current.clientEmail,
                 fileBase64 = fileBase64,
                 fileName = fileName,
-                totalAmount = amount
+                totalAmount = amount,
+                notes = current.notesInput.trim().takeIf { it.isNotEmpty() }
             )
             when (val result = sendQuoteUseCase(request)) {
                 is AppResult.Success -> {
@@ -100,7 +103,8 @@ class QuoteViewModel(
                         selectedFilePath = null,
                         selectedFileName = null,
                         selectedFileBytes = null,
-                        amountInput = ""
+                        amountInput = "",
+                        notesInput = ""
                     )
                     _uiEvent.emit(QuoteContract.UiEvent.QuoteSent(current.clientEmail))
                     loadQuotes(current.leadId, current.clientName, current.clientEmail)

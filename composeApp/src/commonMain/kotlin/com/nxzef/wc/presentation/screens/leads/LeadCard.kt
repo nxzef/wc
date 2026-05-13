@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Star
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.nxzef.wc.presentation.components.LeadSourceBadge
 import com.nxzef.wc.presentation.theme.WCTheme
 import com.nxzef.wc.shared.model.Lead
+import com.nxzef.wc.shared.util.CurrencyUtils
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Draggable wrapper — manages drag callbacks; shows placeholder while dragging
@@ -238,6 +240,32 @@ fun LeadCard(
                         color = if (taskCount > 0) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+
+            if (lead.budget > 0) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = MaterialTheme.shapes.extraSmall
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CurrencyRupee,
+                            contentDescription = null,
+                            modifier = Modifier.size(11.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = CurrencyUtils.formatINR(lead.budget),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
             }
         }

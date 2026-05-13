@@ -58,6 +58,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.CurrencyRupee
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.WCTopBar
@@ -332,6 +335,18 @@ fun AddLeadScreen(
                         )
                     }
                 }
+
+                // Budget
+                OutlinedTextField(
+                    value = state.budget,
+                    onValueChange = { viewModel.onAction(AddLeadAction.OnBudgetChange(it)) },
+                    label = { Text("Budget / Package Value (₹)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    leadingIcon = { Icon(Icons.Default.CurrencyRupee, null) }
+                )
 
                 // Section: Assignment
                 SectionHeader(

@@ -15,7 +15,8 @@ class QuoteContract {
         val selectedFilePath: String? = null,
         val selectedFileName: String? = null,
         val selectedFileBytes: ByteArray? = null,
-        val amountInput: String = ""
+        val amountInput: String = "",
+        val notesInput: String = ""
     )
 
     sealed class Action {
@@ -26,6 +27,7 @@ class QuoteContract {
         ) : Action()
         data class AttachPdf(val path: String, val name: String, val bytes: ByteArray) : Action()
         data class OnAmountChange(val value: String) : Action()
+        data class OnNotesChange(val value: String) : Action()
         object SendQuote : Action()
         data class UpdateStatus(val id: String, val status: QuoteStatus) : Action()
     }

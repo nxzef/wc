@@ -1,6 +1,7 @@
 package com.nxzef.wc.shared.dto
 
 import com.nxzef.wc.shared.model.DashboardStats
+import com.nxzef.wc.shared.model.MonthlyRevenuePoint
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -26,7 +27,10 @@ data class DashboardStatsDto(
     val isMonthBelowTarget: Boolean = false,
     val revenueTrendPercentage: Double = 0.0,
     val conversionRateTrendPercentage: Double = 0.0,
-    val averageOrderValueTrendPercentage: Double = 0.0
+    val averageOrderValueTrendPercentage: Double = 0.0,
+    val monthlyRevenue: List<MonthlyRevenuePoint> = emptyList(),
+    val cpaThisMonth: Double = 0.0,
+    val totalExpensesThisMonth: Double = 0.0
 )
 
 fun DashboardStatsDto.toDomain(): DashboardStats {
@@ -52,7 +56,10 @@ fun DashboardStatsDto.toDomain(): DashboardStats {
         isMonthBelowTarget = isMonthBelowTarget,
         revenueTrendPercentage = revenueTrendPercentage,
         conversionRateTrendPercentage = conversionRateTrendPercentage,
-        averageOrderValueTrendPercentage = averageOrderValueTrendPercentage
+        averageOrderValueTrendPercentage = averageOrderValueTrendPercentage,
+        monthlyRevenue = monthlyRevenue,
+        cpaThisMonth = cpaThisMonth,
+        totalExpensesThisMonth = totalExpensesThisMonth
     )
 }
 
@@ -79,6 +86,9 @@ fun DashboardStats.toDto(): DashboardStatsDto {
         isMonthBelowTarget = isMonthBelowTarget,
         revenueTrendPercentage = revenueTrendPercentage,
         conversionRateTrendPercentage = conversionRateTrendPercentage,
-        averageOrderValueTrendPercentage = averageOrderValueTrendPercentage
+        averageOrderValueTrendPercentage = averageOrderValueTrendPercentage,
+        monthlyRevenue = monthlyRevenue,
+        cpaThisMonth = cpaThisMonth,
+        totalExpensesThisMonth = totalExpensesThisMonth
     )
 }

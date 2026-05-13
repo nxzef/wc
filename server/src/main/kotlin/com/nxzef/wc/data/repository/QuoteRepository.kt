@@ -83,6 +83,7 @@ class QuoteRepository {
         createdByUserId: String,
         fileName: String,
         totalAmount: Double,
+        notes: String?,
         teamId: String
     ): Quote {
         val tUuid = UUID.fromString(teamId)
@@ -93,6 +94,7 @@ class QuoteRepository {
                 it[QuotesTable.status] = QuoteStatus.SENT.name
                 it[QuotesTable.fileName] = fileName
                 it[QuotesTable.totalAmount] = totalAmount.toBigDecimal()
+                it[QuotesTable.notes] = notes
                 it[QuotesTable.teamId] = tUuid
                 it[QuotesTable.createdAt] = Instant.now()
             }[QuotesTable.id]

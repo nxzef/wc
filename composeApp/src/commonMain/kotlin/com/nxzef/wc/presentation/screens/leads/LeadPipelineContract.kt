@@ -31,7 +31,8 @@ data class LeadPipelineState(
     val filterStatusIds: Set<String> = emptySet(),
     val viewLayout: PipelineViewLayout = PipelineViewLayout.BOARD,
     val columnWidths: Map<String, Float> = emptyMap(),
-    val syncingLeadIds: Set<String> = emptySet()
+    val syncingLeadIds: Set<String> = emptySet(),
+    val isReordering: Boolean = false
 )
 
 sealed interface LeadPipelineAction {
@@ -59,6 +60,8 @@ sealed interface LeadPipelineAction {
     data class RequestDeleteStatus(val status: LeadStatus) : LeadPipelineAction
     data object ConfirmDeleteStatus : LeadPipelineAction
     data object DismissDeleteStatusDialog : LeadPipelineAction
+    data class RenameStatus(val statusId: String, val newName: String) : LeadPipelineAction
+    data class ChangeStatusColor(val statusId: String, val newColor: String) : LeadPipelineAction
 
     data class OnSearchQueryChange(val query: String) : LeadPipelineAction
     data class OnFilterPriorityChange(val priority: Int?) : LeadPipelineAction
@@ -71,6 +74,7 @@ sealed interface LeadPipelineAction {
 
     data object ToggleViewLayout : LeadPipelineAction
     data class OnColumnWidthChange(val statusId: String, val widthDp: Float) : LeadPipelineAction
+    data class ReorderStatuses(val newOrder: List<LeadStatus>) : LeadPipelineAction
 }
 
 sealed interface LeadPipelineUiEvent {

@@ -80,6 +80,8 @@ class LeadPipelineViewModel(
             is LeadPipelineAction.RequestDeleteStatus -> _state.update { it.copy(statusToDelete = action.status) }
             LeadPipelineAction.DismissDeleteStatusDialog -> _state.update { it.copy(statusToDelete = null) }
             LeadPipelineAction.ConfirmDeleteStatus -> deleteStatus()
+            is LeadPipelineAction.RenameStatus -> updateStatusMeta(action.statusId, name = action.newName, color = null)
+            is LeadPipelineAction.ChangeStatusColor -> updateStatusMeta(action.statusId, name = null, color = action.newColor)
             is LeadPipelineAction.OnSearchQueryChange -> _state.update { it.copy(searchQuery = action.query) }
             is LeadPipelineAction.OnFilterPriorityChange -> _state.update { it.copy(filterPriority = action.priority) }
             is LeadPipelineAction.OnFilterSourceChange -> _state.update { it.copy(filterSource = action.source) }
@@ -110,6 +112,7 @@ class LeadPipelineViewModel(
                 }
                 scheduleSaveColumnWidths()
             }
+            is LeadPipelineAction.ReorderStatuses -> reorderStatuses(action.newOrder)
         }
     }
 
@@ -124,6 +127,21 @@ class LeadPipelineViewModel(
             val widths = decodeColumnWidths(widthsEncoded)
 
             _state.update { it.copy(viewLayout = layout, columnWidths = widths) }
+        }
+    }
+
+    private fun reorderStatuses(newOrder: List<com.nxzef.wc.shared.model.LeadStatus>) {
+        val previousOrder = _state.value.statuses
+        _state.update { it.copy(statuses = newOrder, isReordering = true) }
+        viewModelScope.launch {
+            leadStatusRepository.reorder(newOrder.map { it.id })
+                .onSuccess {
+                    _state.update { it.copy(isReordering = false) }
+                }
+                .onFailure {
+                    _state.update { it.copy(statuses = previousOrder, isReordering = false) }
+                    _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Failed to save order"))
+                }
         }
     }
 
@@ -188,6 +206,34 @@ class LeadPipelineViewModel(
                 }
                 .onFailure { error ->
                     _uiEvent.send(LeadPipelineUiEvent.ShowError(ErrorMessages.forGeneric(error.message)))
+                }
+        }
+    }
+
+    private fun updateStatusMeta(statusId: String, name: String?, color: String?) {
+        viewModelScope.launch {
+            leadStatusRepository.update(statusId, name, color)
+                .onSuccess { updated ->
+                    _state.update { s ->
+                        s.copy(
+                            statuses = s.statuses.map { if (it.id == statusId) updated else it },
+                            leads = s.leads.map { lead ->
+                                val cs = lead.customStatus
+                                if (cs?.id == statusId) {
+                                    lead.copy(
+                                        customStatus = cs.copy(
+                                            name = updated.name,
+                                            color = updated.color
+                                        ),
+                                        statusName = updated.name
+                                    )
+                                } else lead
+                            }
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar(ErrorMessages.forGeneric(error.message)))
                 }
         }
     }

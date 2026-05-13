@@ -21,11 +21,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -35,10 +37,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +55,7 @@ import com.nxzef.wc.presentation.components.WCTopBar
 import com.nxzef.wc.shared.model.Quote
 import com.nxzef.wc.shared.model.QuoteStatus
 import com.nxzef.wc.shared.util.CurrencyUtils
+import com.nxzef.wc.shared.util.DateUtils
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -62,6 +68,7 @@ fun QuoteScreen(
 ) {
     val state by viewModel.state
     val snackbarHostState = remember { SnackbarHostState() }
+    var selectedQuote by remember { mutableStateOf<Quote?>(null) }
 
     LaunchedEffect(leadId) {
         viewModel.onAction(QuoteContract.Action.LoadQuotes(leadId, clientName, clientEmail))
@@ -187,15 +194,23 @@ fun QuoteScreen(
                             OutlinedTextField(
                                 value = state.amountInput,
                                 onValueChange = {
-                                    viewModel.onAction(
-                                        QuoteContract.Action.OnAmountChange(
-                                            it
-                                        )
-                                    )
+                                    viewModel.onAction(QuoteContract.Action.OnAmountChange(it))
                                 },
-                                label = { Text("Quote Amount (₹)") },
+                                label = { Text("Quote Amount (₹) *") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium
+                            )
+
+                            OutlinedTextField(
+                                value = state.notesInput,
+                                onValueChange = {
+                                    viewModel.onAction(QuoteContract.Action.OnNotesChange(it))
+                                },
+                                label = { Text("Add a note (optional)") },
+                                minLines = 3,
+                                maxLines = 6,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = MaterialTheme.shapes.medium
                             )
@@ -205,7 +220,7 @@ fun QuoteScreen(
 
                             Button(
                                 onClick = { viewModel.onAction(QuoteContract.Action.SendQuote) },
-                                enabled = state.selectedFileName != null && amountValid && !state.isSending,
+                                enabled = state.selectedFileName != null && !state.isSending,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = MaterialTheme.shapes.medium
                             ) {
@@ -253,12 +268,10 @@ fun QuoteScreen(
                     items(state.quotes) { quote ->
                         QuoteHistoryCard(
                             quote = quote,
+                            onClick = { selectedQuote = quote },
                             onStatusUpdate = { status ->
                                 viewModel.onAction(
-                                    QuoteContract.Action.UpdateStatus(
-                                        quote.id,
-                                        status
-                                    )
+                                    QuoteContract.Action.UpdateStatus(quote.id, status)
                                 )
                             }
                         )
@@ -267,14 +280,27 @@ fun QuoteScreen(
             }
         }
     }
+
+    selectedQuote?.let { quote ->
+        QuoteDetailDialog(
+            quote = quote,
+            onDismiss = { selectedQuote = null },
+            onStatusUpdate = { status ->
+                viewModel.onAction(QuoteContract.Action.UpdateStatus(quote.id, status))
+                selectedQuote = null
+            }
+        )
+    }
 }
 
 @Composable
 fun QuoteHistoryCard(
     quote: Quote,
+    onClick: () -> Unit,
     onStatusUpdate: (QuoteStatus) -> Unit
 ) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -297,11 +323,7 @@ fun QuoteHistoryCard(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "${CurrencyUtils.formatINR(quote.totalAmount)} · ${
-                            quote.createdAt.take(
-                                10
-                            )
-                        }",
+                        text = "${CurrencyUtils.formatINR(quote.totalAmount)} · ${DateUtils.formatDisplayDate(quote.createdAt.take(10))}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -332,4 +354,92 @@ fun QuoteHistoryCard(
             }
         }
     }
+}
+
+@Composable
+fun QuoteDetailDialog(
+    quote: Quote,
+    onDismiss: () -> Unit,
+    onStatusUpdate: (QuoteStatus) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = quote.fileName ?: "Quote #${quote.id.takeLast(4)}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = DateUtils.formatDisplayDate(quote.createdAt.take(10)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    QuoteStatusBadge(status = quote.status)
+                }
+
+                HorizontalDivider()
+
+                Text(
+                    text = CurrencyUtils.formatINR(quote.totalAmount),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                val quoteNotes = quote.notes
+                if (!quoteNotes.isNullOrBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = quoteNotes,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+
+                if (quote.status == QuoteStatus.SENT) {
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { onStatusUpdate(QuoteStatus.REJECTED) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text("Mark Rejected")
+                        }
+                        Button(
+                            onClick = { onStatusUpdate(QuoteStatus.ACCEPTED) },
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text("Mark Accepted")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        }
+    )
 }

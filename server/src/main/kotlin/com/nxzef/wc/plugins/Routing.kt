@@ -89,7 +89,7 @@ fun Application.configureRouting() {
             }
 
             // Lead
-            leadRoutes(leadRepository, notificationService)
+            leadRoutes(leadRepository, bookingRepository, notificationService)
             // Lead Statuses
             leadStatusRoutes(leadStatusRepository)
             // Quote

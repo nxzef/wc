@@ -1,6 +1,7 @@
 package com.nxzef.wc.data.db
 
 import com.nxzef.wc.config.ServerConfig
+import com.nxzef.wc.data.repository.LeadStatusRepository
 import com.nxzef.wc.routes.AppConfigTable
 import com.nxzef.wc.data.db.tables.BookingsTable
 import com.nxzef.wc.data.db.tables.InvoicesTable
@@ -83,6 +84,8 @@ object DatabaseFactory {
                 AppConfigTable
             )
         }
+
+        LeadStatusRepository().ensureTerminalStatuses()
 
         logger.info("🟢 Database connected to {} and tables verified", if (isH2) "H2 (in-memory)" else "PostgreSQL")
     }

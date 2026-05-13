@@ -3,6 +3,9 @@ package com.nxzef.wc.shared.model
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class MonthlyRevenuePoint(val month: String, val amount: Double)
+
+@Serializable
 data class DashboardStats(
     val totalLeadsThisMonth: Int,
     val totalBookingsThisMonth: Int,
@@ -25,5 +28,8 @@ data class DashboardStats(
     val isMonthBelowTarget: Boolean = false,
     val revenueTrendPercentage: Double = 0.0,
     val conversionRateTrendPercentage: Double = 0.0,
-    val averageOrderValueTrendPercentage: Double = 0.0
+    val averageOrderValueTrendPercentage: Double = 0.0,
+    val monthlyRevenue: List<MonthlyRevenuePoint> = emptyList(),
+    val cpaThisMonth: Double = 0.0,
+    val totalExpensesThisMonth: Double = 0.0
 )

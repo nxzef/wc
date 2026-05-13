@@ -24,7 +24,8 @@ data class LeadDto(
     val notes: String? = null,
     val addedBy: String,
     val assignedTo: String,
-    val createdAt: String
+    val createdAt: String,
+    val budget: Double = 0.0
 )
 
 fun LeadDto.toDomain(): Lead {
@@ -53,7 +54,8 @@ fun LeadDto.toDomain(): Lead {
         notes = notes,
         addedBy = addedBy,
         assignedTo = assignedTo,
-        createdAt = createdAt
+        createdAt = createdAt,
+        budget = budget
     )
 }
 
@@ -75,6 +77,7 @@ fun Lead.toDto(): LeadDto {
         notes = notes,
         addedBy = addedBy,
         assignedTo = assignedTo,
-        createdAt = createdAt
+        createdAt = createdAt,
+        budget = budget
     )
 }

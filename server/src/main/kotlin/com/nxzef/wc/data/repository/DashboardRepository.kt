@@ -15,6 +15,7 @@ import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadSource
 import com.nxzef.wc.shared.model.LeadStatus
 import com.nxzef.wc.shared.model.MonthlyGoal
+import com.nxzef.wc.shared.model.MonthlyRevenuePoint
 import com.nxzef.wc.shared.model.ProjectPnL
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
@@ -23,6 +24,8 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.format.TextStyle
+import java.util.Locale
 import java.util.UUID
 
 class DashboardRepository {
@@ -247,6 +250,7 @@ class DashboardRepository {
             
             val currentMonthActualProfit = totalRevenueThisMonth - currentMonthExpenses
             val isMonthBelowTarget = currentMonthGoal?.let { currentMonthActualProfit < it.targetProfit } ?: false
+            val cpaThisMonth = if (totalBookingsThisMonth > 0) currentMonthExpenses / totalBookingsThisMonth else 0.0
 
             // Previous Month Stats for Trends
             val prevMonthStart = now.minusMonths(1).withDayOfMonth(1).atStartOfDay().toInstant(ZoneOffset.UTC)
@@ -270,6 +274,21 @@ class DashboardRepository {
             val conversionRateTrendPercentage = if (prevMonthConversionRate > 0) conversionRate - prevMonthConversionRate else 0.0
             val averageOrderValueTrendPercentage = if (prevMonthAvgOrderValue > 0) ((avgOrderValue - prevMonthAvgOrderValue) / prevMonthAvgOrderValue) * 100.0 else 0.0
 
+            // Monthly Revenue for last 6 months (oldest → newest)
+            val monthlyRevenue = (5 downTo 0).map { monthsBack ->
+                val targetDate = now.minusMonths(monthsBack.toLong())
+                val mStart = targetDate.withDayOfMonth(1).atStartOfDay().toInstant(ZoneOffset.UTC)
+                val mEnd = targetDate.withDayOfMonth(targetDate.lengthOfMonth())
+                    .atTime(23, 59, 59).toInstant(ZoneOffset.UTC)
+                val monthLabel = targetDate.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+                val amount = allTeamInvoices.filter { row ->
+                    val createdAt = row[InvoicesTable.createdAt]
+                    createdAt >= mStart && createdAt <= mEnd &&
+                        (row[InvoicesTable.depositPaid] || row[InvoicesTable.finalPaid])
+                }.sumOf { it[InvoicesTable.totalAmount].toDouble() }
+                MonthlyRevenuePoint(month = monthLabel, amount = amount)
+            }
+
             DashboardStats(
                 totalLeadsThisMonth = totalLeadsThisMonth,
                 totalBookingsThisMonth = totalBookingsThisMonth,
@@ -292,7 +311,10 @@ class DashboardRepository {
                 isMonthBelowTarget = isMonthBelowTarget,
                 revenueTrendPercentage = revenueTrendPercentage,
                 conversionRateTrendPercentage = conversionRateTrendPercentage,
-                averageOrderValueTrendPercentage = averageOrderValueTrendPercentage
+                averageOrderValueTrendPercentage = averageOrderValueTrendPercentage,
+                monthlyRevenue = monthlyRevenue,
+                cpaThisMonth = cpaThisMonth,
+                totalExpensesThisMonth = currentMonthExpenses
             )
         }
     }

@@ -2,6 +2,7 @@ package com.nxzef.wc.data.repository
 
 import com.nxzef.wc.data.db.tables.LeadStatusesTable
 import com.nxzef.wc.data.db.tables.LeadsTable
+import com.nxzef.wc.data.db.tables.TeamsTable
 import com.nxzef.wc.shared.model.LeadStatus
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
@@ -97,6 +98,21 @@ class LeadStatusRepository {
         }
     }
 
+    fun update(id: String, name: String?, color: String?, teamId: String): LeadStatus? {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return null }
+        val uuid = try { UUID.fromString(id) } catch (_: Exception) { return null }
+        return transaction {
+            val updated = LeadStatusesTable.update(
+                { (LeadStatusesTable.id eq uuid) and (LeadStatusesTable.teamId eq tUuid) }
+            ) {
+                if (name != null) it[LeadStatusesTable.name] = name
+                if (color != null) it[LeadStatusesTable.color] = color
+            }
+            if (updated == 0) return@transaction null
+            getById(id, teamId)
+        }
+    }
+
     /**
      * Returns one of:
      *   "ok"          — deleted (and any leads were reassigned to the default status)
@@ -144,6 +160,20 @@ class LeadStatusRepository {
         }
     }
 
+    fun reorder(orderedIds: List<String>, teamId: String) {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return }
+        transaction {
+            orderedIds.forEachIndexed { index, id ->
+                val uuid = try { UUID.fromString(id) } catch (_: Exception) { return@forEachIndexed }
+                LeadStatusesTable.update(
+                    { (LeadStatusesTable.id eq uuid) and (LeadStatusesTable.teamId eq tUuid) }
+                ) {
+                    it[LeadStatusesTable.position] = index
+                }
+            }
+        }
+    }
+
     fun seedDefaultForTeam(teamId: String) {
         val tUuid = UUID.fromString(teamId)
         transaction {
@@ -159,6 +189,64 @@ class LeadStatusRepository {
                     it[isDefault] = true
                     it[LeadStatusesTable.teamId] = tUuid
                     it[createdAt] = Instant.now()
+                }
+                LeadStatusesTable.insert {
+                    it[name] = "WON"
+                    it[color] = "#4CAF50"
+                    it[position] = 998
+                    it[isDefault] = false
+                    it[LeadStatusesTable.teamId] = tUuid
+                    it[createdAt] = Instant.now()
+                }
+                LeadStatusesTable.insert {
+                    it[name] = "LOST"
+                    it[color] = "#9E9E9E"
+                    it[position] = 999
+                    it[isDefault] = false
+                    it[LeadStatusesTable.teamId] = tUuid
+                    it[createdAt] = Instant.now()
+                }
+            }
+        }
+    }
+
+    // Idempotent — ensures WON and LOST exist for every team (fixes existing teams on deploy)
+    fun ensureTerminalStatuses() {
+        val teamIds = transaction {
+            TeamsTable.selectAll().map { it[TeamsTable.id] }
+        }
+        teamIds.forEach { tUuid ->
+            transaction {
+                val existingNames = LeadStatusesTable
+                    .selectAll()
+                    .where { LeadStatusesTable.teamId eq tUuid }
+                    .map { it[LeadStatusesTable.name].uppercase() }
+                    .toSet()
+
+                val nextPosition = LeadStatusesTable
+                    .selectAll()
+                    .where { LeadStatusesTable.teamId eq tUuid }
+                    .count().toInt()
+
+                if ("WON" !in existingNames) {
+                    LeadStatusesTable.insert {
+                        it[name] = "WON"
+                        it[color] = "#4CAF50"
+                        it[position] = nextPosition
+                        it[isDefault] = false
+                        it[LeadStatusesTable.teamId] = tUuid
+                        it[createdAt] = Instant.now()
+                    }
+                }
+                if ("LOST" !in existingNames) {
+                    LeadStatusesTable.insert {
+                        it[name] = "LOST"
+                        it[color] = "#9E9E9E"
+                        it[position] = nextPosition + 1
+                        it[isDefault] = false
+                        it[LeadStatusesTable.teamId] = tUuid
+                        it[createdAt] = Instant.now()
+                    }
                 }
             }
         }

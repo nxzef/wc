@@ -83,14 +83,19 @@ class EmailService {
         to: String,
         clientName: String,
         pdfBase64: String,
-        fileName: String
+        fileName: String,
+        notes: String? = null
     ): Boolean {
+        val notesHtml = if (!notes.isNullOrBlank())
+            "<p style=\"color:#555;font-style:italic;border-left:3px solid #E91E63;padding-left:12px;margin:16px 0\">$notes</p>"
+        else ""
         val html = """
             <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
               <h2 style="color:#E91E63">The Wedding Clouds</h2>
               <p>Dear $clientName,</p>
               <p>Please find your customized photography quote attached to this email.</p>
               <p>We would love to capture your special day. Please review the quote and let us know if you have any questions.</p>
+              $notesHtml
               <br/>
               <p>Warm regards,<br/><strong>The Wedding Clouds Team</strong></p>
             </div>

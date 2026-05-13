@@ -1,8 +1,10 @@
 package com.nxzef.wc.routes
 
+import com.nxzef.wc.data.repository.BookingRepository
 import com.nxzef.wc.data.repository.LeadRepository
 import com.nxzef.wc.domain.service.NotificationService
 import com.nxzef.wc.shared.dto.toDto
+import com.nxzef.wc.shared.model.CreateBookingRequest
 import com.nxzef.wc.shared.model.CreateLeadRequest
 import com.nxzef.wc.shared.model.UpdateLeadStatusRequest
 import io.ktor.http.HttpStatusCode
@@ -13,9 +15,11 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
+import java.time.LocalDate
 
 fun Route.leadRoutes(
     leadRepository: LeadRepository,
+    bookingRepository: BookingRepository,
     notificationService: NotificationService
 ) {
     route("/leads") {
@@ -58,6 +62,25 @@ fun Route.leadRoutes(
             val request = call.receive<UpdateLeadStatusRequest>()
             val lead = leadRepository.updateStatus(id, request, teamId)
                 ?: return@put call.respond(HttpStatusCode.NotFound, "Lead not found")
+
+            // When manually moved to WON — create a booking if one doesn't already exist.
+            // A booking may already exist if the lead had an accepted quote earlier.
+            if (lead.statusName.equals("WON", ignoreCase = true)) {
+                val alreadyBooked = bookingRepository.getAll(teamId).any { it.leadId == lead.id }
+                if (!alreadyBooked) {
+                    bookingRepository.create(
+                        CreateBookingRequest(
+                            leadId = lead.id,
+                            eventDate = lead.eventDate ?: LocalDate.now().toString(),
+                            eventType = lead.eventType.name,
+                            location = lead.location ?: "TBD",
+                            notes = "Automatically created when lead was marked WON"
+                        ),
+                        teamId = teamId
+                    )
+                }
+            }
+
             call.respond(lead.toDto())
         }
     }

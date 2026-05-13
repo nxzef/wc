@@ -3,6 +3,7 @@ package com.nxzef.wc.data.db.tables
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.date
 import org.jetbrains.exposed.sql.javatime.timestamp
+import java.math.BigDecimal
 
 object LeadsTable : Table("leads") {
     val id = uuid("id").autoGenerate()
@@ -22,6 +23,7 @@ object LeadsTable : Table("leads") {
     val addedBy = uuid("added_by").references(UsersTable.id)
     val assignedTo = uuid("assigned_to").references(UsersTable.id)
     val teamId = uuid("team_id").references(TeamsTable.id).nullable()
+    val budget = decimal("budget", precision = 12, scale = 2).default(BigDecimal.ZERO)
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

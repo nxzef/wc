@@ -25,4 +25,17 @@ class LeadStatusRepositoryImpl(private val service: LeadStatusService) : LeadSta
     } catch (e: Exception) {
         AppResult.Failure(e)
     }
+
+    override suspend fun update(id: String, name: String?, color: String?): AppResult<LeadStatus> = try {
+        AppResult.Success(service.update(id, name, color))
+    } catch (e: Exception) {
+        AppResult.Failure(e)
+    }
+
+    override suspend fun reorder(orderedIds: List<String>): AppResult<Unit> = try {
+        service.reorder(orderedIds)
+        AppResult.Success(Unit)
+    } catch (e: Exception) {
+        AppResult.Failure(e)
+    }
 }

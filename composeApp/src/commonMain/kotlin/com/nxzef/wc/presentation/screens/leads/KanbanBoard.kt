@@ -1,5 +1,8 @@
 package com.nxzef.wc.presentation.screens.leads
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +24,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,6 +36,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -50,21 +56,36 @@ fun KanbanBoard(
     columnWidth: Dp,
     horizontalPadding: Dp,
     syncingLeadIds: Set<String> = emptySet(),
+    isReordering: Boolean = false,
+    onReorderStatuses: (newOrder: List<LeadStatus>) -> Unit = {},
     onAddStatus: () -> Unit,
     onDeleteStatus: (LeadStatus) -> Unit,
+    onRenameStatus: (statusId: String, newName: String) -> Unit,
+    onChangeColor: (statusId: String, newColor: String) -> Unit,
     onLeadClick: (Lead) -> Unit,
     onStatusChange: (leadId: String, newStatusId: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val dragState = remember { KanbanDragState() }
-    // Plain HashMap — reads happen during drag events, not composition, so no recomposition loop
     val columnBounds = remember { HashMap<String, LayoutCoordinates>() }
     var rootWindowPos by remember { mutableStateOf(Offset.Zero) }
     var boardSize by remember { mutableStateOf(IntSize.Zero) }
     var hoveredStatusId by remember { mutableStateOf<String?>(null) }
 
+    // Column reorder drag state
+    var colDragIdx by remember { mutableIntStateOf(-1) }
+    var colDragOffsetX by remember { mutableFloatStateOf(0f) }
+
     val visibleStatuses = if (filterStatusIds.isEmpty()) statuses
     else statuses.filter { it.id in filterStatusIds }
+
+    // Column reorder only available when no status filter is active
+    val canReorder = filterStatusIds.isEmpty()
+
+    val density = LocalDensity.current
+    val gapPx = with(density) { (if (isCompact) 16.dp else 24.dp).toPx() }
+    val colWidthPx = with(density) { columnWidth.toPx() }
+    val colStepPx = colWidthPx + gapPx
 
     Box(
         modifier = modifier.onGloballyPositioned { coords ->
@@ -72,7 +93,6 @@ fun KanbanBoard(
             boardSize = coords.size
         }
     ) {
-        // ── Scrollable columns ────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -82,8 +102,32 @@ fun KanbanBoard(
         ) {
             Spacer(Modifier.width(horizontalPadding / 2))
 
-            visibleStatuses.forEach { status ->
+            visibleStatuses.forEachIndexed { i, status ->
                 key(status.id) {
+                    val isDragged = i == colDragIdx
+                    val n = visibleStatuses.size
+
+                    // Compute where the dragged column is heading
+                    val targetIdx = if (colDragIdx == -1 || n <= 1) i
+                    else (colDragIdx + colDragOffsetX / colStepPx).roundToInt()
+                        .coerceIn(1, n - 1)
+
+                    // Each non-dragged column shifts by one step to make room
+                    val displacementTarget = when {
+                        colDragIdx == -1 || isDragged -> 0f
+                        targetIdx > colDragIdx && i > colDragIdx && i <= targetIdx -> -colStepPx
+                        targetIdx < colDragIdx && i >= targetIdx && i < colDragIdx -> colStepPx
+                        else -> 0f
+                    }
+                    val displacement by animateFloatAsState(
+                        targetValue = displacementTarget,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ),
+                        label = "colDisplace_$i"
+                    )
+
                     KanbanColumn(
                         status = status,
                         leads = leads.filter { it.customStatus?.id == status.id },
@@ -91,8 +135,38 @@ fun KanbanBoard(
                         draggingLeadId = if (dragState.isDragging) dragState.lead?.id else null,
                         isHighlighted = hoveredStatusId == status.id,
                         syncingLeadIds = syncingLeadIds,
+                        isDraggable = canReorder && !status.isDefault,
+                        isSaving = isReordering,
                         onLeadClick = onLeadClick,
                         onDeleteStatus = if (status.isDefault) null else ({ onDeleteStatus(status) }),
+                        onRenameStatus = { newName -> onRenameStatus(status.id, newName) },
+                        onChangeColor = { newColor -> onChangeColor(status.id, newColor) },
+                        onColumnDragStart = {
+                            colDragIdx = i
+                            colDragOffsetX = 0f
+                        },
+                        onColumnDrag = { dx -> colDragOffsetX += dx },
+                        onColumnDragEnd = {
+                            val savedIdx = colDragIdx
+                            val savedOffset = colDragOffsetX
+                            val nn = visibleStatuses.size
+                            if (savedIdx != -1 && nn > 1) {
+                                val computedTarget = (savedIdx + savedOffset / colStepPx)
+                                    .roundToInt().coerceIn(1, nn - 1)
+                                if (computedTarget != savedIdx) {
+                                    val newOrder = visibleStatuses.toMutableList()
+                                    val item = newOrder.removeAt(savedIdx)
+                                    newOrder.add(computedTarget, item)
+                                    onReorderStatuses(newOrder)
+                                }
+                            }
+                            colDragIdx = -1
+                            colDragOffsetX = 0f
+                        },
+                        onColumnDragCancel = {
+                            colDragIdx = -1
+                            colDragOffsetX = 0f
+                        },
                         onDragStart = { lead, count, windowPos, size ->
                             dragState.start(lead, count, windowPos, size)
                         },
@@ -129,6 +203,19 @@ fun KanbanBoard(
                         modifier = Modifier
                             .width(columnWidth)
                             .fillMaxHeight()
+                            .offset {
+                                IntOffset(
+                                    x = (if (isDragged) colDragOffsetX else displacement).roundToInt(),
+                                    y = 0
+                                )
+                            }
+                            .zIndex(if (isDragged) 10f else 0f)
+                            .then(
+                                if (isDragged) Modifier.graphicsLayer {
+                                    alpha = 0.92f
+                                    shadowElevation = 20f
+                                } else Modifier
+                            )
                             .onGloballyPositioned { coords ->
                                 columnBounds[status.id] = coords
                             }
@@ -151,9 +238,7 @@ fun KanbanBoard(
             Spacer(Modifier.width(horizontalPadding / 2))
         }
 
-        // ── Ghost overlay ─────────────────────────────────────────────────────
-        // Renders above all columns because it is a direct sibling in the same Box.
-        // zIndex works correctly among siblings — this is the fix for the z-index problem.
+        // ── Ghost card overlay ────────────────────────────────────────────────
         if (dragState.isDragging) {
             val draggingLead = dragState.lead
             if (draggingLead != null) {

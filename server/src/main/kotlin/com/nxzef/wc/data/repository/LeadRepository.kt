@@ -61,7 +61,8 @@ class LeadRepository {
             notes = row[LeadsTable.notes],
             addedBy = row[LeadsTable.addedBy].toString(),
             assignedTo = row[LeadsTable.assignedTo].toString(),
-            createdAt = row[LeadsTable.createdAt].toString()
+            createdAt = row[LeadsTable.createdAt].toString(),
+            budget = row[LeadsTable.budget].toDouble()
         )
     }
 
@@ -110,6 +111,7 @@ class LeadRepository {
                 it[statusId] = defaultStatusId
                 it[customStatusId] = defaultStatusId
                 it[notes] = request.notes
+                it[budget] = request.budget.toBigDecimal()
                 it[addedBy] = UUID.fromString(addedByUserId)
                 it[assignedTo] = UUID.fromString(request.assignedTo)
                 it[LeadsTable.teamId] = tUuid

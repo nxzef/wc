@@ -60,6 +60,7 @@ fun Route.quoteRoutes(
                 createdByUserId = createdBy,
                 fileName = request.fileName,
                 totalAmount = request.totalAmount,
+                notes = request.notes,
                 teamId = teamId
             )
 
@@ -69,7 +70,8 @@ fun Route.quoteRoutes(
                 to = request.clientEmail,
                 clientName = lead?.fullName ?: "Client",
                 pdfBase64 = request.fileBase64,
-                fileName = request.fileName
+                fileName = request.fileName,
+                notes = request.notes
             )
 
             val ownerId = notificationService.getOwnerId(teamId)
@@ -116,15 +118,15 @@ fun Route.quoteRoutes(
                         ownerId?.let {
                             notificationService.notify(
                                 userId = it,
-                                title = "Quote Accepted — ${lead.fullName} is now a client",
-                                message = "The quote for ${lead.fullName} was accepted.",
+                                title = "Quote Accepted — ${lead.fullName}",
+                                message = "The quote for ${lead.fullName} was accepted. A booking has been created.",
                                 teamId = teamId
                             )
                         }
                         notificationService.notify(
                             userId = lead.assignedTo,
-                            title = "Quote accepted. Booking created for ${lead.fullName}",
-                            message = "The quote was accepted. A new booking has been generated.",
+                            title = "Quote accepted for ${lead.fullName}",
+                            message = "The quote was accepted and a booking has been generated.",
                             teamId = teamId
                         )
                     }
