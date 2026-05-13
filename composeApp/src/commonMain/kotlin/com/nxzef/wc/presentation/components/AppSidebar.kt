@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Edit
@@ -81,10 +82,13 @@ val sidebarItems = listOf(
         icon = Icons.Default.CalendarMonth,
         label = "Bookings",
         route = Route.Bookings,
-        roles = listOf(
-            UserRole.OWNER,
-            UserRole.LEAD_MANAGER
-        )
+        roles = listOf(UserRole.OWNER, UserRole.LEAD_MANAGER)
+    ),
+    SidebarNavItem(
+        icon = Icons.AutoMirrored.Filled.Assignment,
+        label = "Projects",
+        route = Route.Bookings,
+        roles = listOf(UserRole.OWNER, UserRole.LEAD_MANAGER)
     ),
     SidebarNavItem(
         icon  = Icons.Default.CheckBox,

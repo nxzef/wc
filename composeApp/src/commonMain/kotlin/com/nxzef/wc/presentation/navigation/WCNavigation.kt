@@ -39,6 +39,7 @@ import com.nxzef.wc.presentation.screens.bookings.BookingScreen
 import com.nxzef.wc.presentation.screens.dashboard.DashboardScreen
 import com.nxzef.wc.presentation.screens.editor.EditorScreen
 import com.nxzef.wc.presentation.screens.expenses.ProjectExpensesScreen
+import com.nxzef.wc.presentation.screens.project.ProjectScreen
 import com.nxzef.wc.presentation.screens.invoices.InvoiceScreen
 import com.nxzef.wc.presentation.screens.leads.AddLeadScreen
 import com.nxzef.wc.presentation.screens.leads.LeadPipelineScreen
@@ -318,7 +319,22 @@ fun AppNavHost(
                 onBack = { navController.popBackStack() },
                 onExpenses = { bookingId ->
                     navController.navigate(Route.ProjectExpenses(bookingId))
+                },
+                onProject = { bookingId ->
+                    navController.navigate(Route.Project(bookingId))
                 }
+            )
+        }
+
+        composable<Route.Project> { backStackEntry ->
+            val route: Route.Project = backStackEntry.toRoute()
+            ProjectScreen(
+                bookingId = route.bookingId,
+                onBack = { navController.popBackStack() },
+                onExpenses = { bookingId ->
+                    navController.navigate(Route.ProjectExpenses(bookingId))
+                },
+                onInvoice = { onNavigateToTab(Route.Invoices) }
             )
         }
 
@@ -372,6 +388,10 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
         destination.hasRoute<Route.ProjectExpenses>() -> {
             val bookingId = backStackEntry.toRoute<Route.ProjectExpenses>().bookingId
             Route.ProjectExpenses(bookingId)
+        }
+        destination.hasRoute<Route.Project>() -> {
+            val bookingId = backStackEntry.toRoute<Route.Project>().bookingId
+            Route.Project(bookingId)
         }
         destination.hasRoute<Route.Quotes>() -> {
             val q = backStackEntry.toRoute<Route.Quotes>()

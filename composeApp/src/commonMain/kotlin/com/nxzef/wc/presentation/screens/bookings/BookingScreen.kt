@@ -2,6 +2,7 @@ package com.nxzef.wc.presentation.screens.bookings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,10 +21,14 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -49,10 +54,13 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.presentation.components.AddTaskDialog
@@ -69,6 +77,10 @@ import com.nxzef.wc.shared.model.Booking
 import com.nxzef.wc.shared.model.BookingStatus
 import com.nxzef.wc.shared.model.User
 import com.nxzef.wc.shared.model.UserRole
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,10 +88,12 @@ import org.koin.compose.viewmodel.koinViewModel
 fun BookingScreen(
     onBack: () -> Unit,
     onExpenses: (bookingId: String) -> Unit = {},
+    onProject: (bookingId: String) -> Unit = {},
     viewModel: BookingViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarState = remember { SnackbarHostState() }
+    var showCalendarView by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -101,6 +115,22 @@ fun BookingScreen(
                 subtitle = "${state.bookings.size} total bookings",
                 onBack = onBack,
                 actions = {
+                    IconButton(onClick = { showCalendarView = false }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ViewList,
+                            contentDescription = "List view",
+                            tint = if (!showCalendarView) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = { showCalendarView = true }) {
+                        Icon(
+                            Icons.Default.CalendarMonth,
+                            contentDescription = "Calendar view",
+                            tint = if (showCalendarView) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     RefreshButton(
                         isLoading = state.isLoading || state.isRefreshing,
                         onClick = { RefreshManager.triggerRefresh() }
@@ -121,95 +151,107 @@ fun BookingScreen(
                     .widthIn(max = 1000.dp)
                     .fillMaxSize()
             ) {
-                // ── Search bar ──────────────────────────────────────────────
-                WCSearchBar(
-                    query = state.searchQuery,
-                    onQueryChange = { viewModel.onAction(BookingAction.OnSearchQueryChange(it)) },
-                    placeholder = "Search bookings…",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 12.dp)
-                )
+                if (!showCalendarView) {
+                    // ── Search bar ──────────────────────────────────────────────
+                    WCSearchBar(
+                        query = state.searchQuery,
+                        onQueryChange = { viewModel.onAction(BookingAction.OnSearchQueryChange(it)) },
+                        placeholder = "Search bookings…",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 12.dp)
+                    )
 
-                // ── Status chips (centered) ─────────────────────────────────
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // ── Status chips (centered) ─────────────────────────────────
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        FilterChip(
-                            selected = state.filterStatus == null,
-                            onClick = { viewModel.onAction(BookingAction.OnFilterStatus(null)) },
-                            label = { Text("All") },
-                            shape = MaterialTheme.shapes.large
-                        )
-                        BookingStatus.entries.forEach { status ->
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             FilterChip(
-                                selected = state.filterStatus == status,
-                                onClick = { viewModel.onAction(BookingAction.OnFilterStatus(status)) },
-                                label = { Text(status.name.replace("_", " ")) },
+                                selected = state.filterStatus == null,
+                                onClick = { viewModel.onAction(BookingAction.OnFilterStatus(null)) },
+                                label = { Text("All") },
                                 shape = MaterialTheme.shapes.large
                             )
-                        }
-                    }
-                }
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                // ── Content ─────────────────────────────────────────────────
-                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    when {
-                        state.isLoading -> {
-                            CircularProgressIndicator(
-                                modifier = Modifier.align(Alignment.Center)
-                            )
-                        }
-
-                        viewModel.filteredBookings.isEmpty() -> {
-                            Column(
-                                modifier = Modifier.align(Alignment.Center),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.CalendarMonth,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "No bookings found",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                            BookingStatus.entries.forEach { status ->
+                                FilterChip(
+                                    selected = state.filterStatus == status,
+                                    onClick = { viewModel.onAction(BookingAction.OnFilterStatus(status)) },
+                                    label = { Text(status.name.replace("_", " ")) },
+                                    shape = MaterialTheme.shapes.large
                                 )
                             }
                         }
+                    }
 
-                        else -> {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(24.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(viewModel.filteredBookings) { booking ->
-                                    val leadName =
-                                        state.leads.find { it.id == booking.leadId }?.fullName
-                                            ?: "Unknown Lead"
-                                    BookingCard(
-                                        leadName = leadName,
-                                        booking = booking,
-                                        onClick = {
-                                            viewModel.onAction(
-                                                BookingAction.SelectBooking(booking)
-                                            )
-                                        }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                }
+
+                // ── Content ─────────────────────────────────────────────────
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    if (showCalendarView) {
+                        BookingCalendarView(
+                            bookings = state.bookings,
+                            leads = state.leads,
+                            onBookingClick = { booking ->
+                                viewModel.onAction(BookingAction.SelectBooking(booking))
+                            }
+                        )
+                    } else {
+                        when {
+                            state.isLoading -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
+                            }
+
+                            viewModel.filteredBookings.isEmpty() -> {
+                                Column(
+                                    modifier = Modifier.align(Alignment.Center),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                    Text(
+                                        text = "No bookings found",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            else -> {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(24.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    items(viewModel.filteredBookings) { booking ->
+                                        val leadName =
+                                            state.leads.find { it.id == booking.leadId }?.fullName
+                                                ?: "Unknown Lead"
+                                        BookingCard(
+                                            leadName = leadName,
+                                            booking = booking,
+                                            onClick = {
+                                                viewModel.onAction(
+                                                    BookingAction.SelectBooking(booking)
+                                                )
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -252,7 +294,8 @@ fun BookingScreen(
             onDeleteTask = { taskId ->
                 viewModel.onAction(BookingAction.OnDeleteTask(taskId))
             },
-            onExpenses = { onExpenses(booking.id) }
+            onExpenses = { onExpenses(booking.id) },
+            onViewProject = { onProject(booking.id) }
         )
     }
 
@@ -266,6 +309,301 @@ fun BookingScreen(
         )
     }
 }
+
+// ── Calendar helpers ─────────────────────────────────────────────────────────
+
+private fun daysInMonth(year: Int, month: Int): Int {
+    val first = LocalDate(year, month, 1)
+    val ny = if (month == 12) year + 1 else year
+    val nm = if (month == 12) 1 else month + 1
+    return (LocalDate(ny, nm, 1).toEpochDays() - first.toEpochDays()).toInt()
+}
+
+private fun prevMonth(year: Int, month: Int): Pair<Int, Int> =
+    if (month == 1) Pair(year - 1, 12) else Pair(year, month - 1)
+
+private fun nextMonth(year: Int, month: Int): Pair<Int, Int> =
+    if (month == 12) Pair(year + 1, 1) else Pair(year, month + 1)
+
+private fun buildCalendarGrid(year: Int, month: Int): List<Pair<LocalDate, Boolean>> {
+    val firstDay = LocalDate(year, month, 1)
+    // 1970-01-01 was Thursday; offset = (epochDays + 3) % 7 gives Mon=0 … Sun=6
+    val offset = ((firstDay.toEpochDays() + 3L) % 7L).toInt()
+    val daysInCurrent = daysInMonth(year, month)
+    val (py, pm) = prevMonth(year, month)
+    val daysInPrev = daysInMonth(py, pm)
+
+    val cells = mutableListOf<Pair<LocalDate, Boolean>>()
+
+    // Trailing days from previous month
+    for (i in offset - 1 downTo 0) {
+        cells.add(Pair(LocalDate(py, pm, daysInPrev - i), false))
+    }
+
+    // Current month
+    for (day in 1..daysInCurrent) {
+        cells.add(Pair(LocalDate(year, month, day), true))
+    }
+
+    // Leading days from next month to complete last week
+    val (ny, nm) = nextMonth(year, month)
+    val remaining = (7 - (cells.size % 7)) % 7
+    for (day in 1..remaining) {
+        cells.add(Pair(LocalDate(ny, nm, day), false))
+    }
+
+    return cells
+}
+
+// ── BookingCalendarView ───────────────────────────────────────────────────────
+
+@Composable
+fun BookingCalendarView(
+    bookings: List<Booking>,
+    leads: List<com.nxzef.wc.shared.model.Lead>,
+    onBookingClick: (Booking) -> Unit
+) {
+    val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    var calYear by remember { mutableStateOf(today.year) }
+    var calMonth by remember { mutableStateOf(today.month.ordinal + 1) }
+    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+
+    val bookingsByDate = remember(bookings) { bookings.groupBy { it.eventDate } }
+    val calendarCells = remember(calYear, calMonth) { buildCalendarGrid(calYear, calMonth) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        // Month navigation
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = {
+                val (ny, nm) = prevMonth(calYear, calMonth)
+                calYear = ny; calMonth = nm
+            }) {
+                Icon(Icons.Default.ChevronLeft, contentDescription = "Previous month")
+            }
+            Text(
+                text = "${DateUtils.getMonthName(calMonth)} $calYear",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = {
+                val (ny, nm) = nextMonth(calYear, calMonth)
+                calYear = ny; calMonth = nm
+            }) {
+                Icon(Icons.Default.ChevronRight, contentDescription = "Next month")
+            }
+        }
+
+        // Day-of-week headers
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp)
+        ) {
+            listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { label ->
+                Text(
+                    text = label,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(bottom = 4.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        )
+
+        // Calendar grid rows
+        calendarCells.chunked(7).forEach { week ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                week.forEach { (date, isCurrentMonth) ->
+                    val cellBookings = if (isCurrentMonth) {
+                        bookingsByDate[date.toString()] ?: emptyList()
+                    } else emptyList()
+
+                    CalendarDayCell(
+                        date = date,
+                        isCurrentMonth = isCurrentMonth,
+                        isToday = date == today,
+                        bookings = cellBookings,
+                        modifier = Modifier.weight(1f),
+                        onClick = if (isCurrentMonth && cellBookings.isNotEmpty()) {
+                            { selectedDate = date }
+                        } else null
+                    )
+                }
+            }
+        }
+    }
+
+    // Day bookings dialog
+    selectedDate?.let { date ->
+        val dayBookings = bookingsByDate[date.toString()] ?: emptyList()
+        DayBookingsDialog(
+            date = date,
+            bookings = dayBookings,
+            leads = leads,
+            onBookingClick = { booking ->
+                selectedDate = null
+                onBookingClick(booking)
+            },
+            onDismiss = { selectedDate = null }
+        )
+    }
+}
+
+@Composable
+private fun CalendarDayCell(
+    date: LocalDate,
+    isCurrentMonth: Boolean,
+    isToday: Boolean,
+    bookings: List<Booking>,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)?
+) {
+    val colors = WCTheme.colors
+    val primary = MaterialTheme.colorScheme.primary
+
+    Box(
+        modifier = modifier
+            .height(68.dp)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .padding(2.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+            modifier = Modifier.padding(top = 6.dp)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(28.dp)
+                    .then(
+                        if (isToday) Modifier.background(primary, CircleShape) else Modifier
+                    )
+            ) {
+                Text(
+                    text = date.day.toString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    color = when {
+                        isToday -> MaterialTheme.colorScheme.onPrimary
+                        !isCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f)
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
+            }
+
+            if (bookings.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    bookings.take(3).forEach { booking ->
+                        val dotColor = when (booking.status) {
+                            BookingStatus.BOOKED -> colors.statusBooked
+                            BookingStatus.SHOOT_DONE -> colors.statusShootDone
+                            BookingStatus.EDITING -> colors.statusEditing
+                            BookingStatus.DELIVERED -> colors.statusDelivered
+                            BookingStatus.CLOSED -> colors.statusClosed
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(dotColor, CircleShape)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DayBookingsDialog(
+    date: LocalDate,
+    bookings: List<Booking>,
+    leads: List<com.nxzef.wc.shared.model.Lead>,
+    onBookingClick: (Booking) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = DateUtils.formatDisplayDate(date.toString()),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                bookings.forEach { booking ->
+                    val leadName = leads.find { it.id == booking.leadId }?.fullName ?: "Unknown"
+                    Card(
+                        onClick = { onBookingClick(booking) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = leadName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "${booking.eventType} · ${booking.location}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            BookingStatusBadge(status = booking.status)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+        shape = MaterialTheme.shapes.large
+    )
+}
+
+// ── BookingCard ───────────────────────────────────────────────────────────────
 
 @Composable
 fun BookingCard(
@@ -298,7 +636,6 @@ fun BookingCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Color indicator
             Surface(
                 modifier = Modifier
                     .width(4.dp)
@@ -341,6 +678,8 @@ fun BookingCard(
     }
 }
 
+// ── BookingDetailDialog ───────────────────────────────────────────────────────
+
 @Composable
 fun BookingDetailDialog(
     modifier: Modifier = Modifier,
@@ -356,7 +695,8 @@ fun BookingDetailDialog(
     onTaskToggle: (String, Boolean) -> Unit,
     onAddTaskClick: () -> Unit,
     onDeleteTask: (String) -> Unit,
-    onExpenses: () -> Unit = {}
+    onExpenses: () -> Unit = {},
+    onViewProject: () -> Unit = {}
 ) {
     val lead = leads.find { it.id == booking.leadId }
     val leadName = lead?.fullName ?: "Unknown Lead"
@@ -566,11 +906,19 @@ fun BookingDetailDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(
-                        onClick = { onDismiss(); onExpenses() },
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text("Expenses & P&L")
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(
+                            onClick = { onDismiss(); onExpenses() },
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text("Expenses & P&L")
+                        }
+                        TextButton(
+                            onClick = { onDismiss(); onViewProject() },
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text("Open Project")
+                        }
                     }
                     TextButton(onClick = onDismiss, shape = MaterialTheme.shapes.medium) {
                         Text("Close")
