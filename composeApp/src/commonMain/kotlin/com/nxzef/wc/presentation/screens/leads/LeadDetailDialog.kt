@@ -23,9 +23,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -74,7 +76,10 @@ fun LeadDetailDialog(
     onViewQuotes: () -> Unit,
     onViewBooking: () -> Unit,
     onTaskToggle: (String, Boolean) -> Unit,
-    onDeleteTask: (String) -> Unit
+    onDeleteTask: (String) -> Unit,
+    onMarkWon: () -> Unit = {},
+    onMarkLost: () -> Unit = {},
+    onEditLead: () -> Unit = {}
 ) {
     var notes by remember { mutableStateOf(lead.notes ?: "") }
 
@@ -112,7 +117,19 @@ fun LeadDetailDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    LeadStatusBadge(statusName = lead.statusName, color = lead.customStatus?.color)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LeadStatusBadge(statusName = lead.statusName, color = lead.customStatus?.color)
+                        IconButton(onClick = { onEditLead(); onDismiss() }) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit Lead",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -351,8 +368,37 @@ fun LeadDetailDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (!lead.isWon) {
+                            OutlinedButton(
+                                onClick = { onMarkWon(); onDismiss() },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color(0xFF4CAF50)
+                                ),
+                                border = BorderStroke(1.dp, Color(0xFF4CAF50)),
+                                shape = MaterialTheme.shapes.medium,
+                                contentPadding = PaddingValues(horizontal = 12.dp)
+                            ) {
+                                Text("Mark Won ✓", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                        if (!lead.isLost) {
+                            OutlinedButton(
+                                onClick = { onMarkLost(); onDismiss() },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                                shape = MaterialTheme.shapes.medium,
+                                contentPadding = PaddingValues(horizontal = 12.dp)
+                            ) {
+                                Text("Mark Lost ✗", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
                     TextButton(onClick = onDismiss, shape = MaterialTheme.shapes.medium) {
                         Text("Close")
                     }

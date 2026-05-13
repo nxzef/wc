@@ -74,7 +74,11 @@ fun InvoiceScreen(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is InvoiceUiEvent.ShowSnackbar -> snackbarState.showSnackbar(event.message)
-                InvoiceUiEvent.PaymentUpdated  -> snackbarState.showSnackbar("Payment updated!")
+                is InvoiceUiEvent.PaymentUpdated -> {
+                    val msg = if (event.emailSent) "Payment recorded. Receipt emailed to client ✓"
+                              else "Payment recorded ✓"
+                    snackbarState.showSnackbar(msg)
+                }
                 InvoiceUiEvent.InvoiceCreated  -> snackbarState.showSnackbar("Invoice created!")
             }
         }

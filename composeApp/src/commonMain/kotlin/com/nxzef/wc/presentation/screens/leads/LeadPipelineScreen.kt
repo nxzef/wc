@@ -2,6 +2,7 @@ package com.nxzef.wc.presentation.screens.leads
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
@@ -24,9 +27,12 @@ import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -43,7 +49,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.nxzef.wc.shared.model.Lead
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.presentation.components.LeadFilterBar
@@ -99,6 +107,7 @@ fun LeadPipelineScreen(
     onAddLead: () -> Unit,
     onViewQuotes: (leadId: String, clientName: String, clientEmail: String) -> Unit,
     onViewBooking: () -> Unit,
+    onEditLead: (leadId: String) -> Unit = {},
     viewModel: LeadPipelineViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -264,86 +273,127 @@ fun LeadPipelineScreen(
                     val horizontalPadding = if (isCompact) 16.dp else 24.dp
 
                     Column(modifier = contentModifier) {
-                        LeadFilterBar(
-                            state = state,
-                            onAction = viewModel::onAction,
+                        // Pipeline tab bar: Active / Won / Lost
+                        PipelineTabRow(
+                            activeTab = state.activeTab,
+                            onTabChange = { viewModel.onAction(LeadPipelineAction.SwitchTab(it)) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = horizontalPadding, vertical = 8.dp)
+                                .padding(horizontal = horizontalPadding, vertical = 6.dp)
                         )
 
-                        Crossfade(
-                            targetState = state.viewLayout,
-                            animationSpec = tween(durationMillis = 250),
-                            modifier = Modifier.weight(1f).fillMaxWidth()
-                        ) { layout ->
-                            when (layout) {
-                                PipelineViewLayout.LIST -> LeadListView(
-                                    leads = filteredLeads,
-                                    columnWidths = state.columnWidths,
-                                    onColumnWidthChange = { key, width ->
-                                        viewModel.onAction(
-                                            LeadPipelineAction.OnColumnWidthChange(key, width)
-                                        )
-                                    },
-                                    modifier = Modifier.fillMaxSize(),
-                                    onLeadClick = { lead ->
-                                        viewModel.onAction(LeadPipelineAction.SelectLead(lead))
-                                    }
+                        when (state.activeTab) {
+                            PipelineTab.ACTIVE -> Column(
+                                modifier = Modifier.weight(1f).fillMaxWidth()
+                            ) {
+                                LeadFilterBar(
+                                    state = state,
+                                    onAction = viewModel::onAction,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = horizontalPadding, vertical = 8.dp)
                                 )
 
-                                PipelineViewLayout.BOARD -> {
-                                    val colWidth =
-                                        if (isCompact) (screenWidth * 0.85f).value
-                                        else BOARD_COL_DEFAULT
+                                Crossfade(
+                                    targetState = state.viewLayout,
+                                    animationSpec = tween(durationMillis = 250),
+                                    modifier = Modifier.weight(1f).fillMaxWidth()
+                                ) { layout ->
+                                    when (layout) {
+                                        PipelineViewLayout.LIST -> LeadListView(
+                                            leads = filteredLeads,
+                                            columnWidths = state.columnWidths,
+                                            onColumnWidthChange = { key, width ->
+                                                viewModel.onAction(
+                                                    LeadPipelineAction.OnColumnWidthChange(key, width)
+                                                )
+                                            },
+                                            modifier = Modifier.fillMaxSize(),
+                                            onLeadClick = { lead ->
+                                                viewModel.onAction(LeadPipelineAction.SelectLead(lead))
+                                            }
+                                        )
 
-                                    KanbanBoard(
-                                        statuses = state.statuses,
-                                        leads = filteredLeads,
-                                        taskCounts = state.taskCounts,
-                                        filterStatusIds = state.filterStatusIds,
-                                        isCompact = isCompact,
-                                        columnWidth = colWidth.dp,
-                                        horizontalPadding = horizontalPadding,
-                                        syncingLeadIds = state.syncingLeadIds,
-                                        isReordering = state.isReordering,
-                                        onReorderStatuses = { newOrder ->
-                                            viewModel.onAction(
-                                                LeadPipelineAction.ReorderStatuses(newOrder)
+                                        PipelineViewLayout.BOARD -> {
+                                            val colWidth =
+                                                if (isCompact) (screenWidth * 0.85f).value
+                                                else BOARD_COL_DEFAULT
+
+                                            KanbanBoard(
+                                                statuses = state.statuses,
+                                                leads = filteredLeads,
+                                                taskCounts = state.taskCounts,
+                                                filterStatusIds = state.filterStatusIds,
+                                                isCompact = isCompact,
+                                                columnWidth = colWidth.dp,
+                                                horizontalPadding = horizontalPadding,
+                                                syncingLeadIds = state.syncingLeadIds,
+                                                isReordering = state.isReordering,
+                                                onReorderStatuses = { newOrder ->
+                                                    viewModel.onAction(
+                                                        LeadPipelineAction.ReorderStatuses(newOrder)
+                                                    )
+                                                },
+                                                onAddStatus = {
+                                                    viewModel.onAction(
+                                                        LeadPipelineAction.ShowCreateStatusDialog
+                                                    )
+                                                },
+                                                onDeleteStatus = { status ->
+                                                    viewModel.onAction(
+                                                        LeadPipelineAction.RequestDeleteStatus(status)
+                                                    )
+                                                },
+                                                onRenameStatus = { statusId, newName ->
+                                                    viewModel.onAction(
+                                                        LeadPipelineAction.RenameStatus(statusId, newName)
+                                                    )
+                                                },
+                                                onChangeColor = { statusId, newColor ->
+                                                    viewModel.onAction(
+                                                        LeadPipelineAction.ChangeStatusColor(statusId, newColor)
+                                                    )
+                                                },
+                                                onLeadClick = { lead ->
+                                                    viewModel.onAction(LeadPipelineAction.SelectLead(lead))
+                                                },
+                                                onStatusChange = { leadId, statusId ->
+                                                    viewModel.onAction(
+                                                        LeadPipelineAction.UpdateStatus(leadId, statusId)
+                                                    )
+                                                },
+                                                modifier = Modifier.fillMaxSize()
                                             )
-                                        },
-                                        onAddStatus = {
-                                            viewModel.onAction(
-                                                LeadPipelineAction.ShowCreateStatusDialog
-                                            )
-                                        },
-                                        onDeleteStatus = { status ->
-                                            viewModel.onAction(
-                                                LeadPipelineAction.RequestDeleteStatus(status)
-                                            )
-                                        },
-                                        onRenameStatus = { statusId, newName ->
-                                            viewModel.onAction(
-                                                LeadPipelineAction.RenameStatus(statusId, newName)
-                                            )
-                                        },
-                                        onChangeColor = { statusId, newColor ->
-                                            viewModel.onAction(
-                                                LeadPipelineAction.ChangeStatusColor(statusId, newColor)
-                                            )
-                                        },
-                                        onLeadClick = { lead ->
-                                            viewModel.onAction(LeadPipelineAction.SelectLead(lead))
-                                        },
-                                        onStatusChange = { leadId, statusId ->
-                                            viewModel.onAction(
-                                                LeadPipelineAction.UpdateStatus(leadId, statusId)
-                                            )
-                                        },
-                                        modifier = Modifier.fillMaxSize()
-                                    )
+                                        }
+                                    }
                                 }
                             }
+
+                            PipelineTab.WON -> WonLostLeadList(
+                                leads = state.wonLeads,
+                                emptyMessage = "No won leads yet",
+                                accentColor = Color(0xFF4CAF50),
+                                onLeadClick = { lead ->
+                                    viewModel.onAction(LeadPipelineAction.SelectLead(lead))
+                                },
+                                onReopen = { leadId ->
+                                    viewModel.onAction(LeadPipelineAction.ReopenLead(leadId))
+                                },
+                                modifier = Modifier.weight(1f).fillMaxWidth()
+                            )
+
+                            PipelineTab.LOST -> WonLostLeadList(
+                                leads = state.lostLeads,
+                                emptyMessage = "No lost leads",
+                                accentColor = MaterialTheme.colorScheme.error,
+                                onLeadClick = { lead ->
+                                    viewModel.onAction(LeadPipelineAction.SelectLead(lead))
+                                },
+                                onReopen = { leadId ->
+                                    viewModel.onAction(LeadPipelineAction.ReopenLead(leadId))
+                                },
+                                modifier = Modifier.weight(1f).fillMaxWidth()
+                            )
                         }
                     }
                 }
@@ -379,7 +429,10 @@ fun LeadPipelineScreen(
             },
             onDeleteTask = { taskId ->
                 viewModel.onAction(LeadPipelineAction.OnDeleteTask(taskId))
-            }
+            },
+            onMarkWon = { viewModel.onAction(LeadPipelineAction.MarkLeadWon(lead.id)) },
+            onMarkLost = { viewModel.onAction(LeadPipelineAction.MarkLeadLost(lead.id)) },
+            onEditLead = { onEditLead(lead.id) }
         )
     }
 
@@ -416,5 +469,116 @@ fun LeadPipelineScreen(
                 }) { Text("Cancel") }
             }
         )
+    }
+}
+
+@Composable
+private fun PipelineTabRow(
+    activeTab: PipelineTab,
+    onTabChange: (PipelineTab) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.extraLarge)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        PipelineTab.entries.forEach { tab ->
+            Surface(
+                onClick = { onTabChange(tab) },
+                modifier = Modifier.weight(1f),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = if (activeTab == tab) MaterialTheme.colorScheme.surface else Color.Transparent,
+                shadowElevation = if (activeTab == tab) 2.dp else 0.dp
+            ) {
+                Text(
+                    text = tab.label,
+                    modifier = Modifier.padding(vertical = 7.dp),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (activeTab == tab) FontWeight.Bold else FontWeight.Normal,
+                    color = if (activeTab == tab) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WonLostLeadList(
+    leads: List<Lead>,
+    emptyMessage: String,
+    accentColor: Color,
+    onLeadClick: (Lead) -> Unit,
+    onReopen: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (leads.isEmpty()) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            Text(
+                text = emptyMessage,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = modifier,
+            contentPadding = PaddingValues(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(leads) { lead ->
+                Card(
+                    onClick = { onLeadClick(lead) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .height(40.dp),
+                            shape = MaterialTheme.shapes.small,
+                            color = accentColor
+                        ) {}
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = lead.fullName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "${lead.eventType.name} — ${lead.eventDate ?: "Date TBD"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = { onReopen(lead.id) },
+                            shape = MaterialTheme.shapes.medium,
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text("Reopen", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+        }
     }
 }

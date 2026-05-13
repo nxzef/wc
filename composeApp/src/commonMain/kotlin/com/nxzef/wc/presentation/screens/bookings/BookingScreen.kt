@@ -3,6 +3,7 @@ package com.nxzef.wc.presentation.screens.bookings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -246,7 +247,8 @@ fun BookingScreen(
                                         BookingCard(
                                             leadName = leadName,
                                             booking = booking,
-                                            onClick = {
+                                            onClick = { onProject(booking.id) },
+                                            onLongClick = {
                                                 viewModel.onAction(
                                                     BookingAction.SelectBooking(booking)
                                                 )
@@ -678,7 +680,8 @@ fun DayBookingsDialog(
 fun BookingCard(
     leadName: String,
     booking: Booking,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
 ) {
     val statusColor = when (booking.status) {
         BookingStatus.BOOKED -> WCTheme.colors.statusBooked
@@ -689,8 +692,12 @@ fun BookingCard(
     }
 
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(

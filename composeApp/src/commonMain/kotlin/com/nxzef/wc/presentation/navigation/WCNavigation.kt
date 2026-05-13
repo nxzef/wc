@@ -261,31 +261,30 @@ fun AppNavHost(
                 onNavigateToTasks = { onNavigateToTab(Route.Tasks) },
                 onNavigateToBookings = { onNavigateToTab(Route.Bookings) },
                 onViewLeads = { onNavigateToTab(Route.LeadPipeline) },
-                onNavigateToAddLead = { navController.navigate(Route.AddLead) }
+                onNavigateToAddLead = { navController.navigate(Route.AddLead()) },
+                onNavigateToAnalytics = { onNavigateToTab(Route.Analytics) }
             )
         }
 
         composable<Route.LeadPipeline> {
             LeadPipelineScreen(
                 onBack = { navController.popBackStack() },
-                onAddLead = { navController.navigate(Route.AddLead) },
+                onAddLead = { navController.navigate(Route.AddLead()) },
                 onViewQuotes = { leadId, clientName, clientEmail ->
                     navController.navigate(Route.Quotes(leadId, clientName, clientEmail))
                 },
-                onViewBooking = { onNavigateToTab(Route.Bookings) }
+                onViewBooking = { onNavigateToTab(Route.Bookings) },
+                onEditLead = { leadId -> navController.navigate(Route.AddLead(leadId)) }
             )
         }
 
-        composable<Route.AddLead> {
+        composable<Route.AddLead> { backStackEntry ->
+            val route: Route.AddLead = backStackEntry.toRoute()
             AddLeadScreen(
-                onLeadCreated = {
-                    val previousDestination = navController.previousBackStackEntry?.destination
-                    if (previousDestination?.hasRoute<Route.LeadPipeline>() == true) {
-                        navController.popBackStack()
-                    } else {
-                        navController.navigate(Route.LeadPipeline) {
-                            popUpTo(Route.OwnerDashboard)
-                        }
+                leadId = route.leadId.ifEmpty { null },
+                onLeadSaved = {
+                    navController.navigate(Route.LeadPipeline) {
+                        popUpTo<Route.AddLead> { inclusive = true }
                     }
                 },
                 onBack = { navController.popBackStack() }
@@ -295,7 +294,7 @@ fun AppNavHost(
         composable<Route.Marketing> {
             MarketingScreen(
                 onBack = { navController.popBackStack() },
-                onAddLead = { navController.navigate(Route.AddLead) }
+                onAddLead = { navController.navigate(Route.AddLead()) }
             )
         }
 
@@ -381,7 +380,10 @@ fun getCurrentRoute(backStackEntry: NavBackStackEntry?): Route {
         destination.hasRoute<Route.ForgotPassword>() -> Route.ForgotPassword
         destination.hasRoute<Route.OwnerDashboard>() -> Route.OwnerDashboard
         destination.hasRoute<Route.LeadPipeline>() -> Route.LeadPipeline
-        destination.hasRoute<Route.AddLead>() -> Route.AddLead
+        destination.hasRoute<Route.AddLead>() -> {
+            val leadId = backStackEntry.toRoute<Route.AddLead>().leadId
+            Route.AddLead(leadId)
+        }
         destination.hasRoute<Route.Marketing>() -> Route.Marketing
         destination.hasRoute<Route.MyShoots>() -> Route.MyShoots
         destination.hasRoute<Route.EditingQueue>() -> Route.EditingQueue

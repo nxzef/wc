@@ -38,7 +38,7 @@ class InvoiceRepositoryImpl(
     override suspend fun updatePayment(
         id: String,
         request: UpdatePaymentRequest
-    ): AppResult<Invoice> {
+    ): AppResult<Pair<Invoice, Boolean>> {
         return try {
             AppResult.Success(service.updatePayment(id, request))
         } catch (e: Exception) {

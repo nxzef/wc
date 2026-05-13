@@ -3,6 +3,7 @@ package com.nxzef.wc.data.remote
 import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.session.SessionManager
 import com.nxzef.wc.shared.dto.InvoiceDto
+import com.nxzef.wc.shared.dto.UpdatePaymentResponse
 import com.nxzef.wc.shared.dto.toDomain
 import com.nxzef.wc.shared.model.CreateInvoiceRequest
 import com.nxzef.wc.shared.model.Invoice
@@ -47,14 +48,14 @@ class InvoiceService(private val client: HttpClient) {
     suspend fun updatePayment(
         id: String,
         request: UpdatePaymentRequest
-    ): Invoice {
-        val dto: InvoiceDto = client.put(
+    ): Pair<Invoice, Boolean> {
+        val response: UpdatePaymentResponse = client.put(
             "${AppConfig.BASE_URL}/invoices/$id/payment"
         ) {
             header("Authorization", "Bearer ${SessionManager.getToken()}")
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
-        return dto.toDomain()
+        return Pair(response.invoice.toDomain(), response.emailSent)
     }
 }

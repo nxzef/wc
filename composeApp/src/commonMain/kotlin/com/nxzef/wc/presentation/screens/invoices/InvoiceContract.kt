@@ -34,5 +34,5 @@ sealed interface InvoiceAction {
 sealed interface InvoiceUiEvent {
     data class ShowSnackbar(val message: String) : InvoiceUiEvent
     data object InvoiceCreated : InvoiceUiEvent
-    data object PaymentUpdated : InvoiceUiEvent
+    data class PaymentUpdated(val emailSent: Boolean) : InvoiceUiEvent
 }

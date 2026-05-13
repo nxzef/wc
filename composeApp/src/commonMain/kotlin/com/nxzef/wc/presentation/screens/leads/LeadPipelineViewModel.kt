@@ -3,6 +3,7 @@ package com.nxzef.wc.presentation.screens.leads
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nxzef.wc.data.local.TokenStorage
+import com.nxzef.wc.domain.repository.LeadRepository
 import com.nxzef.wc.domain.repository.LeadStatusRepository
 import com.nxzef.wc.domain.repository.TaskRepository
 import com.nxzef.wc.domain.usecase.leads.GetAllLeadsUseCase
@@ -38,7 +39,8 @@ class LeadPipelineViewModel(
     private val deleteTaskUseCase: DeleteTaskUseCase,
     private val leadStatusRepository: LeadStatusRepository,
     private val taskRepository: TaskRepository,
-    private val tokenStorage: TokenStorage
+    private val tokenStorage: TokenStorage,
+    private val leadRepository: LeadRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LeadPipelineState())
@@ -113,6 +115,10 @@ class LeadPipelineViewModel(
                 scheduleSaveColumnWidths()
             }
             is LeadPipelineAction.ReorderStatuses -> reorderStatuses(action.newOrder)
+            is LeadPipelineAction.MarkLeadWon -> markWon(action.leadId)
+            is LeadPipelineAction.MarkLeadLost -> markLost(action.leadId)
+            is LeadPipelineAction.ReopenLead -> reopenLead(action.leadId)
+            is LeadPipelineAction.SwitchTab -> _state.update { it.copy(activeTab = action.tab) }
         }
     }
 
@@ -166,7 +172,11 @@ class LeadPipelineViewModel(
     private fun loadStatuses() {
         viewModelScope.launch {
             leadStatusRepository.getAll().onSuccess { statuses ->
-                _state.update { it.copy(statuses = statuses) }
+                _state.update {
+                    it.copy(statuses = statuses.filter { s ->
+                        s.name.uppercase() != "WON" && s.name.uppercase() != "LOST"
+                    })
+                }
             }
         }
     }
@@ -295,8 +305,19 @@ class LeadPipelineViewModel(
             if (!silent) _state.update { it.copy(isLoading = true, error = null) }
             getAllLeadsUseCase()
                 .onSuccess { leads ->
-                    _state.update { it.copy(leads = leads, isLoading = false, isRefreshing = false) }
-                    loadTaskCounts(leads)
+                    val active = leads.filter { !it.isWon && !it.isLost }
+                    val won = leads.filter { it.isWon }
+                    val lost = leads.filter { it.isLost }
+                    _state.update {
+                        it.copy(
+                            leads = active,
+                            wonLeads = won,
+                            lostLeads = lost,
+                            isLoading = false,
+                            isRefreshing = false
+                        )
+                    }
+                    loadTaskCounts(active)
                 }
                 .onFailure { error ->
                     _state.update { it.copy(isLoading = false, isRefreshing = false) }
@@ -325,6 +346,68 @@ class LeadPipelineViewModel(
             taskRepository.getActiveCountByLeadId(leadId).onSuccess { count ->
                 _state.update { it.copy(taskCounts = it.taskCounts + (leadId to count)) }
             }
+        }
+    }
+
+    private fun markWon(leadId: String) {
+        viewModelScope.launch {
+            leadRepository.markWon(leadId)
+                .onSuccess { updated ->
+                    _state.update { s ->
+                        s.copy(
+                            leads = s.leads.filter { it.id != leadId },
+                            wonLeads = (s.wonLeads.filter { it.id != leadId }) + updated,
+                            lostLeads = s.lostLeads.filter { it.id != leadId },
+                            selectedLead = null
+                        )
+                    }
+                    RefreshManager.triggerRefresh()
+                    _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Lead marked as Won — booking created"))
+                }
+                .onFailure { error ->
+                    _uiEvent.send(LeadPipelineUiEvent.ShowError(ErrorMessages.forGeneric(error.message)))
+                }
+        }
+    }
+
+    private fun markLost(leadId: String) {
+        viewModelScope.launch {
+            leadRepository.markLost(leadId)
+                .onSuccess { updated ->
+                    _state.update { s ->
+                        s.copy(
+                            leads = s.leads.filter { it.id != leadId },
+                            wonLeads = s.wonLeads.filter { it.id != leadId },
+                            lostLeads = (s.lostLeads.filter { it.id != leadId }) + updated,
+                            selectedLead = null
+                        )
+                    }
+                    RefreshManager.triggerRefresh()
+                    _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Lead marked as Lost"))
+                }
+                .onFailure { error ->
+                    _uiEvent.send(LeadPipelineUiEvent.ShowError(ErrorMessages.forGeneric(error.message)))
+                }
+        }
+    }
+
+    private fun reopenLead(leadId: String) {
+        viewModelScope.launch {
+            leadRepository.reopenLead(leadId)
+                .onSuccess { updated ->
+                    _state.update { s ->
+                        s.copy(
+                            leads = (s.leads.filter { it.id != leadId }) + updated,
+                            wonLeads = s.wonLeads.filter { it.id != leadId },
+                            lostLeads = s.lostLeads.filter { it.id != leadId }
+                        )
+                    }
+                    RefreshManager.triggerRefresh()
+                    _uiEvent.send(LeadPipelineUiEvent.ShowSnackbar("Lead returned to Active pipeline"))
+                }
+                .onFailure { error ->
+                    _uiEvent.send(LeadPipelineUiEvent.ShowError(ErrorMessages.forGeneric(error.message)))
+                }
         }
     }
 

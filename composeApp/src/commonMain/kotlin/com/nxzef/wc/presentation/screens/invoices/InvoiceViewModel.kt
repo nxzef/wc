@@ -129,8 +129,8 @@ class InvoiceViewModel(
     private fun updatePayment(invoiceId: String, request: UpdatePaymentRequest) {
         viewModelScope.launch {
             updatePaymentUseCase(invoiceId, request)
-                .onSuccess {
-                    _uiEvent.send(InvoiceUiEvent.PaymentUpdated)
+                .onSuccess { (_, emailSent) ->
+                    _uiEvent.send(InvoiceUiEvent.PaymentUpdated(emailSent))
                     RefreshManager.triggerRefresh()
                     load()
                     _state.value.selectedInvoice?.let { loadReceipts(invoiceId) }

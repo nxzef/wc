@@ -29,9 +29,49 @@ class LeadRepositoryImpl(
         }
     }
 
+    override suspend fun getById(id: String): AppResult<Lead> {
+        return try {
+            AppResult.Success(leadService.getLeadById(id))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
+
     override suspend fun create(request: CreateLeadRequest): AppResult<Lead> {
         return try {
             AppResult.Success(leadService.create(request))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
+
+    override suspend fun updateLead(id: String, request: CreateLeadRequest): AppResult<Lead> {
+        return try {
+            AppResult.Success(leadService.updateLead(id, request))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
+
+    override suspend fun markWon(id: String): AppResult<Lead> {
+        return try {
+            AppResult.Success(leadService.markWon(id))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
+
+    override suspend fun markLost(id: String): AppResult<Lead> {
+        return try {
+            AppResult.Success(leadService.markLost(id))
+        } catch (e: Exception) {
+            AppResult.Failure(e)
+        }
+    }
+
+    override suspend fun reopenLead(id: String): AppResult<Lead> {
+        return try {
+            AppResult.Success(leadService.reopenLead(id))
         } catch (e: Exception) {
             AppResult.Failure(e)
         }

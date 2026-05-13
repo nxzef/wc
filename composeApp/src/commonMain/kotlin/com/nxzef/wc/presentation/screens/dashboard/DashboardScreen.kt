@@ -103,6 +103,7 @@ fun DashboardScreen(
     onNavigateToAddLead: () -> Unit = {},
     onNavigateToBookings: () -> Unit = {},
     onViewLeads: () -> Unit = {},
+    onNavigateToAnalytics: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel(),
     sessionManager: SessionManager = koinInject()
 ) {
@@ -183,6 +184,7 @@ fun DashboardScreen(
                         onNavigateToAddLead = onNavigateToAddLead,
                         onNavigateToBookings = onNavigateToBookings,
                         onViewLeads = onViewLeads,
+                        onNavigateToAnalytics = onNavigateToAnalytics,
                         onSetGoalClick = { viewModel.onAction(DashboardAction.ShowGoalDialog) },
                         modifier = Modifier.widthIn(max = 1000.dp).fillMaxWidth()
                     )
@@ -213,6 +215,7 @@ fun DashboardContent(
     onNavigateToAddLead: () -> Unit,
     onNavigateToBookings: () -> Unit,
     onViewLeads: () -> Unit,
+    onNavigateToAnalytics: () -> Unit = {},
     onSetGoalClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -269,6 +272,13 @@ fun DashboardContent(
                             label = "Tasks",
                             icon = Icons.Default.AssignmentTurnedIn,
                             onClick = onNavigateToTasks
+                        )
+                    }
+                    item {
+                        QuickActionChip(
+                            label = "Analytics",
+                            icon = Icons.Default.Analytics,
+                            onClick = onNavigateToAnalytics
                         )
                     }
                 }
@@ -376,8 +386,20 @@ fun DashboardContent(
                             )
                         }
                         
-                        FilledTonalButton(onClick = { /* Implement Export */ }) {
-                            Text("Download Report")
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(onClick = onNavigateToAnalytics) {
+                                Text(
+                                    "Analytics →",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                            FilledTonalButton(onClick = { /* Implement Export */ }) {
+                                Text("Download Report")
+                            }
                         }
                     }
                     

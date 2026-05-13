@@ -12,7 +12,8 @@ data class ReceiptDto(
     val receiptType: String,
     val amount: Double,
     val paidDate: String,
-    val createdAt: String
+    val createdAt: String,
+    val emailSent: Boolean = false
 )
 
 fun ReceiptDto.toDomain(): Receipt = Receipt(
@@ -22,7 +23,8 @@ fun ReceiptDto.toDomain(): Receipt = Receipt(
     receiptType = ReceiptType.valueOf(receiptType),
     amount = amount,
     paidDate = paidDate,
-    createdAt = createdAt
+    createdAt = createdAt,
+    emailSent = emailSent
 )
 
 fun Receipt.toDto(): ReceiptDto = ReceiptDto(
@@ -32,5 +34,6 @@ fun Receipt.toDto(): ReceiptDto = ReceiptDto(
     receiptType = receiptType.name,
     amount = amount,
     paidDate = paidDate,
-    createdAt = createdAt
+    createdAt = createdAt,
+    emailSent = emailSent
 )

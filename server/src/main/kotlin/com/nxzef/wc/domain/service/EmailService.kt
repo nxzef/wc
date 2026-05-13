@@ -110,29 +110,84 @@ class EmailService {
         paymentType: String,
         eventType: String,
         eventDate: String,
-        receiptId: String
+        receiptId: String,
+        remainingAmount: Double = 0.0
     ): Boolean {
-        val formattedAmount = "₹${String.format("%,.0f", amount)}"
-        val typeLabel = if (paymentType == "ADVANCE") "Advance Payment" else "Final Payment"
+        val isAdvance = paymentType == "ADVANCE"
+        val typeLabel = if (isAdvance) "Advance Payment" else "Final Payment"
+        val formattedAmount = formatINR(amount)
+        val balanceDueHtml = if (isAdvance) {
+            "<tr><td style=\"padding:10px 12px;border-bottom:1px solid #f0f0f0\"><strong>Balance Due</strong></td>" +
+            "<td style=\"padding:10px 12px;border-bottom:1px solid #f0f0f0;color:#E91E63;font-weight:bold\">${formatINR(remainingAmount)}</td></tr>"
+        } else {
+            "<tr><td style=\"padding:10px 12px;border-bottom:1px solid #f0f0f0\"><strong>Balance Due</strong></td>" +
+            "<td style=\"padding:10px 12px;border-bottom:1px solid #f0f0f0;color:#4CAF50;font-weight:bold\">₹0 — Fully Paid ✓</td></tr>"
+        }
+        val shortReceiptId = receiptId.take(8).uppercase()
         val html = """
-            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-              <h2 style="color:#E91E63">The Wedding Clouds</h2>
-              <h3>Payment Receipt</h3>
-              <p>Dear $clientName,</p>
-              <p>We have received your $typeLabel of <strong>$formattedAmount</strong>.</p>
-              <table style="width:100%;border-collapse:collapse;margin:20px 0">
-                <tr><td style="padding:8px;border-bottom:1px solid #eee"><strong>Receipt ID</strong></td><td style="padding:8px;border-bottom:1px solid #eee">$receiptId</td></tr>
-                <tr><td style="padding:8px;border-bottom:1px solid #eee"><strong>Event</strong></td><td style="padding:8px;border-bottom:1px solid #eee">$eventType</td></tr>
-                <tr><td style="padding:8px;border-bottom:1px solid #eee"><strong>Event Date</strong></td><td style="padding:8px;border-bottom:1px solid #eee">$eventDate</td></tr>
-                <tr><td style="padding:8px;border-bottom:1px solid #eee"><strong>Payment Type</strong></td><td style="padding:8px;border-bottom:1px solid #eee">$typeLabel</td></tr>
-                <tr><td style="padding:8px"><strong>Amount Paid</strong></td><td style="padding:8px;color:#4CAF50;font-weight:bold">$formattedAmount</td></tr>
-              </table>
-              <p>Thank you for choosing The Wedding Clouds for your special day!</p>
-              <br/>
-              <p>Warm regards,<br/><strong>The Wedding Clouds Team</strong></p>
-            </div>
+            <!DOCTYPE html>
+            <html>
+            <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif">
+              <div style="max-width:600px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+                <div style="background:#FCE4EC;padding:28px 32px;border-bottom:3px solid #E91E63">
+                  <h1 style="margin:0;color:#C2185B;font-size:26px;font-weight:800;letter-spacing:-0.5px">The Wedding Clouds</h1>
+                  <p style="margin:4px 0 0;color:#AD1457;font-size:13px">Photography &amp; Memories</p>
+                </div>
+                <div style="padding:32px">
+                  <h2 style="margin:0 0 4px;color:#212121;font-size:20px">Payment Receipt</h2>
+                  <p style="margin:0 0 24px;color:#757575;font-size:13px">Receipt #$shortReceiptId</p>
+                  <p style="margin:0 0 24px;color:#424242;font-size:15px">Dear <strong>$clientName</strong>,</p>
+                  <p style="margin:0 0 24px;color:#424242;font-size:15px">
+                    We have received your <strong>$typeLabel</strong> of <strong style="color:#4CAF50">$formattedAmount</strong>. Thank you!
+                  </p>
+                  <table style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;border:1px solid #f0f0f0">
+                    <tr style="background:#fafafa">
+                      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;color:#757575;font-size:13px;width:45%"><strong>Client Name</strong></td>
+                      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px">$clientName</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;color:#757575;font-size:13px"><strong>Event</strong></td>
+                      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px">$eventType</td>
+                    </tr>
+                    <tr style="background:#fafafa">
+                      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;color:#757575;font-size:13px"><strong>Event Date</strong></td>
+                      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px">$eventDate</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;color:#757575;font-size:13px"><strong>Payment Type</strong></td>
+                      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px">$typeLabel</td>
+                    </tr>
+                    <tr style="background:#fafafa">
+                      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;color:#757575;font-size:13px"><strong>Amount Paid</strong></td>
+                      <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#4CAF50;font-weight:bold">$formattedAmount</td>
+                    </tr>
+                    $balanceDueHtml
+                  </table>
+                  <div style="margin-top:32px;padding-top:24px;border-top:1px solid #f0f0f0">
+                    <p style="margin:0;color:#616161;font-size:14px">
+                      Thank you for choosing <strong>The Wedding Clouds</strong> to capture your special day.<br/>
+                      We look forward to creating beautiful memories with you!
+                    </p>
+                    <p style="margin:16px 0 0;color:#757575;font-size:13px">
+                      Warm regards,<br/><strong style="color:#C2185B">The Wedding Clouds Team</strong>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </body>
+            </html>
         """.trimIndent()
         return sendEmail(to, "Payment Receipt — The Wedding Clouds", html)
+    }
+
+    private fun formatINR(amount: Double): String {
+        val intPart = amount.toLong()
+        val str = intPart.toString()
+        if (str.length <= 3) return "₹$str"
+        val last3 = str.takeLast(3)
+        val rest = str.dropLast(3)
+        val grouped = rest.reversed().chunked(2).joinToString(",").reversed()
+        return "₹$grouped,$last3"
     }
 
     suspend fun sendTeamInvitationEmail(

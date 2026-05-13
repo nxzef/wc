@@ -4,6 +4,7 @@ import com.nxzef.wc.data.repository.InvoiceRepository
 import com.nxzef.wc.data.repository.InvoiceWithClient
 import com.nxzef.wc.data.repository.ReceiptRepository
 import com.nxzef.wc.domain.service.EmailService
+import com.nxzef.wc.shared.dto.UpdatePaymentResponse
 import com.nxzef.wc.shared.dto.toDto
 import com.nxzef.wc.shared.model.ReceiptType
 import com.nxzef.wc.shared.model.UpdatePaymentRequest
@@ -50,6 +51,8 @@ fun Route.invoiceRoutes(
             val existing = details.invoice
             val today = LocalDate.now().toString()
 
+            var emailSent = false
+
             if (request.depositPaid == true && !existing.depositPaid) {
                 val receipt = receiptRepository.create(
                     invoiceId = id,
@@ -59,12 +62,14 @@ fun Route.invoiceRoutes(
                     paidDate  = request.depositPaidDate ?: today,
                     teamId    = teamId
                 )
-                sendReceiptEmail(
+                val remainingAfterDeposit = existing.totalAmount - existing.depositAmount
+                emailSent = sendReceiptEmail(
                     emailService = emailService,
                     details = details,
                     amount = existing.depositAmount,
                     paymentType = ReceiptType.ADVANCE.name,
-                    receiptId = receipt.id
+                    receiptId = receipt.id,
+                    remainingAmount = remainingAfterDeposit
                 )
             }
 
@@ -77,19 +82,20 @@ fun Route.invoiceRoutes(
                     paidDate  = request.finalPaidDate ?: today,
                     teamId    = teamId
                 )
-                sendReceiptEmail(
+                emailSent = sendReceiptEmail(
                     emailService = emailService,
                     details = details,
                     amount = existing.remainingAmount,
                     paymentType = ReceiptType.FINAL.name,
-                    receiptId = receipt.id
+                    receiptId = receipt.id,
+                    remainingAmount = 0.0
                 )
             }
 
             val invoice = invoiceRepository.updatePayment(id, request, teamId)
                 ?: return@put call.respond(HttpStatusCode.NotFound, "Invoice not found")
 
-            call.respond(invoice.toDto())
+            call.respond(UpdatePaymentResponse(invoice = invoice.toDto(), emailSent = emailSent))
         }
     }
 }
@@ -99,20 +105,27 @@ private suspend fun sendReceiptEmail(
     details: InvoiceWithClient,
     amount: Double,
     paymentType: String,
-    receiptId: String
-) {
+    receiptId: String,
+    remainingAmount: Double = 0.0
+): Boolean {
     val email = details.clientEmail
     if (email.isNullOrBlank()) {
-        println("⚠️  Skipping receipt email — lead ${details.clientName} has no email on file (invoice ${details.invoice.id}, $paymentType).")
-        return
+        println("⚠️  No client email for invoice ${details.invoice.id} — receipt not sent")
+        return false
     }
-    emailService.sendPaymentReceiptEmail(
-        to = email,
-        clientName = details.clientName,
-        amount = amount,
-        paymentType = paymentType,
-        eventType = details.eventType,
-        eventDate = details.eventDate,
-        receiptId = receiptId
-    )
+    return try {
+        emailService.sendPaymentReceiptEmail(
+            to = email,
+            clientName = details.clientName,
+            amount = amount,
+            paymentType = paymentType,
+            eventType = details.eventType,
+            eventDate = details.eventDate,
+            receiptId = receiptId,
+            remainingAmount = remainingAmount
+        )
+    } catch (e: Exception) {
+        println("⚠️  Receipt email failed for invoice ${details.invoice.id}: ${e.message}")
+        false
+    }
 }

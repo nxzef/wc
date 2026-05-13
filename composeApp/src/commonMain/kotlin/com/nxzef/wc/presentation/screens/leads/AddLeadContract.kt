@@ -1,6 +1,7 @@
 package com.nxzef.wc.presentation.screens.leads
 
 import com.nxzef.wc.shared.model.EventType
+import com.nxzef.wc.shared.model.Lead
 import com.nxzef.wc.shared.model.LeadSource
 import com.nxzef.wc.shared.model.User
 
@@ -20,7 +21,10 @@ data class AddLeadState(
     val assignedTo: String = "",
     val teamMembers: List<User> = emptyList(),
     val isLoading: Boolean = false,
-    val isLoadingTeam: Boolean = false
+    val isLoadingTeam: Boolean = false,
+    val isEditMode: Boolean = false,
+    val originalLead: Lead? = null,
+    val hasChanges: Boolean = false
 )
 
 sealed interface AddLeadAction {
@@ -38,9 +42,10 @@ sealed interface AddLeadAction {
     data class OnNotesChange(val value: String) : AddLeadAction
     data class OnAssignedToChange(val value: String) : AddLeadAction
     data object OnSubmit : AddLeadAction
+    data class LoadLead(val leadId: String) : AddLeadAction
 }
 
 sealed interface AddLeadUiEvent {
-    data object LeadCreated : AddLeadUiEvent
+    data object LeadSaved : AddLeadUiEvent
     data class ShowSnackbar(val message: String) : AddLeadUiEvent
 }

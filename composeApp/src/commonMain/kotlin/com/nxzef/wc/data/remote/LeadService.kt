@@ -43,6 +43,43 @@ class LeadService(
         return dto.toDomain()
     }
 
+    suspend fun getLeadById(id: String): Lead {
+        val dto: LeadDto = client.get("$baseUrl/leads/$id") {
+            header("Authorization", "Bearer ${sessionManager.getToken()}")
+        }.body()
+        return dto.toDomain()
+    }
+
+    suspend fun updateLead(id: String, request: CreateLeadRequest): Lead {
+        val dto: LeadDto = client.put("$baseUrl/leads/$id") {
+            header("Authorization", "Bearer ${sessionManager.getToken()}")
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+        return dto.toDomain()
+    }
+
+    suspend fun markWon(id: String): Lead {
+        val dto: LeadDto = client.post("$baseUrl/leads/$id/won") {
+            header("Authorization", "Bearer ${sessionManager.getToken()}")
+        }.body()
+        return dto.toDomain()
+    }
+
+    suspend fun markLost(id: String): Lead {
+        val dto: LeadDto = client.post("$baseUrl/leads/$id/lost") {
+            header("Authorization", "Bearer ${sessionManager.getToken()}")
+        }.body()
+        return dto.toDomain()
+    }
+
+    suspend fun reopenLead(id: String): Lead {
+        val dto: LeadDto = client.post("$baseUrl/leads/$id/reopen") {
+            header("Authorization", "Bearer ${sessionManager.getToken()}")
+        }.body()
+        return dto.toDomain()
+    }
+
     suspend fun create(request: CreateLeadRequest): Lead {
         val dto: LeadDto = client.post("$baseUrl/leads") {
             header("Authorization", "Bearer ${SessionManager.getToken()}")

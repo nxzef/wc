@@ -13,5 +13,6 @@ data class Receipt(
     val receiptType: ReceiptType,
     val amount: Double,
     val paidDate: String,
-    val createdAt: String
+    val createdAt: String,
+    val emailSent: Boolean = false
 )

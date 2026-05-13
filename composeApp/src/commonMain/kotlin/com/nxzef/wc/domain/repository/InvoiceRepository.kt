@@ -9,5 +9,5 @@ interface InvoiceRepository {
     suspend fun getAll(): AppResult<List<Invoice>>
     suspend fun getByBookingId(bookingId: String): AppResult<Invoice>
     suspend fun create(request: CreateInvoiceRequest): AppResult<Invoice>
-    suspend fun updatePayment(id: String, request: UpdatePaymentRequest): AppResult<Invoice>
+    suspend fun updatePayment(id: String, request: UpdatePaymentRequest): AppResult<Pair<Invoice, Boolean>>
 }

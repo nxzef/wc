@@ -26,7 +26,9 @@ data class LeadDto(
     val addedBy: String,
     val assignedTo: String,
     val createdAt: String,
-    val budget: Double = 0.0
+    val budget: Double = 0.0,
+    val isWon: Boolean = false,
+    val isLost: Boolean = false
 )
 
 fun LeadDto.toDomain(): Lead {
@@ -57,7 +59,9 @@ fun LeadDto.toDomain(): Lead {
         addedBy = addedBy,
         assignedTo = assignedTo,
         createdAt = createdAt,
-        budget = budget
+        budget = budget,
+        isWon = isWon,
+        isLost = isLost
     )
 }
 
@@ -81,6 +85,8 @@ fun Lead.toDto(): LeadDto {
         addedBy = addedBy,
         assignedTo = assignedTo,
         createdAt = createdAt,
-        budget = budget
+        budget = budget,
+        isWon = isWon,
+        isLost = isLost
     )
 }

@@ -75,18 +75,25 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddLeadScreen(
-    onLeadCreated: () -> Unit,
+    onLeadSaved: () -> Unit,
     onBack: () -> Unit,
+    leadId: String? = null,
     viewModel: AddLeadViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    LaunchedEffect(leadId) {
+        if (leadId != null) {
+            viewModel.onAction(AddLeadAction.LoadLead(leadId))
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is AddLeadUiEvent.LeadCreated ->
-                    onLeadCreated()
+                is AddLeadUiEvent.LeadSaved ->
+                    onLeadSaved()
 
                 is AddLeadUiEvent.ShowSnackbar ->
                     snackbarHostState.showSnackbar(event.message)
@@ -94,12 +101,13 @@ fun AddLeadScreen(
         }
     }
 
+    val isEditMode = state.isEditMode
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             WCTopBar(
-                title = "Add New Lead",
-                subtitle = "Capture a new enquiry",
+                title = if (isEditMode) "Edit Lead" else "Add New Lead",
+                subtitle = if (isEditMode) "Update lead information" else "Capture a new enquiry",
                 onBack = onBack
             )
         }
@@ -475,7 +483,7 @@ fun AddLeadScreen(
                         .widthIn(min = 200.dp)
                         .height(52.dp),
                     shape = MaterialTheme.shapes.large,
-                    enabled = !state.isLoading
+                    enabled = !state.isLoading && (!isEditMode || state.hasChanges)
                 ) {
                     if (state.isLoading) {
                         CircularProgressIndicator(
@@ -487,7 +495,7 @@ fun AddLeadScreen(
                         Icon(Icons.Default.PersonAdd, null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Create Lead",
+                            text = if (isEditMode) "Save Changes" else "Create Lead",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold
                         )

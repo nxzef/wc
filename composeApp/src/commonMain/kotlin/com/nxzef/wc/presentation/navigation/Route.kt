@@ -29,12 +29,11 @@ sealed interface Route {
     @Serializable
     data object Invoices : Route
     @Serializable data object Settings : Route
-    @Serializable data object AddLead : Route
+    @Serializable data class AddLead(val leadId: String = "") : Route
     @Serializable data object Bookings : Route
     @Serializable data class Quotes(val leadId: String, val clientName: String, val clientEmail: String) : Route
     @Serializable data object Tasks : Route
     @Serializable data class ProjectExpenses(val bookingId: String) : Route
-    @Serializable data object BookingCalendar : Route
     @Serializable data class Project(val bookingId: String) : Route
     @Serializable data object Analytics : Route
 }

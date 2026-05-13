@@ -25,6 +25,8 @@ object LeadsTable : Table("leads") {
     val assignedTo = uuid("assigned_to").references(UsersTable.id)
     val teamId = uuid("team_id").references(TeamsTable.id).nullable()
     val budget = decimal("budget", precision = 12, scale = 2).default(BigDecimal.ZERO)
+    val isWon = bool("is_won").default(false)
+    val isLost = bool("is_lost").default(false)
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

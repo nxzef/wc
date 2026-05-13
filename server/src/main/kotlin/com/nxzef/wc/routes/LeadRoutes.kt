@@ -55,6 +55,16 @@ fun Route.leadRoutes(
             call.respond(HttpStatusCode.Created, lead.toDto())
         }
 
+        put("/{id}") {
+            val teamId = call.requireTeamId() ?: return@put
+            val id = call.parameters["id"]
+                ?: return@put call.respond(HttpStatusCode.BadRequest, "Missing id")
+            val request = call.receive<CreateLeadRequest>()
+            val lead = leadRepository.updateLead(id, request, teamId)
+                ?: return@put call.respond(HttpStatusCode.NotFound, "Lead not found")
+            call.respond(lead.toDto())
+        }
+
         put("/{id}/status") {
             val teamId = call.requireTeamId() ?: return@put
             val id = call.parameters["id"]
@@ -62,25 +72,46 @@ fun Route.leadRoutes(
             val request = call.receive<UpdateLeadStatusRequest>()
             val lead = leadRepository.updateStatus(id, request, teamId)
                 ?: return@put call.respond(HttpStatusCode.NotFound, "Lead not found")
+            call.respond(lead.toDto())
+        }
 
-            // When manually moved to WON — create a booking if one doesn't already exist.
-            // A booking may already exist if the lead had an accepted quote earlier.
-            if (lead.statusName.equals("WON", ignoreCase = true)) {
-                val alreadyBooked = bookingRepository.getAll(teamId).any { it.leadId == lead.id }
-                if (!alreadyBooked) {
-                    bookingRepository.create(
-                        CreateBookingRequest(
-                            leadId = lead.id,
-                            eventDate = lead.eventDate ?: LocalDate.now().toString(),
-                            eventType = lead.eventType.name,
-                            location = lead.location ?: "TBD",
-                            notes = "Automatically created when lead was marked WON"
-                        ),
-                        teamId = teamId
-                    )
-                }
+        post("/{id}/won") {
+            val teamId = call.requireTeamId() ?: return@post
+            val id = call.parameters["id"]
+                ?: return@post call.respond(HttpStatusCode.BadRequest, "Missing id")
+            val lead = leadRepository.markWon(id, teamId)
+                ?: return@post call.respond(HttpStatusCode.NotFound, "Lead not found")
+            val alreadyBooked = bookingRepository.getAll(teamId).any { it.leadId == lead.id }
+            if (!alreadyBooked) {
+                bookingRepository.create(
+                    CreateBookingRequest(
+                        leadId = lead.id,
+                        eventDate = lead.eventDate ?: LocalDate.now().toString(),
+                        eventType = lead.eventType.name,
+                        location = lead.location ?: "TBD",
+                        notes = "Automatically created when lead was marked WON"
+                    ),
+                    teamId = teamId
+                )
             }
+            call.respond(lead.toDto())
+        }
 
+        post("/{id}/lost") {
+            val teamId = call.requireTeamId() ?: return@post
+            val id = call.parameters["id"]
+                ?: return@post call.respond(HttpStatusCode.BadRequest, "Missing id")
+            val lead = leadRepository.markLost(id, teamId)
+                ?: return@post call.respond(HttpStatusCode.NotFound, "Lead not found")
+            call.respond(lead.toDto())
+        }
+
+        post("/{id}/reopen") {
+            val teamId = call.requireTeamId() ?: return@post
+            val id = call.parameters["id"]
+                ?: return@post call.respond(HttpStatusCode.BadRequest, "Missing id")
+            val lead = leadRepository.reopen(id, teamId)
+                ?: return@post call.respond(HttpStatusCode.NotFound, "Lead not found")
             call.respond(lead.toDto())
         }
     }

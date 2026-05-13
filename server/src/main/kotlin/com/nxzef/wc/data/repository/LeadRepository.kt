@@ -63,7 +63,9 @@ class LeadRepository {
             addedBy = row[LeadsTable.addedBy].toString(),
             assignedTo = row[LeadsTable.assignedTo].toString(),
             createdAt = row[LeadsTable.createdAt].toString(),
-            budget = row[LeadsTable.budget].toDouble()
+            budget = row[LeadsTable.budget].toDouble(),
+            isWon = row[LeadsTable.isWon],
+            isLost = row[LeadsTable.isLost]
         )
     }
 
@@ -121,6 +123,73 @@ class LeadRepository {
             } get LeadsTable.id
 
             getById(id.toString(), teamId)!!
+        }
+    }
+
+    fun updateLead(id: String, request: CreateLeadRequest, teamId: String): Lead? {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return null }
+        val uuid = try { UUID.fromString(id) } catch (_: Exception) { return null }
+        return transaction {
+            val updated = LeadsTable.update(
+                { (LeadsTable.id eq uuid) and (LeadsTable.teamId eq tUuid) }
+            ) {
+                it[fullName] = request.fullName
+                it[phone] = request.phone
+                it[email] = request.email
+                it[leadSource] = request.source.name
+                it[eventType] = request.eventType.name
+                it[eventDate] = request.eventDate?.let { d -> LocalDate.parse(d) }
+                it[eventEndDate] = request.eventEndDate?.let { d -> LocalDate.parse(d) }
+                it[location] = request.location
+                it[priority] = request.priority
+                it[budget] = request.budget.toBigDecimal()
+                it[notes] = request.notes
+                it[assignedTo] = UUID.fromString(request.assignedTo)
+            }
+            if (updated == 0) return@transaction null
+            getById(id, teamId)
+        }
+    }
+
+    fun markWon(id: String, teamId: String): Lead? {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return null }
+        return transaction {
+            val updated = LeadsTable.update(
+                { (LeadsTable.id eq UUID.fromString(id)) and (LeadsTable.teamId eq tUuid) }
+            ) {
+                it[isWon] = true
+                it[isLost] = false
+            }
+            if (updated == 0) return@transaction null
+            getById(id, teamId)
+        }
+    }
+
+    fun markLost(id: String, teamId: String): Lead? {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return null }
+        return transaction {
+            val updated = LeadsTable.update(
+                { (LeadsTable.id eq UUID.fromString(id)) and (LeadsTable.teamId eq tUuid) }
+            ) {
+                it[isWon] = false
+                it[isLost] = true
+            }
+            if (updated == 0) return@transaction null
+            getById(id, teamId)
+        }
+    }
+
+    fun reopen(id: String, teamId: String): Lead? {
+        val tUuid = try { UUID.fromString(teamId) } catch (_: Exception) { return null }
+        return transaction {
+            val updated = LeadsTable.update(
+                { (LeadsTable.id eq UUID.fromString(id)) and (LeadsTable.teamId eq tUuid) }
+            ) {
+                it[isWon] = false
+                it[isLost] = false
+            }
+            if (updated == 0) return@transaction null
+            getById(id, teamId)
         }
     }
 

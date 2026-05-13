@@ -32,7 +32,9 @@ data class Lead(
     val addedBy: String,
     val assignedTo: String,
     val createdAt: String,
-    val budget: Double = 0.0
+    val budget: Double = 0.0,
+    val isWon: Boolean = false,
+    val isLost: Boolean = false
 )
 
 @Serializable

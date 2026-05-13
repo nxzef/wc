@@ -8,10 +8,19 @@ import com.nxzef.wc.shared.model.Task
 
 enum class PipelineViewLayout { BOARD, LIST }
 
+enum class PipelineTab(val label: String) {
+    ACTIVE("Active"),
+    WON("Won"),
+    LOST("Lost")
+}
+
 data class LeadPipelineState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val leads: List<Lead> = emptyList(),
+    val wonLeads: List<Lead> = emptyList(),
+    val lostLeads: List<Lead> = emptyList(),
+    val activeTab: PipelineTab = PipelineTab.ACTIVE,
     val statuses: List<LeadStatus> = emptyList(),
     val taskCounts: Map<String, Int> = emptyMap(),
     val error: String? = null,
@@ -75,6 +84,11 @@ sealed interface LeadPipelineAction {
     data object ToggleViewLayout : LeadPipelineAction
     data class OnColumnWidthChange(val statusId: String, val widthDp: Float) : LeadPipelineAction
     data class ReorderStatuses(val newOrder: List<LeadStatus>) : LeadPipelineAction
+
+    data class MarkLeadWon(val leadId: String) : LeadPipelineAction
+    data class MarkLeadLost(val leadId: String) : LeadPipelineAction
+    data class ReopenLead(val leadId: String) : LeadPipelineAction
+    data class SwitchTab(val tab: PipelineTab) : LeadPipelineAction
 }
 
 sealed interface LeadPipelineUiEvent {
