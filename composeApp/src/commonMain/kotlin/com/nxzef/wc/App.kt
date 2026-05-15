@@ -1,5 +1,11 @@
 package com.nxzef.wc
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -10,6 +16,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.nxzef.wc.config.AppConfig
 import com.nxzef.wc.data.local.TokenStorage
 import com.nxzef.wc.data.remote.AppVersionService
@@ -54,6 +66,8 @@ fun App() {
 
     if (isReady) {
         WCNavigation(isFreshInstall = isFreshInstall)
+    } else {
+        WCSplashScreen()
     }
 
     if (showUpdateDialog) {
@@ -72,6 +86,33 @@ fun App() {
                     Text("Later")
                 }
             }
+        )
+    }
+}
+
+@Composable
+private fun WCSplashScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0E1513)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "The Wedding Clouds",
+            color = Color(0xFF83D5C5),
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.5).sp
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Wedding Photography CRM",
+            color = Color(0xFF83D5C5).copy(alpha = 0.5f),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Normal,
+            letterSpacing = 1.sp
         )
     }
 }
