@@ -327,8 +327,9 @@ jobs:
       - name: Build and push Docker image
         run: |
           gcloud builds submit \
-            --tag asia-south1-docker.pkg.dev/wedding-clouds/wc-repo/wc-server \
-            .
+             --tag asia-south1-docker.pkg.dev/wedding-clouds/wc-repo/wc-server \
+             --async \
+             .
 
       - name: Deploy to Cloud Run
         run: |
