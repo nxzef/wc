@@ -99,15 +99,20 @@ compose.desktop {
                 TargetFormat.Deb,
                 TargetFormat.Rpm
             )
+            // Automatically read version from AppConfig.kt
+            val appConfigText = project.file("src/commonMain/kotlin/com/nxzef/wc/config/AppConfig.kt").readText()
+            val versionRegex = """const val CURRENT_VERSION = "([^"]+)"""".toRegex()
+            val versionFromCode = versionRegex.find(appConfigText)?.groupValues?.get(1) ?: "1.0.0"
+
             packageName = "WeddingClouds"
-            packageVersion = "1.0.0"
+            packageVersion = versionFromCode
             description = "Photography CRM"
             copyright = "© 2026 The Wedding Clouds"
             vendor = "The Wedding Clouds"
 
             // jlink strips the JRE to only detected modules — explicitly include
             // jdk.unsupported so sun.misc.Unsafe is present (needed by DataStore/protobuf)
-            // jdk.crypto.ec for TLS/HTTPS (Ktor connecting to the Railway server)
+            // jdk.crypto.ec for TLS/HTTPS (Ktor connecting to the backend server)
             modules("jdk.unsupported", "jdk.crypto.ec")
 
             macOS {

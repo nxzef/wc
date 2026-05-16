@@ -3,7 +3,7 @@
 A Kotlin Multiplatform desktop + mobile CRM for managing a wedding photography business. Handles leads, bookings, quotes, invoices, tasks, and team management — all from one app.
 
 **Targets:** Android · Desktop (JVM) · iOS  
-**Backend:** Ktor + PostgreSQL (self-hosted on Railway)
+**Backend:** Ktor + PostgreSQL (hosted on Google Cloud Run + Supabase)
 
 ---
 

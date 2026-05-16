@@ -118,7 +118,7 @@ jobs:
       - name: Read version from gradle
         id: ver
         run: |
-          VER=$(grep -oP 'packageVersion\s*=\s*"\K[^"]+' composeApp/build.gradle.kts | head -1)
+          VER=$(grep -oP 'const val CURRENT_VERSION = "\K[^"]+' composeApp/src/commonMain/kotlin/com/nxzef/wc/config/AppConfig.kt | head -1)
           echo "version=${VER}" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release and upload installers
@@ -279,3 +279,68 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+  deploy-server:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: deploy-gradle-${{ hashFiles('**/*.gradle.kts') }}
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      - name: Read version from gradle
+        id: ver
+        run: |
+          VER=$(grep -oP 'const val CURRENT_VERSION = "\K[^"]+' composeApp/src/commonMain/kotlin/com/nxzef/wc/config/AppConfig.kt | head -1)
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+
+      - name: Build fat JAR
+        run: ./gradlew :server:shadowJar --no-daemon
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/1055385353237/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-deploy@wedding-clouds.iam.gserviceaccount.com'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push Docker image
+        run: |
+          gcloud builds submit \
+            --tag asia-south1-docker.pkg.dev/wedding-clouds/wc-repo/wc-server \
+            .
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy wc-server \
+            --image asia-south1-docker.pkg.dev/wedding-clouds/wc-repo/wc-server \
+            --platform managed \
+            --region asia-south1 \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory 512Mi \
+            --min-instances 0 \
+            --max-instances 2
+
+      - name: Update version in Supabase
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          PSQL_URL=$(echo "${{ secrets.DATABASE_URL }}" | sed 's/jdbc://')
+          psql "$PSQL_URL" -c "UPDATE app_config SET value = '${{ steps.ver.outputs.version }}', updated_at = NOW() WHERE key = 'latest_version';"
